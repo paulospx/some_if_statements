@@ -5,7 +5,7 @@ Replaces AI and Artificial Intelligence by "some IF stetements"
 
 Create a bookmarklet with the following link:
 
-    javascript:(function(){var d=document,s=d.createElement('script');s.src='LINK_HERE';d.body.appendChild(s);}())
+    javascript:(function(){var d=document,s=d.createElement('script');s.src='https://paulopaixao.github.io/some_if_statements/ai.src.js';d.body.appendChild(s);}())
 
 To a bookmark and save the bookmarklet.
 
