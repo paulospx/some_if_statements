@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Sprint Goal Generator</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="js/clipboard.min.js"></script>
+</head>
+<body>
+    <div class="content" style="padding:20px">
+        <div style="position:absolute;" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="mr-auto">Notification</strong>
+                <small class="text-muted">just now</small>
+                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="toast-body">
+                Commit command copied to clipboard. <br/>
+                Enjoy.
+            </div>
+        </div>
+        <div style="text-align:center;">
+        <h1>Sprint Goal Generator</h1>
+        <img src="img/undraw_goals_re_lu76.svg" alt="Developer" style="width:400px"/>
+        <div style="padding:10px">
+        <h2 id="msg"></h2>
+        </div>
+        <div class="form-group">
+            <input type="text" class="form-control" id="commit_text" placeholder="Example Commit">
+            <div style="padding:10px;">
+            <button class="btn btn-primary btn-lg btn-cp" data-clipboard-target="#commit_text">Copy to Clipboard</button>
+            <button class="btn btn-primary btn-lg" onclick="generate_commit()">Generate another one.</button>
+            
+            <div>
+        </div>
+        </div>
+
+    </div>
+    <script>
+    var my_commits = [
+    "We will share the user experience design by modifying our local environment",
+    "We will constrain the data integrity by driving the colour scheme more specifically",
+    "To increase the microservices by discovering our payroll in a more ambitious way",
+    "We'll complete the scheduling by extending our frameworks more profitably",
+    "To constrain the transaction management by writing the payroll processing in a more dynamic way",
+    "To promote the payroll processing by escalating the styling more coherently",
+    "We will complete our information management by automating the functional tests more comprehensively",
+    "We will calculate the charts by modifying the backend",
+    "We will release our transaction management by improving our backend",
+    "We will construct the functional tests by delivering the payroll processing",
+    "To decrease the public relations by escalating our styling more technically",
+    "To extend our customer relations by defining our styling",
+    "We will complete the style by building our integration tests",
+    "To drive our information management by mitigating our database more progressively",
+    "We will enhance our backend by driving the job processing",
+    "To build our customer relations by constructing our job management in a more progressive manner",
+    "To build our shopping cart by configuring the deployment process",
+    "We'll advance our server by encrypting our charts",
+    "We'll onboard our UX by migrating our local environment more vigorously",
+    "We will constrain the customer relations by constructing our job processing more technically",
+    "We'll extend our production environment by onboarding the scheduling management",
+    "We will release our security by calculating our customer service",
+    "We'll release our unit tests by extending the user experience design more directly",
+    "We'll release our resilience by calculating our rules engine",
+    "To drive the automated tests by onboarding our user experience design",
+    "We'll modify our frontend by delivering our responsiveness more methodically",
+    "We'll support the payroll processing by communicating the style",
+    "We'll architect the tests by automating the information management",
+    "To mitigate our payroll processing by promoting our responsiveness in a more aspirational manner",
+    "We'll enhance the payroll processing by discovering the scheduling",
+    "To construct the security by completing our UX design",
+    "We'll calculate our resilience by deprecating the local environment in a more aspirational manner",
+    "We'll architect our backend by extending our frontend",
+    "We will monitor the transactions by bootstrapping our UX",
+    "We will complete the job processing by configuring our payroll processing in a more progressive manner",
+    "To decrease our scheduling by configuring the information management",
+    "We will modify our user panel by enabling the data integrity more vigorously",
+    "To architect the responsiveness by consolidating our functional tests",
+    "We will communicate our scheduling management by building the processing in a more aspirational way",
+    "To monitor our libraries by automating our shopping cart in a more comprehensive manner",
+    "We'll onboard our job scheduling by writing our transaction management",
+    "We'll calculate the integration tests by enhancing our UI",
+    "We will discover the UI by improving our user interface",
+    "We will communicate the data integrity by calculating the transaction management more productively",
+    "To deliver the performance by simplifying our scheduling",
+    "We will modify the test environment by hacking our infrastructure in a more progressive way",
+    "We will complete the scheduling by making our styling in a more targeted way",
+    "We'll review our transaction management by migrating our automated tests in a more professional manner",
+    "To support our payroll processing by mitigating the rules engine",
+    "We'll construct our user experience design by customising our shopping cart in a more dynamic way",
+    "We will share the environments by extending the backend in a more comprehensive way",
+    "To promote the API by rewriting the scheduling management more comprehensively",
+    "We will calculate the continuous integration system by supporting the responsive design",
+    "We'll share our server by executing our security more directly",
+    "To increase the control panel by completing the styles in a more direct way",
+    "We'll modify our account management by protecting our microservices more energetically",
+    "To release the customer relations by calculating our user experience",
+    "To enhance the tests by writing the UI design",
+    "We will support our control panel by writing our deployments",
+    "We will decrease our UI by decreasing the backend",
+    "To architect the user experience by increasing the resilience in a more methodical way",
+    "We will decrease our user experience design by advancing the test environment more coherently",
+    "To onboard the infrastructure by bootstrapping our user interface design more targetedly",
+    "We'll build the user experience by finding the transaction management",
+    "We will simplify our UI by supporting our UI",
+    "We'll constrain the payroll processing by executing our scheduling",
+    "We will deliver our rules engine by making our user interface",
+    "We'll share the user interface by mitigating our information management more coherently",
+    "To review our database by constraining the job processing more energetically",
+    "We will promote our environments by advancing the functional tests",
+    "To discover our automated tests by configuring our scheduling management in a more dynamic manner",
+    "We'll advance the analytics by releasing our functional tests in a more energetic manner",
+    "We will simplify our UI by constraining our frontend in a more direct way",
+    "To review our resilience by finding our microservices",
+    "We will improve the responsiveness by calculating the API in a more comprehensive way",
+    "To deliver the functional tests by writing our user interface",
+    "We will architect our rules engine by sharing our processing",
+    "We'll complete our deployments by protecting the integration tests",
+    "To constrain the analytics by constructing the responsive design in a more technical manner",
+    "We'll support our customer service by configuring the public relations",
+    "We will complete our UI by reviewing our workflow management more technically",
+    "To drive our progress bar by extending our frontend",
+    "We will calculate our integration tests by finding our resilience",
+    "To communicate our progress bar by architecting our responsive design more professionally",
+    "To review our continuous integration system by modifying our production environment",
+    "We'll calculate the control panel by architecting the transactions",
+    "To communicate the database by decreasing the progress bar more profitably",
+    "We'll onboard our responsiveness by delivering the deployments more profitably",
+    "We'll simplify the deployments by architecting the automated tests",
+    "We'll share the user experience by accelerating the analytics more professionally",
+    "We'll drive the test environment by communicating the social media presence",
+    "We will escalate our scheduling management by automating our UX design more productively",
+    "To enhance the payroll by constructing our control panel more technically",
+    "We will support our social media presence by enhancing our user panel",
+    "To improve our social media presence by communicating our user interface design",
+    "We will enhance our user interface design by onboarding the development environment",
+    "We'll enhance the style by promoting the resilience more dynamically",
+    "We will advance our workflow management by improving our shopping cart",
+    "To construct our user interface design by executing our UI design in a more targeted manner",
+    "We will complete our progress bar by completing the test environment",
+    "To construct the CRM by rewriting our development environment more technically",
+    "We'll automate the backend by decreasing the transactions in a more prompt way",
+    "To communicate our charts by building the social media presence more coherently",
+    "We'll modify our performance by making the job management more energetically",
+    "We'll monitor our user experience design by improving our job scheduling",
+    "To increase our analytics by enabling the job processing more promptly",
+    "We'll increase the payroll by protecting the unit tests",
+    "We'll construct the database by advancing the unit tests more methodically",
+    "We'll enhance the database by reviewing the resilience",
+    "We'll architect the database by constructing our payroll more productively",
+    "We'll improve the automated tests by making our customer relations",
+    "We'll escalate the performance by constructing the UX in a more aspirational way",
+    "We will construct the continuous integration system by reviewing the transaction management",
+    "To complete our user experience design by migrating the scheduling",
+    "We will modify the workflow management by calculating the UI",
+    "We'll advance the UX by protecting the infrastructure",
+    "To monitor our data integrity by rewriting our security in a more direct way",
+    "We will decrease our account management by hacking our API more coherently",
+    "To mitigate the responsive design by bootstrapping our database more dynamically",
+    "To simplify our shopping cart by enhancing the CRM in a more profitable way",
+    "We will discover the test environment by onboarding our data integrity in a more technical way",
+    "We'll monitor our resilience by sharing our database more efficiently",
+    "To modify the payroll processing by automating our database in a more direct way",
+    "We'll escalate the transactions by measuring our responsiveness",
+    "To measure the UX by bootstrapping the data integrity in a more comprehensive way",
+    "We'll modify the production environment by making our UX more productively",
+    "We'll discover our customer relations by extending the analytics",
+    "We will automate the continuous integration system by consolidating our styles",
+    "We'll discover the social media presence by building the automated tests",
+    "We will extend the UI by migrating the responsive design more ambitiously",
+    "To constrain the functional tests by mitigating our control panel",
+    "We will share the user panel by mitigating the environments in a more efficient manner",
+    "To promote our account management by measuring our data integrity",
+    "To accelerate the job processing by building the progress bar",
+    "We'll increase our deployment process by constraining our user panel in a more vigorous manner",
+    "We'll review our development environment by enabling our environments",
+    "To calculate our UI design by defining our charts",
+    "To release the job scheduling by constructing our unit tests",
+    "We will build our continuous integration system by executing the analytics in a more professional way",
+    "We will advance the processing by calculating our resilience more productively",
+    "We'll calculate the scheduling by measuring our test environment in a more professional way",
+    "We will construct our shopping cart by hacking the unit tests",
+    "We'll constrain the workflow management by increasing our resilience",
+    "We'll escalate our resilience by customising our style",
+    "We will onboard our UX by encrypting the transactions",
+    "We'll onboard our user panel by extending our style more profitably",
+    "To increase our unit tests by driving the transactions",
+    "We'll deliver our functional tests by measuring the tests",
+    "We'll constrain our development environment by onboarding the payroll",
+    "We will discover our resilience by defining the style more targetedly",
+    "We'll advance the database by deprecating our style",
+    "We will onboard our environments by writing the UI design more comprehensively",
+    "We will automate the shopping cart by customising the libraries",
+    "To monitor our social media presence by reviewing the development environment in a more dynamic way",
+    "We'll advance the transactions by defining our transactions more progressively",
+    "To complete our styling by communicating our test environment more specifically",
+    "We'll constrain the user interface by automating the backend",
+    "We'll build the payroll by mitigating the styles",
+    "We'll review our control panel by communicating the tests in a more ambitious manner",
+    "We will accelerate our responsiveness by protecting the transactions",
+    "We will review the test environment by bootstrapping the microservices",
+    "To decrease our transactions by escalating the social media presence more ambitiously",
+    "We will constrain the production environment by encrypting our development environment more aspirationally",
+    "To decrease our server by releasing our backend more vigorously",
+    "To drive our API by protecting the styles more progressively",
+    "We'll advance the UI design by increasing our data integrity in a more technical way",
+    "We will deliver the local environment by customising the production environment",
+    "We'll advance our production environment by enhancing the resilience",
+    "To improve our API by simplifying our customer service",
+    "We will mitigate our security by protecting the processing",
+    "We will review the development environment by onboarding the job processing",
+    "We'll review the user panel by improving our deployments in a more comprehensive manner",
+    "We'll mitigate the processing by enhancing our transaction management",
+    "To construct our shopping cart by building our workflow management",
+    "We will mitigate the user experience by completing our processing in a more ambitious way",
+    "We will extend our microservices by sharing our rules engine",
+    "To modify the frontend by migrating our customer relations in a more ambitious way",
+    "To build the environments by driving our customer relations more aspirationally",
+    "We'll automate our security by constructing the user experience in a more profitable way",
+    "To communicate the control panel by onboarding the payroll processing",
+    "We'll onboard our UX by finding the job management in a more efficient way",
+    "We'll mitigate our throughput by encrypting our colour scheme in a more prompt way",
+    "We will discover our local environment by increasing the resilience more productively",
+    "We will complete our tests by communicating the performance",
+    "We'll construct the styles by consolidating our throughput in a more progressive way",
+    "We'll support our local environment by sharing our user experience design",
+    "We will enhance the user interface design by enabling our colour scheme more dynamically",
+    "To increase our user interface by sharing the style",
+    "To release the libraries by reviewing the local environment",
+    "To automate our transaction management by configuring the user panel",
+    "To architect the payroll processing by constructing our performance in a more energetic way",
+    "We'll modify the user panel by discovering the continuous integration system more efficiently",
+    "We will drive our UI design by consolidating the public relations more progressively",
+    "We will simplify our environments by promoting the social media presence more progressively",
+    "To release the resilience by constructing our deployments",
+    "We will advance our customer relations by communicating our functional tests in a more dynamic manner",
+    "We will escalate the job processing by enabling the tests more promptly",
+    "We will calculate our infrastructure by accelerating our development environment",
+    "We will improve the local environment by consolidating our server more productively",
+    "We'll improve our UX design by onboarding the processing"
+    ];
+
+    function generate_commit() {
+        var max = my_commits.length;
+        var rnd = Math.floor(Math.random() * max) + 1;
+        var msg = my_commits[rnd];
+        $("#msg").html(`"${msg}"`);
+        $("#commit_text").val(`${msg}`); 
+    }
+
+    $(document).ready(function(){
+        $("body").attr("style","background-color:#DDD !important;");
+        generate_commit();
+        var clipboard = new ClipboardJS('.btn-cp');
+        clipboard.on('success', function(e) {
+            //console.info('Action:', e.action);
+            //console.info('Text:', e.text);
+            //console.info('Trigger:', e.trigger);
+            $('.toast').toast('show');
+
+            e.clearSelection();
+        });
+
+        clipboard.on('error', function(e) {
+            console.error('Action:', e.action);
+            console.error('Trigger:', e.trigger);
+        });
+ 
+    })
+    </script>
+</body>
+</html>
