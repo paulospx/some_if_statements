@@ -1,5 +1,5 @@
 # Some IF Statements 
-Replaces AI and Artificial Intelligence by "some IF stetements" 
+Replaces AI and Artificial Intelligence with "some IF statements" 
 
 # Usage
 
@@ -18,7 +18,7 @@ Add a bookmark:
 - 2. Add the URL `javascript:(function(){var d=document,s=d.createElement('script');s.src='https://paulospx.github.io/some_if_statements/ai.src.js';d.body.appendChild(s);}())`
 - 3. Save
 
-Open a website with Articial Intelligence and click your bookmark.
+Open a website with Artificial Intelligence and click your bookmark.
 
 - Voila! Enjoy!
 
@@ -27,8 +27,10 @@ Open a website with Articial Intelligence and click your bookmark.
 
 # Bla Bla
 
-How to get a random reason to be assigned a role.
+How to get a random reason to be assigned a role?
 
 Bookmarklet:
 
-```javascript:(function(){var d=document,s=d.createElement('script');s.src='https://paulospx.github.io/some_if_statements/blabla.js';d.body.appendChild(s);}())``` 
+```javascript
+javascript:(function(){var d=document,s=d.createElement('script');s.src='https://paulospx.github.io/some_if_statements/blabla.js';d.body.appendChild(s);}())
+``` 
