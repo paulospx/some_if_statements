@@ -30,8 +30,9 @@
 
   const random_index = Math.floor(Math.random() * reasons_list.length);
   const random_reason = reasons_list[random_index];
-  if(document.getElementById('Notes')) {
-    document.getElementById('Notes').value = random_reason;
+  var notes = document.getElementById('Notes')
+  if(notes) {
+    notes.value = random_reason;
   }
-  console.log(random_reason);
+  alert(random_reason);
 }(this));
