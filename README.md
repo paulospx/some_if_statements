@@ -31,4 +31,4 @@ How to get a random reason to be assigned a role.
 
 Bookmarklet:
 
-`javascript:(function(){var d=document,s=d.createElement('script');s.src='https://paulospx.github.io/some_if_statements/blabla.js';d.body.appendChild(s);}())`
+```javascript:(function(){var d=document,s=d.createElement('script');s.src='https://paulospx.github.io/some_if_statements/blabla.js';d.body.appendChild(s);}())``` 
