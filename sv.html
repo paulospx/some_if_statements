@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <style>
+    .center-div
+        {
+        position: absolute;
+        margin: auto;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: 500px;
+        height: 281px;
+        background-color: #ccc;
+        border-radius: 3px;
+        }
+
+        h1 {
+            font-family: Arial,Helvetica Neue,Helvetica,sans-serif; 
+        }
+    </style>
+</head>
+<body style="background:#000;">
+    <div class="center-div">
+        <img src="img/error_suckit.gif" />
+        <div style="background-color:black;color:#FFF;width:500px;height:40px;position: absolute;z-index:10px;bottom:0;left:0">
+        <h1 id="label"></h1>
+        </div>
+    </div>
+    <script>
+        function getUrlVars() {
+            var vars = {};
+            var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
+                vars[key] = value;
+            });
+            return vars;
+        }
+
+        function getUrlParam(parameter, defaultvalue){
+            var urlparameter = defaultvalue;
+            if(window.location.href.indexOf(parameter) > -1){
+                urlparameter = getUrlVars()[parameter];
+                }
+            return urlparameter;
+        }
+        var label_text = getUrlParam("label","Suck it! Motherfuck*r!");
+        document.getElementById("label").innerHTML = decodeURI(label_text);
+    </script>
+</body>
+</html>
