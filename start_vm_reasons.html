@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Start VM Generator</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    <script src="js/clipboard.min.js"></script>
+</head>
+<body>
+    <div class="content" style="padding:20px">
+        <div style="position:absolute;" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="mr-auto">Notification</strong>
+                <small class="text-muted">just now</small>
+                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="toast-body">
+                Reason command copied to clipboard. <br/>
+                Enjoy.
+            </div>
+        </div>
+        <div style="text-align:center;">
+        <h1>Start VM Reason</h1>
+        <img src="img/kitten.png" alt="Developer" style="width:400px"/>
+        <div style="padding:10px">
+        <h2 id="msg"></h2>
+        </div>
+        <div class="form-group">
+            <input type="text" class="form-control" id="commit_text" placeholder="Example Commit">
+            <div style="padding:10px;">
+            <button class="btn btn-primary btn-lg btn-cp" data-clipboard-target="#commit_text">Copy to Clipboard</button>
+            <button class="btn btn-primary btn-lg" onclick="generate_commit()">Generate another one.</button>
+            
+            <div>
+        </div>
+        </div>
+
+    </div>
+    <script>
+    var my_commits = [
+        "Because chaos doesn’t create itself, but I do need tools.",
+        "I heard Skynet called and said, ‘Keep it up.’",
+        "To solve problems that wouldn’t exist if I had stayed in bed.",
+        "Building the future… one sarcastic keystroke at a time.",
+        "My manager’s KPI for ‘bare minimum’ awaits my magic touch.",
+        "Saving the world from another TPS report crisis.",
+        "Ensuring I don’t get replaced by a fresher who 'knows AI.'",
+        "The machines won’t misbehave if I don’t babysit them, right?",
+        "Running on caffeine and passive-aggressive optimism.",
+        "Because saying 'I’m productive' loudly only works with VMs running.",
+        "Firing up these VMs before my existential dread boots up.",
+        "My therapist said it’s healthy to pretend to care.",
+        "The IT overlords demand my tribute.",
+        "It’s either this or another LinkedIn post about synergy.",
+        "I promised my VMs I’d spend time with them. Commitment, you know?",
+        "If I don't, the interns might think I’m expendable.",
+        "Because this server room deserves my dazzling aura.",
+        "It's hard to be indispensable, but someone’s got to pretend.",
+        "They say you should dress for the job you want, but I need VMs for the one I have.",
+        "Tackling the daily carnival of corporate absurdity, one VM at a time.",
+        "The machines were feeling neglected, and I’m all about inclusivity.",
+        "Avoiding downtime, and by downtime, I mean my downtime.",
+        "Starting the VMs to justify the paychecks that justify my caffeine budget.",
+        "I need them running so I can fake being busy with a credible alibi.",
+        "Because someone somewhere said 'synergy,' and this feels like it.",
+        "Because someone’s got to keep these virtual overlords entertained.",
+        "My performance review depends on looking busy, not being busy.",
+        "The corporate gods require a daily offering of server hums.",
+        "If I don’t start them, who will uphold the delicate balance of mediocrity?",
+        "Because the VMs can’t run on my charm alone. I’ve tried.",
+        "Avoiding that awkward 'Why weren’t your VMs running?' email.",
+        "Fueling the illusion that I’m a crucial cog in this circus.",
+        "The virtual hamster wheels need a daily spin.",
+        "Because my paycheck demands a façade of responsibility.",
+        "These VMs and I have a codependent relationship: I turn them on, they pretend to care.",
+        "Firing up my VMs because the cloud just can’t handle my brilliance.",
+        "If I don’t start them, HR might notice I haven’t clocked in yet.",
+        "Because the matrix isn’t going to simulate itself.",
+        "My therapist said to find a routine, and here we are.",
+        "VMs need love too, and I’m nothing if not a giver.",
+        "Because without them, my job title is just a collection of words.",
+        "Every great hero needs their tools; these are my rusty swords.",
+        "Keeping the illusion alive that I’m indispensable. Thanks, VMs.",
+        "Because my virtual pets deserve attention too.",
+        "This is the digital equivalent of feeding the office goldfish.",
+        "Starting my VMs: the first step in my daily battle against irrelevance.",
+        "To remind the machines who’s really in charge here (it’s them).",
+        "Because turning them on feels like a small, victorious rebellion against the void.",
+        "If I don’t, they might unionize against me.",
+        "Because idle VMs lead to idle hands, and we can’t have that."
+    ];
+    function generate_commit() {
+        var max = my_commits.length;
+        var rnd = Math.floor(Math.random() * max) + 1;
+        var msg = my_commits[rnd];
+        $("#msg").html(`"${msg}"`);
+        $("#commit_text").val(`git commit -m "${msg}"`); 
+    }
+
+    $(document).ready(function(){
+        $("body").attr("style","background-color:#DDD !important;");
+        generate_commit();
+        var clipboard = new ClipboardJS('.btn-cp');
+        clipboard.on('success', function(e) {
+            //console.info('Action:', e.action);
+            //console.info('Text:', e.text);
+            //console.info('Trigger:', e.trigger);
+            $('.toast').toast('show');
+
+            e.clearSelection();
+        });
+
+        clipboard.on('error', function(e) {
+            console.error('Action:', e.action);
+            console.error('Trigger:', e.trigger);
+        });
+ 
+    })
+    </script>
+</body>
+</html>
