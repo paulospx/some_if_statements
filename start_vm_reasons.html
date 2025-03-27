@@ -102,7 +102,7 @@
         var rnd = Math.floor(Math.random() * max) + 1;
         var msg = my_commits[rnd];
         $("#msg").html(`"${msg}"`);
-        $("#commit_text").val(`git commit -m "${msg}"`); 
+        $("#commit_text").val(`${msg}`); 
     }
 
     $(document).ready(function(){
