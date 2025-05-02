@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalog</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-6">
+                <textarea class="form-control" id="list1" rows="10" placeholder="Enter text here..."></textarea>
+            </div>
+            <div class="col-md-6">
+                <textarea class="form-control" id="list2" rows="10" placeholder="Enter text here..."></textarea>
+            </div>
+        </div>
+        <button class="btn btn-primary mt-3" onclick="showResult()">Compare Lists</button>
+        <div class="row" id="result"> 
+
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        function compareLists(oldList, newList) {
+            const removed = oldList.filter(item => !newList.includes(item));
+            const added = newList.filter(item => !oldList.includes(item));
+            return { removed, added };
+        }
+
+        // Give a method that gets text from list1 and list2 and converts to list of strings by line breaks
+        function getTextAsList(textareaId) {
+            const text = document.getElementById(textareaId).value;
+            return text.split('\n').map(item => item.trim()).filter(item => item !== '');
+        }
+
+        function showResult() {
+            const oldList = getTextAsList('list1');
+            const newList = getTextAsList('list2');
+            const { removed, added } = compareLists(oldList, newList);
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = `${removed.length} items removed: <br>` + removed.join('<br>') + `<br><br>` +
+                                  `${added.length} items added: <br>` + added.join('<br>');
+        }
+        
+
+        // Example usage
+        const oldList = ["apple", "banana", "cherry"];
+        const newList = ["banana", "cherry", "date", "elderberry"];
+
+        const { removed, added } = compareLists(oldList, newList);
+        console.log("Removed:", removed);
+        console.log("Added:", added);
+    </script>
+</body>
+</html>
