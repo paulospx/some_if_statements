@@ -25,12 +25,29 @@
 <body>
   <div class="container mt-5">
     <h1 class="text-center mb-4">It Works on my Machine<h1>
-    <h1 class="text-center mb-4">Certification Application</h1>
+
+    <h1 class="text-center mb-4">Application Submission Form</h1>
+    <img src="img/iwomm.png" alt="It Works on My Machine™" width="400" style="display: block; margin: 0 auto;">
+    <p>The “It Works on My Machine” Certification Program <br/>
+      Proudly lowering the bar since… probably yesterday.
+      </p>
     <form>
       <div class="mb-3">
-        <label for="appName" class="form-label">Application Name</label>
-        <input type="text" class="form-control" id="appName" placeholder="e.g., Bugless Pro 3000">
+        <label for="username" class="form-label">Name</label>
+        <input type="text" class="form-control" id="username" placeholder="So we know who to blame later.">
       </div>
+      <div class="mb-3">
+        <label for="email" class="form-label">Email</label>
+        <input type="text" class="form-control" id="email" placeholder="For sending your official certificate and the angry bug reports you’ll ignore">
+      </div>
+      <div class="mb-3">
+        <label for="appName" class="form-label">Application Name</label>
+        <input type="text" class="form-control" id="appName" placeholder="Make it sound cool. Or don’t. We won’t check. e.g., Bugless Pro 3000">
+      </div>
+      <div class="mb-3">
+        <label for="desc" class="form-label">Description</label>
+        <input type="text" class="form-control" id="desc" placeholder="Examples: “Kinda works I guess maybe” or “Please don’t click that button.”">
+      </div>      
       <div class="mb-3">
         <label for="devName" class="form-label">Developer Name</label>
         <input type="text" class="form-control" id="devName" placeholder="Your Name (or your alias, no judgment)">
@@ -47,7 +64,104 @@
         <label for="certStatement" class="form-label">Certification Statement</label>
         <textarea class="form-control" id="certStatement" rows="3" placeholder="e.g., 'Works perfectly fine on my machine. Totally their problem if it doesn’t elsewhere.'"></textarea>
       </div>
-      <button type="submit" class="btn btn-primary w-100">Submit Application</button>
+      <!-- Question 5 -->
+      <div class="mb-4">
+        <label class="form-label">5. Does it run on your machine?</label>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="runOnMachine" id="yes" value="yes">
+          <label class="form-check-label" for="yes">Yes</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="runOnMachine" id="disableAntivirus" value="disableAntivirus">
+          <label class="form-check-label" for="disableAntivirus">After I disable antivirus, unplug the mouse, and yell at it.</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="runOnMachine" id="defineRun" value="defineRun">
+          <label class="form-check-label" for="defineRun">Define “run.”</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="runOnMachine" id="tuesdays" value="tuesdays">
+          <label class="form-check-label" for="tuesdays">Only on Tuesdays.</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="runOnMachine" id="launch" value="launch">
+          <label class="form-check-label" for="launch">It launched. Isn't that enough?</label>
+        </div>
+      </div>
+      
+      <!-- Question 6 -->
+      <div class="mb-4">
+        <label class="form-label">6. How do you install it?</label>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="install" id="npmPanic" value="npmPanic">
+          <label class="form-check-label" for="npmPanic">npm install && panic</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="install" id="readme" value="readme">
+          <label class="form-check-label" for="readme">A 24-step README from 2019</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="install" id="installsYou" value="installsYou">
+          <label class="form-check-label" for="installsYou">We don’t. It installs you.</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="install" id="dream" value="dream">
+          <label class="form-check-label" for="dream">It came to me in a dream</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="install" id="installSh" value="installSh">
+          <label class="form-check-label" for="installSh">We don’t talk about install.sh</label>
+        </div>
+      </div>
+      
+      <!-- Question 7 -->
+      <div class="mb-4">
+        <label class="form-label">7. Which environments have you tested on? (Check all that apply)</label>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="myMachine" value="myMachine">
+          <label class="form-check-label" for="myMachine">My machine</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="colleagueMachine" value="colleagueMachine">
+          <label class="form-check-label" for="colleagueMachine">My colleague’s machine (but only once)</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="production" value="production">
+          <label class="form-check-label" for="production">Production (oops)</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="qaTears" value="qaTears">
+          <label class="form-check-label" for="qaTears">The tears of QA</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="mercuryRetrograde" value="mercuryRetrograde">
+          <label class="form-check-label" for="mercuryRetrograde">Works great if Mercury is in retrograde</label>
+        </div>
+      </div>
+      
+      <!-- Question 8 -->
+      <div class="mb-4">
+        <label class="form-label">8. Final question: Have you tried turning it off and on again?</label>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="turnOffOn" id="yes" value="yes">
+          <label class="form-check-label" for="yes">Yes</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="turnOffOn" id="no" value="no">
+          <label class="form-check-label" for="no">No</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="turnOffOn" id="worse" value="worse">
+          <label class="form-check-label" for="worse">That made it worse</label>
+        </div>
+        <div class="form-check">
+          <input class="form-check-input" type="radio" name="turnOffOn" id="iAmTheBug" value="iAmTheBug">
+          <label class="form-check-label" for="iAmTheBug">I am the bug</label>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100">Submit and Hope</button>
+      <label class="form-check-label" for="iAmTheBug">By submitting, you agree to our terms: we have none.</label>
     </form>
     <p class="text-center mt-3 text-muted">*Disclaimer: Certification does not guarantee functionality on machines that are not yours. But you already knew that.</p>
   </div>
