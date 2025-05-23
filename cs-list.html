@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CS List</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Fira+Code:wght@300..700&family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Noto+Sans+Cuneiform&display=swap" rel="stylesheet">
+    <style>
+        textarea.form-control, div.row {
+            font-family: "Fira Sans", sans-serif !important;
+            font-weight: 300;
+            font-style: normal;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-6">
+                <h2>List 1</h2>
+                <textarea class="form-control" id="list1" rows="10" placeholder="Enter text here..."></textarea>
+            </div>
+            <div class="col-md-6">
+                <h2>C#</h2>
+                <textarea class="form-control" id="list2" rows="10" placeholder="Enter text here..."></textarea>
+            </div>
+        </div>
+        <button class="btn btn-primary mt-3" onclick="showResult()">Generate Array from List</button>
+        <div class="row" id="result"> 
+
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+        function compareLists(oldList, newList) {
+            const removed = oldList.filter(item => !newList.includes(item));
+            const added = newList.filter(item => !oldList.includes(item));
+            return { removed, added };
+        }
+
+        // Give a method that gets text from list1 and list2 and converts to list of strings by line breaks
+        function getTextAsList(textareaId) {
+            const text = document.getElementById(textareaId).value;
+            return text.split('\n').map(item => item.trim()).filter(item => item !== '');
+        }
+
+        function showResult() {
+            const oldList = document.getElementById('list1').value;
+            var csList = "var arr = new [] {" + oldList.replaceAll('\n', ',') + "};";
+            $('#list2').val(csList);
+        }
+        
+
+    </script>
+</body>
+</html>
