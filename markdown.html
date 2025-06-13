@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown to HTML</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        textarea {
+            width: 50%;
+            height: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: none;
+            border-right: 1px solid #ccc;
+            resize: none;
+            outline: none;
+        }
+
+        #html-output {
+            width: 50%;
+            height: 100%;
+            padding: 10px;
+            border-left: 1px solid #ccc;
+            overflow-y: auto;
+            background: #f9f9f9;
+        }
+
+        @font-face {
+            font-family:Memphis;
+            src: url(./fonts/Memphis-Medium.ttf);
+        }
+
+        @font-face {
+            font-family: Avenir;
+            src: url(./fonts/AvenirLTStd-Book.otf);
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Memphis', sans-serif;
+        }
+        
+        body, p, span, div {
+            font-family: 'Avenir', sans-serif;
+        }
+
+    </style>
+</head>
+<body>
+
+    <textarea id="markdown-input" placeholder="Type Markdown here..."></textarea>
+    <div id="html-output">HTML Preview</div>
+
+    <!-- Include marked.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        const markdownInput = document.getElementById('markdown-input');
+        const htmlOutput = document.getElementById('html-output');
+
+        markdownInput.addEventListener('input', () => {
+            const markdownText = markdownInput.value;
+            const htmlContent = marked.parse(markdownText);
+            htmlOutput.innerHTML = htmlContent;
+        });
+    </script>
+
+</body>
+</html>
