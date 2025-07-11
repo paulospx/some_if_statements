@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CSV Compare Tool</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f8f9fa;
+        }
+        .container {
+            max-width: 900px;
+        }
+        .form-label {
+            font-weight: 500;
+        }
+        #result {
+            margin-top: 2rem;
+        }
+        .result-section {
+            margin-bottom: 1.5rem;
+        }
+        textarea.form-control {
+            font-family: 'Fira Sans', Arial, sans-serif;
+            font-size: 1rem;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <h1 class="mb-4">CSV Compare Tool</h1>
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <label for="csv1" class="form-label">CSV 1 (Old)</label>
+                <textarea class="form-control" id="csv1" rows="12" placeholder="Paste CSV content here"></textarea>
+            </div>
+            <div class="col-md-6 mb-3">
+                <label for="csv2" class="form-label">CSV 2 (New)</label>
+                <textarea class="form-control" id="csv2" rows="12" placeholder="Paste CSV content here"></textarea>
+            </div>
+        </div>
+        <button class="btn btn-primary" onclick="compareCSV()">Compare CSVs</button>
+        <div id="result"></div>
+    </div>
+    <script>
+        function parseCSV(text) {
+            const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            if (lines.length === 0) return [];
+            const headers = lines[0].split(',');
+            return lines.slice(1).map(line => {
+                const values = line.split(',');
+                const obj = {};
+                headers.forEach((h, i) => obj[h.trim()] = (values[i] || '').trim());
+                return obj;
+            });
+        }
+
+        function compareCSV() {
+            const csv1Text = document.getElementById('csv1').value;
+            const csv2Text = document.getElementById('csv2').value;
+
+            const csv1 = parseCSV(csv1Text);
+            const csv2 = parseCSV(csv2Text);
+
+            if (csv1.length === 0 || csv2.length === 0) {
+                document.getElementById('result').innerHTML = '<div class="alert alert-warning">Both CSVs must have at least a header and one row.</div>';
+                return;
+            }
+
+            const headers = csv1Text.split('\n')[0].split(',').map(h => h.trim());
+            const key = headers[0]; // Use first column as key
+
+            // Build maps for quick lookup
+            const map1 = Object.fromEntries(csv1.map(row => [row[key], row]));
+            const map2 = Object.fromEntries(csv2.map(row => [row[key], row]));
+
+            // Find removed and added keys
+            const keys1 = Object.keys(map1);
+            const keys2 = Object.keys(map2);
+
+            const removedKeys = keys1.filter(k => !map2[k]);
+            const addedKeys = keys2.filter(k => !map1[k]);
+            const commonKeys = keys1.filter(k => map2[k]);
+
+            let html = '';
+
+            // Removed rows
+            html += `<div class="result-section"><strong>Removed Rows (${removedKeys.length}):</strong><br>`;
+            html += removedKeys.length ? removedKeys.map(k => `<div>${k}: ${JSON.stringify(map1[k])}</div>`).join('') : '<em>None</em>';
+            html += `</div>`;
+
+            // Added rows
+            html += `<div class="result-section"><strong>Added Rows (${addedKeys.length}):</strong><br>`;
+            html += addedKeys.length ? addedKeys.map(k => `<div>${k}: ${JSON.stringify(map2[k])}</div>`).join('') : '<em>None</em>';
+            html += `</div>`;
+
+            // Changed columns
+            html += `<div class="result-section"><strong>Changed Rows (${commonKeys.length}):</strong><br>`;
+            let changedRows = 0;
+            commonKeys.forEach(k => {
+                const row1 = map1[k];
+                const row2 = map2[k];
+                let rowDiffs = [];
+                headers.forEach(h => {
+                    if ((row1[h] || '') !== (row2[h] || '')) {
+                        rowDiffs.push(`<span style="color:#d9534f">${h}: "${row1[h] || ''}" → "${row2[h] || ''}"</span>`);
+                    }
+                });
+                if (rowDiffs.length) {
+                    changedRows++;
+                    html += `<div><strong>${k}</strong>: ${rowDiffs.join(', ')}</div>`;
+                }
+            });
+            if (changedRows === 0) html += '<em>None</em>';
+            html += `</div>`;
+
+            document.getElementById('result').innerHTML = html;
+        }
+    </script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
