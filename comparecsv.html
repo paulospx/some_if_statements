@@ -50,12 +50,19 @@
         <div id="result"></div>
     </div>
     <script>
+        function detectDelimiter(headerLine) {
+            // Prefer tab if present, else comma
+            if (headerLine.includes('\t')) return '\t';
+            return ',';
+        }
+
         function parseCSV(text) {
             const lines = text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
             if (lines.length === 0) return [];
-            const headers = lines[0].split(',');
+            const delimiter = detectDelimiter(lines[0]);
+            const headers = lines[0].split(delimiter);
             return lines.slice(1).map(line => {
-                const values = line.split(',');
+                const values = line.split(delimiter);
                 const obj = {};
                 headers.forEach((h, i) => obj[h.trim()] = (values[i] || '').trim());
                 return obj;
@@ -66,16 +73,20 @@
             const csv1Text = document.getElementById('csv1').value;
             const csv2Text = document.getElementById('csv2').value;
 
-            const csv1 = parseCSV(csv1Text);
-            const csv2 = parseCSV(csv2Text);
+            const csv1Lines = csv1Text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+            const csv2Lines = csv2Text.split('\n').map(line => line.trim()).filter(line => line.length > 0);
 
-            if (csv1.length === 0 || csv2.length === 0) {
+            if (csv1Lines.length === 0 || csv2Lines.length === 0) {
                 document.getElementById('result').innerHTML = '<div class="alert alert-warning">Both CSVs must have at least a header and one row.</div>';
                 return;
             }
 
-            const headers = csv1Text.split('\n')[0].split(',').map(h => h.trim());
-            const key = headers[0]; // Use first column as key
+            const delimiter = detectDelimiter(csv1Lines[0]);
+            const headers = csv1Lines[0].split(delimiter).map(h => h.trim());
+            const key = headers[0];
+
+            const csv1 = parseCSV(csv1Text);
+            const csv2 = parseCSV(csv2Text);
 
             // Build maps for quick lookup
             const map1 = Object.fromEntries(csv1.map(row => [row[key], row]));
