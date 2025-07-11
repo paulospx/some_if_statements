@@ -31,11 +31,17 @@
             font-family: 'Fira Mono', 'Fira Code', 'Consolas', 'Menlo', 'Monaco', 'Courier New', monospace;
             font-size: 1rem;
             resize: vertical;
-        }        
+            overflow: auto;
+            min-height: 300px;
+            max-height: 600px;
+            white-space: pre;
+            overflow-x: auto;
+            word-wrap: normal;
+        }     
     </style>
 </head>
 <body>
-    <div class="container py-5">
+    <div class="container-fluid py-5">
         <h1 class="mb-4">CSV Compare Tool</h1>
         <div class="row">
             <div class="col-md-6 mb-3">
