@@ -27,6 +27,7 @@
             </div>
         </div>
         <button class="btn btn-primary mt-3" onclick="showResult()">Generate Array from List</button>
+        <button class="btn btn-primary mt-3" onclick="replaceCommasByPoints()">Replace Commas with Points</button>
         <div class="row" id="result"> 
 
         </div>
@@ -39,6 +40,11 @@
             const removed = oldList.filter(item => !newList.includes(item));
             const added = newList.filter(item => !oldList.includes(item));
             return { removed, added };
+        }
+
+        function replaceCommasByPoints() {
+            const text = document.getElementById('list1').value;
+            $('#list1').val(text.replace(/,/g, '.'));
         }
 
         // Give a method that gets text from list1 and list2 and converts to list of strings by line breaks
