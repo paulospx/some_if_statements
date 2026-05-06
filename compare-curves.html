@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yield Curve Comparator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+        
+        :root {
+            --tw-color-primary: #0ea5e9;
+        }
+        
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+        
+        .yield-table td, .yield-table th {
+            font-family: 'IBM Plex Mono', monospace;
+            font-feature-settings: "tnum";
+        }
+        
+        .card {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .diff-positive { color: #10b981; }
+        .diff-negative { color: #ef4444; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200">
+    <div class="max-w-7xl mx-auto p-8">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-10">
+            <div>
+                <h1 class="text-4xl font-semibold tracking-tight">Yield Curve Comparator</h1>
+                <p class="text-slate-400 mt-1">Compare two yield curves • Instant differences • Polished financial UX</p>
+            </div>
+            <div class="flex items-center gap-x-3 text-sm">
+                <div class="flex items-center px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-2xl text-xs font-medium">
+                    <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse mr-1"></div>
+                    LIVE PARSING
+                </div>
+                <a href="https://www.nngroup.com/" target="_blank" 
+                   class="text-xs flex items-center gap-x-1 text-slate-400 hover:text-slate-300">
+                    <span>Designed with NN/g Heuristics</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Curve 1 Input -->
+            <div class="card bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+                <div class="flex justify-between items-baseline mb-6">
+                    <div>
+                        <label class="block text-xl font-semibold text-white">Curve A</label>
+                        <input id="name1" type="text" 
+                               class="bg-transparent text-slate-400 text-sm mt-1 focus:outline-none w-48"
+                               placeholder="e.g. Today • 2026-05-06" value="Today">
+                    </div>
+                    <button onclick="loadSample(1)" 
+                            class="px-4 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 rounded-2xl flex items-center gap-x-2 transition-colors">
+                        <span>Load sample</span>
+                    </button>
+                </div>
+                
+                <textarea id="input1" rows="12"
+                          class="mono w-full bg-slate-950 border border-slate-700 focus:border-sky-400 rounded-3xl p-6 text-base leading-relaxed resize-none focus:outline-none"
+                          placeholder="Paste yield curve values here&#10;3.85&#10;4.12&#10;4.25&#10;or 3.85%, 4.12%, 4.25%"></textarea>
+                
+                <div class="flex items-center justify-between mt-4 text-sm">
+                    <div id="preview1" class="text-emerald-400 font-medium flex items-center gap-x-2"></div>
+                    <button onclick="clearInput(1)" 
+                            class="text-slate-400 hover:text-slate-200 text-xs flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6h12v12" />
+                        </svg>
+                        CLEAR
+                    </button>
+                </div>
+            </div>
+
+            <!-- Curve 2 Input -->
+            <div class="card bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
+                <div class="flex justify-between items-baseline mb-6">
+                    <div>
+                        <label class="block text-xl font-semibold text-white">Curve B</label>
+                        <input id="name2" type="text" 
+                               class="bg-transparent text-slate-400 text-sm mt-1 focus:outline-none w-48"
+                               placeholder="e.g. Yesterday • 2026-05-05" value="Yesterday">
+                    </div>
+                    <button onclick="loadSample(2)" 
+                            class="px-4 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 rounded-2xl flex items-center gap-x-2 transition-colors">
+                        <span>Load sample</span>
+                    </button>
+                </div>
+                
+                <textarea id="input2" rows="12"
+                          class="mono w-full bg-slate-950 border border-slate-700 focus:border-sky-400 rounded-3xl p-6 text-base leading-relaxed resize-none focus:outline-none"
+                          placeholder="Paste second yield curve values here"></textarea>
+                
+                <div class="flex items-center justify-between mt-4 text-sm">
+                    <div id="preview2" class="text-emerald-400 font-medium flex items-center gap-x-2"></div>
+                    <button onclick="clearInput(2)" 
+                            class="text-slate-400 hover:text-slate-200 text-xs flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6h12v12" />
+                        </svg>
+                        CLEAR
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compare Button -->
+        <div class="flex justify-center my-10">
+            <button onclick="compareCurves()"
+                    class="group flex items-center gap-x-3 bg-sky-500 hover:bg-sky-600 text-white px-10 py-6 rounded-3xl text-2xl font-semibold shadow-xl shadow-sky-500/50 transition-all active:scale-95">
+                <span>COMPARE CURVES</span>
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 group-active:rotate-12 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7-7 7" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="hidden mt-8">
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-8">
+                
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10" id="summary-cards">
+                    <!-- Populated by JS -->
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex border-b border-slate-700 mb-6">
+                    <button onclick="switchTab(0)" id="tab0"
+                            class="tab-button px-8 py-4 font-medium border-b-2 border-transparent hover:text-white data-[active=true]:border-sky-400 data-[active=true]:text-white transition-colors">TABLE</button>
+                    <button onclick="switchTab(1)" id="tab1"
+                            class="tab-button px-8 py-4 font-medium border-b-2 border-transparent hover:text-white data-[active=true]:border-sky-400 data-[active=true]:text-white transition-colors">CHART</button>
+                </div>
+
+                <!-- Table View -->
+                <div id="table-view">
+                    <div class="overflow-x-auto">
+                        <table class="yield-table w-full text-sm">
+                            <thead>
+                                <tr class="border-b border-slate-700 text-slate-400 text-left">
+                                    <th class="py-4 px-6 font-medium w-28">Maturity</th>
+                                    <th class="py-4 px-6 font-medium text-right">Curve A</th>
+                                    <th class="py-4 px-6 font-medium text-right">Curve B</th>
+                                    <th class="py-4 px-6 font-medium text-right">Difference</th>
+                                    <th class="py-4 px-6 font-medium text-right">bps</th>
+                                </tr>
+                            </thead>
+                            <tbody id="results-table" class="mono divide-y divide-slate-800">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Chart View -->
+                <div id="chart-view" class="hidden">
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        <div>
+                            <h3 class="text-slate-400 text-sm mb-3">YIELD CURVES OVERLAY</h3>
+                            <canvas id="curveChart" class="w-full" height="300"></canvas>
+                        </div>
+                        <div>
+                            <h3 class="text-slate-400 text-sm mb-3">POINTWISE DIFFERENCES (bps)</h3>
+                            <canvas id="diffChart" class="w-full" height="300"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer actions -->
+                <div class="flex justify-between items-center mt-10 pt-6 border-t border-slate-700 text-xs">
+                    <div class="flex gap-x-6">
+                        <button onclick="copyTableToClipboard()" 
+                                class="flex items-center gap-x-2 text-slate-400 hover:text-white">
+                            <span class="font-medium">COPY TABLE</span>
+                        </button>
+                        <button onclick="exportCSV()" 
+                                class="flex items-center gap-x-2 text-slate-400 hover:text-white">
+                            <span class="font-medium">EXPORT CSV</span>
+                        </button>
+                    </div>
+                    <button onclick="hideResults()" 
+                            class="text-slate-400 hover:text-slate-200 flex items-center gap-x-1">
+                        <span>← Back to inputs</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tailwind script initialization
+        function initTailwind() {
+            tailwind.config = {
+                content: [],
+                theme: {
+                    extend: {}
+                }
+            }
+        }
+
+        let curveData = {
+            curve1: [],
+            curve2: [],
+            names: { a: "Curve A", b: "Curve B" },
+            tenors: [],
+            diffs: [],
+            chartInstance1: null,
+            chartInstance2: null
+        }
+
+        // Default tenors (common US Treasury points)
+        const DEFAULT_TENORS = ["1M", "3M", "6M", "1Y", "2Y", "3Y", "5Y", "7Y", "10Y", "20Y", "30Y"]
+
+        function parseCurve(text) {
+            if (!text || !text.trim()) return []
+            
+            // Split on whitespace, commas, semicolons, newlines
+            const tokens = text.split(/[\s,;\n\t]+/)
+            
+            const values = []
+            for (let token of tokens) {
+                const clean = token.trim().replace('%', '').replace(/[^0-9.-]/g, '')
+                if (clean !== '' && !isNaN(parseFloat(clean))) {
+                    values.push(parseFloat(clean))
+                }
+            }
+            return values
+        }
+
+        function updatePreview(id) {
+            const input = document.getElementById(`input${id}`)
+            const previewEl = document.getElementById(`preview${id}`)
+            
+            const values = parseCurve(input.value)
+            
+            if (values.length === 0) {
+                previewEl.innerHTML = `<span class="text-slate-500">— no values parsed</span>`
+                return
+            }
+            
+            const sample = values.slice(0, 5).map(v => v.toFixed(3) + '%').join(' • ')
+            previewEl.innerHTML = `
+                <span class="inline-flex items-center px-3 py-1 bg-emerald-400/10 text-emerald-400 rounded-3xl text-xs font-medium">
+                    ${values.length} values
+                </span>
+                <span class="ml-3 text-xs">${sample}</span>
+            `
+        }
+
+        function loadSample(n) {
+            const sample1 = [4.12, 4.28, 4.45, 4.62, 4.71, 4.75, 4.82, 4.88, 4.95, 5.05, 5.12]
+            const sample2 = [4.05, 4.18, 4.31, 4.48, 4.65, 4.82, 4.95, 5.05, 5.18, 5.32, 5.45]
+            
+            if (n === 1) {
+                document.getElementById('input1').value = sample1.join('\n')
+            } else {
+                document.getElementById('input2').value = sample2.join('\n')
+            }
+            updatePreview(n)
+        }
+
+        function clearInput(n) {
+            document.getElementById(`input${n}`).value = ''
+            updatePreview(n)
+        }
+
+        function compareCurves() {
+            const name1 = document.getElementById('name1').value.trim() || "Curve A"
+            const name2 = document.getElementById('name2').value.trim() || "Curve B"
+            
+            const raw1 = document.getElementById('input1').value
+            const raw2 = document.getElementById('input2').value
+            
+            curveData.curve1 = parseCurve(raw1)
+            curveData.curve2 = parseCurve(raw2)
+            curveData.names.a = name1
+            curveData.names.b = name2
+            
+            if (curveData.curve1.length === 0 || curveData.curve2.length === 0) {
+                alert("Please paste at least one valid number in each curve.")
+                return
+            }
+            
+            // Align lengths
+            const minLen = Math.min(curveData.curve1.length, curveData.curve2.length)
+            if (curveData.curve1.length !== curveData.curve2.length) {
+                console.warn("Curve lengths differ – using shortest")
+                curveData.curve1 = curveData.curve1.slice(0, minLen)
+                curveData.curve2 = curveData.curve2.slice(0, minLen)
+            }
+            
+            // Choose tenors
+            curveData.tenors = curveData.curve1.length === DEFAULT_TENORS.length 
+                ? DEFAULT_TENORS 
+                : Array.from({length: curveData.curve1.length}, (_, i) => `P${i+1}`)
+            
+            // Calculate differences
+            curveData.diffs = curveData.curve1.map((v, i) => curveData.curve2[i] - v)
+            
+            renderSummary()
+            renderTable()
+            renderCharts()
+            
+            document.getElementById('results').classList.remove('hidden')
+            document.getElementById('results').scrollIntoView({ behavior: "smooth" })
+            
+            // Default to table tab
+            switchTab(0)
+        }
+
+        function renderSummary() {
+            const container = document.getElementById('summary-cards')
+            const n = curveData.curve1.length
+            const avgDiff = curveData.diffs.reduce((a, b) => a + b, 0) / n
+            const maxAbsDiff = Math.max(...curveData.diffs.map(Math.abs))
+            const maxDiff = Math.max(...curveData.diffs)
+            const minDiff = Math.min(...curveData.diffs)
+            
+            container.innerHTML = `
+            <div class="bg-slate-800/70 rounded-3xl p-6">
+                <div class="text-xs text-slate-400">POINTS COMPARED</div>
+                <div class="text-5xl font-semibold mono mt-1">${n}</div>
+                <div class="text-slate-400 text-xs mt-6">${curveData.names.a} vs ${curveData.names.b}</div>
+            </div>
+            
+            <div class="bg-slate-800/70 rounded-3xl p-6">
+                <div class="text-xs text-slate-400">AVERAGE DIFFERENCE</div>
+                <div class="flex items-baseline gap-x-3 mt-1">
+                    <div class="text-5xl font-semibold mono ${avgDiff >= 0 ? 'diff-positive' : 'diff-negative'}">
+                        ${avgDiff.toFixed(3)}%
+                    </div>
+                    <div class="text-emerald-400 mono text-xl">(${Math.round(avgDiff * 100)} bps)</div>
+                </div>
+            </div>
+            
+            <div class="bg-slate-800/70 rounded-3xl p-6">
+                <div class="text-xs text-slate-400">MAX SPREAD</div>
+                <div class="text-5xl font-semibold mono mt-1 diff-positive">${maxAbsDiff.toFixed(3)}%</div>
+                <div class="text-xs text-slate-400 mt-1">${Math.round(maxAbsDiff * 100)} basis points</div>
+            </div>
+            
+            <div class="bg-slate-800/70 rounded-3xl p-6">
+                <div class="text-xs text-slate-400">RANGE OF DIFFS</div>
+                <div class="mono text-2xl mt-3">
+                    <span class="diff-negative">${minDiff.toFixed(3)}%</span>
+                    <span class="text-slate-400 mx-3">→</span>
+                    <span class="diff-positive">${maxDiff.toFixed(3)}%</span>
+                </div>
+            </div>`
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('results-table')
+            let html = ''
+            
+            curveData.curve1.forEach((val1, i) => {
+                const val2 = curveData.curve2[i]
+                const diff = curveData.diffs[i]
+                const bps = Math.round(diff * 100)
+                
+                const diffClass = diff >= 0 ? 'diff-positive' : 'diff-negative'
+                const sign = diff >= 0 ? '+' : ''
+                
+                html += `
+                <tr class="hover:bg-slate-800/60 transition-colors">
+                    <td class="py-4 px-6 font-medium">${curveData.tenors[i]}</td>
+                    <td class="py-4 px-6 text-right">${val1.toFixed(3)}%</td>
+                    <td class="py-4 px-6 text-right">${val2.toFixed(3)}%</td>
+                    <td class="py-4 px-6 text-right ${diffClass}">${sign}${diff.toFixed(3)}%</td>
+                    <td class="py-4 px-6 text-right ${diffClass}">${sign}${bps} bps</td>
+                </tr>`
+            })
+            
+            tbody.innerHTML = html
+        }
+
+        function renderCharts() {
+            // Destroy old charts
+            if (curveData.chartInstance1) curveData.chartInstance1.destroy()
+            if (curveData.chartInstance2) curveData.chartInstance2.destroy()
+            
+            // Curve overlay chart
+            const ctx1 = document.getElementById('curveChart')
+            curveData.chartInstance1 = new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels: curveData.tenors,
+                    datasets: [
+                        {
+                            label: curveData.names.a,
+                            data: curveData.curve1,
+                            borderColor: '#0ea5e9',
+                            borderWidth: 3,
+                            tension: 0.2,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#fff'
+                        },
+                        {
+                            label: curveData.names.b,
+                            data: curveData.curve2,
+                            borderColor: '#10b981',
+                            borderWidth: 3,
+                            tension: 0.2,
+                            pointRadius: 4,
+                            pointBackgroundColor: '#fff'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { position: 'top', labels: { color: '#e2e8f0', boxWidth: 12, padding: 20, usePointStyle: true } },
+                        tooltip: { mode: 'index', intersect: false, displayColors: false }
+                    },
+                    scales: {
+                        y: { 
+                            grid: { color: '#334155' },
+                            ticks: { color: '#64748b', callback: v => v + '%' }
+                        },
+                        x: { grid: { color: '#334155' }, ticks: { color: '#64748b' } }
+                    }
+                }
+            })
+            
+            // Difference bar chart (bps)
+            const ctx2 = document.getElementById('diffChart')
+            const bpsData = curveData.diffs.map(d => Math.round(d * 100))
+            
+            curveData.chartInstance2 = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: curveData.tenors,
+                    datasets: [{
+                        label: 'Difference (bps)',
+                        data: bpsData,
+                        backgroundColor: bpsData.map(v => v >= 0 ? '#10b981' : '#ef4444'),
+                        borderColor: '#1e2937',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { callbacks: { label: ctx => ctx.raw + ' bps' } }
+                    },
+                    scales: {
+                        y: { 
+                            grid: { color: '#334155' },
+                            ticks: { color: '#64748b' }
+                        },
+                        x: { grid: { color: '#334155' }, ticks: { color: '#64748b' } }
+                    }
+                }
+            })
+        }
+
+        function switchTab(tabIndex) {
+            // Update active tab buttons
+            document.querySelectorAll('.tab-button').forEach((btn, i) => {
+                btn.dataset.active = (i === tabIndex).toString()
+            })
+            
+            document.getElementById('table-view').classList.toggle('hidden', tabIndex !== 0)
+            document.getElementById('chart-view').classList.toggle('hidden', tabIndex !== 1)
+        }
+
+        function copyTableToClipboard() {
+            const rows = Array.from(document.querySelectorAll('#results-table tr'))
+            let text = `Maturity\t${curveData.names.a}\t${curveData.names.b}\tDifference (%)\tDifference (bps)\n`
+            
+            rows.forEach(row => {
+                const cells = Array.from(row.querySelectorAll('td')).map(td => td.textContent.trim())
+                text += cells.join('\t') + '\n'
+            })
+            
+            navigator.clipboard.writeText(text).then(() => {
+                const orig = event.target.innerHTML
+                event.target.innerHTML = '✅ COPIED!'
+                setTimeout(() => { event.target.innerHTML = orig }, 1800)
+            })
+        }
+
+        function exportCSV() {
+            let csv = `Maturity,${curveData.names.a},${curveData.names.b},Difference (%),Difference (bps)\n`
+            
+            curveData.curve1.forEach((val1, i) => {
+                const diff = curveData.diffs[i]
+                csv += `${curveData.tenors[i]},${val1},${curveData.curve2[i]},${diff.toFixed(4)},${Math.round(diff*100)}\n`
+            })
+            
+            const blob = new Blob([csv], { type: 'text/csv' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `yield-curve-comparison-${new Date().toISOString().slice(0,10)}.csv`
+            a.click()
+            URL.revokeObjectURL(url)
+        }
+
+        function hideResults() {
+            document.getElementById('results').classList.add('hidden')
+        }
+
+        // Real-time preview + auto compare on paste (with debounce)
+        let debounceTimer
+        function setupLivePreview() {
+            const inputs = ['input1', 'input2']
+            inputs.forEach(id => {
+                const el = document.getElementById(id)
+                el.addEventListener('input', () => {
+                    updatePreview(id === 'input1' ? 1 : 2)
+                    
+                    // Optional: auto-compare after 800ms of inactivity if both have data
+                    clearTimeout(debounceTimer)
+                    debounceTimer = setTimeout(() => {
+                        const v1 = parseCurve(document.getElementById('input1').value)
+                        const v2 = parseCurve(document.getElementById('input2').value)
+                        if (v1.length > 0 && v2.length > 0) {
+                            compareCurves()
+                        }
+                    }, 800)
+                })
+            })
+        }
+
+        // Initialize everything
+        window.onload = function() {
+            initTailwind()
+            setupLivePreview()
+            
+            // Show helpful hint after 3 seconds
+            setTimeout(() => {
+                console.log('%c✅ Yield Curve Comparator ready. Paste values and compare instantly.', 'color:#0ea5e9; font-family:monospace')
+            }, 3000)
+            
+            console.log('🚀 UI built with Nielsen Norman Group principles:\n• Visibility of system status (live parsing)\n• Match between system & real world (financial terminology & bps)\n• Aesthetic & minimalist design\n• Monospace alignment for precise comparison')
+        }
+    </script>
+</body>
+</html>
