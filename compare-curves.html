@@ -281,13 +281,25 @@
             updatePreview(n)
         }
 
+        function replaceAll(str, search, replace) {
+            if (typeof str !== 'string') return str;
+            if (search === '') return str;
+            
+            // Escape special regex characters in search term
+            const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            return str.replace(new RegExp(escapedSearch, 'g'), replace);
+        }
+
         function compareCurves() {
             const name1 = document.getElementById('name1').value.trim() || "Curve A"
             const name2 = document.getElementById('name2').value.trim() || "Curve B"
             
-            const raw1 = document.getElementById('input1').value
-            const raw2 = document.getElementById('input2').value
+            var raw1 = document.getElementById('input1').value
+            var raw2 = document.getElementById('input2').value
             
+            raw1 = replaceAll(raw1, ',','.')
+            raw2 = replaceAll(raw2, ',','.')
+
             curveData.curve1 = parseCurve(raw1)
             curveData.curve2 = parseCurve(raw2)
             curveData.names.a = name1
