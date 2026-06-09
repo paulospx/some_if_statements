@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown to HTML</title>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        textarea {
+            width: 50%;
+            height: 100%;
+            padding: 10px;
+            font-size: 16px;
+            font-family: 'Courier New', Courier, monospace;
+            border: none;
+            border-right: 1px solid #ccc;
+            resize: none;
+            outline: none;
+        }
+
+        #html-output {
+            width: 50%;
+            height: 100%;
+            padding: 10px;
+            border-left: 1px solid #ccc;
+            overflow-y: auto;
+            background: #f9f9f9;
+        }
+
+        @font-face {
+            font-family:Memphis;
+            src: url(./fonts/Memphis-Medium.ttf);
+        }
+
+        @font-face {
+            font-family: Avenir;
+            src: url(./fonts/AvenirLTStd-Book.otf);
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Memphis', sans-serif;
+        }
+
+        body, p, span, div {
+            font-family: 'Avenir', sans-serif;
+        }
+
+        /* Add 1 pixel black line to table */
+        table {
+            border-collapse: collapse;
+            
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+
+    </style>
+</head>
+<body>
+
+    <textarea id="markdown-input" placeholder="Type Markdown here..."></textarea>
+    <div id="html-output">HTML Preview</div>
+    <button id="save-markdown" onclick="saveMarkdown()" style="position: absolute; bottom: 10px; right: 160px; padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">Save Markdown</button>
+    <button id="export-pdf" style="position: absolute; bottom: 10px; right: 10px; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Export as PDF</button>
+    
+
+    <!-- Include marked.js library -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script>
+        const markdownInput = document.getElementById('markdown-input');
+        const htmlOutput = document.getElementById('html-output');
+
+        markdownInput.addEventListener('input', () => {
+            const markdownText = markdownInput.value;
+            const htmlContent = marked.parse(markdownText);
+            htmlOutput.innerHTML = htmlContent;
+        });
+
+
+        document.getElementById('export-pdf').addEventListener('click', () => {
+            const element = document.getElementById('html-output');
+            html2pdf().from(element).save('markdown.pdf');
+        });
+
+
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDc8m5jxdrqXSOiAc1hFKuJtAXRDzBV3_g",
+            authDomain: "comments-f51c9.firebaseapp.com",
+            databaseURL: "https://comments-f51c9.firebaseio.com",
+            projectId: "comments-f51c9",
+            storageBucket: "comments-f51c9.firebasestorage.app",
+            messagingSenderId: "719780277212",
+            appId: "1:719780277212:web:0556e1fd671264bac03d19"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+
+        function generateRandomString(length) {
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            const charactersLength = characters.length;
+            for (let i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            }
+            return result;
+        }
+        
+        function appendToCurrentUrl(key,value) {
+            const url = new URL(window.location.href);
+            url.searchParams.set(key, value);
+            window.history.pushState({}, '', url);
+        }
+
+        function getValueFromUrl(key) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(key);
+        }
+
+
+        function saveMarkdown() {
+            const markdownText = markdownInput.value;
+            // console.log(markdownText);
+            var token = generateRandomString(5);
+            const mdDocsRef = database.ref('mddocs');
+            mdDocsRef.push({
+                id: token,            
+                text: markdownText,
+                timestamp: firebase.database.ServerValue.TIMESTAMP // Automatically add a timestamp
+            })
+            .then(() => {
+                appendToCurrentUrl('q', token);
+            })
+            .catch((error) => {
+                console.log('Error saving markdown:', error);
+                alert('Error saving markdown.');
+            });
+        }
+
+
+        function init() {
+            const queryParam = getValueFromUrl('q');
+            const mdDocsRef = database.ref('mddocs');
+            const query = mdDocsRef.orderByChild('id').equalTo(queryParam).limitToLast(1);
+
+            if (!queryParam) {
+                console.log("No query parameter found in URL.");
+                return;
+            }
+
+            query.once('value', snapshot => {
+                if (snapshot.exists()) {
+                    const data = Object.values(snapshot.val())[0].text;
+                    markdownInput.value = data;
+                    const htmlContent = marked.parse(data);
+                    htmlOutput.innerHTML = htmlContent;                    
+                } else {
+                    console.log("No saved markdown found for token:", queryParam);
+                }
+            });
+        }
+
+        init();
+
+
+    </script>
+
+</body>
+</html>
