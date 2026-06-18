@@ -3,94 +3,350 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Markdown to HTML</title>
+    <title>Markdown Editor</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+
     <style>
+        :root {
+            --primary: #0066cc;
+            --bg: #f8f9fa;
+            --text: #212529;
+            --border: #dee2e6;
+        }
+
+        [data-theme="dark"] {
+            --bg: #0b0f14;
+            --text: #e6edf3;
+            --border: #334155;
+        }
+
+        * { box-sizing: border-box; }
+
         body {
-            display: flex;
-            height: 100vh;
             margin: 0;
-            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            font-family: 'Avenir', system-ui, -apple-system, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        header {
+            padding: 12px 20px;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        [data-theme="dark"] header {
+            background: #1e2937;
+        }
+
+        .logo {
+            font-family: 'Memphis', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            font-size: 0.9rem;
+        }
+
+        .main {
+            flex: 1;
+            display: flex;
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        .editor-pane, .preview-pane {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--border);
+        }
+
+        .preview-pane {
+            border-right: none;
+        }
+
+        .pane-header {
+            padding: 10px 16px;
+            background: white;
+            border-bottom: 1px solid var(--border);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.95rem;
+        }
+
+        [data-theme="dark"] .pane-header {
+            background: #1e2937;
         }
 
         textarea {
-            width: 50%;
-            height: 100%;
-            padding: 10px;
-            font-size: 16px;
-            font-family: 'Courier New', Courier, monospace;
+            flex: 1;
+            padding: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+            line-height: 1.6;
             border: none;
-            border-right: 1px solid #ccc;
             resize: none;
             outline: none;
+            background: var(--bg);
+            color: var(--text);
         }
 
         #html-output {
-            width: 50%;
-            height: 100%;
-            padding: 10px;
-            border-left: 1px solid #ccc;
+            flex: 1;
+            padding: 20px;
             overflow-y: auto;
-            background: #f9f9f9;
+            background: var(--bg);
+            line-height: 1.7;
         }
 
-        @font-face {
-            font-family:Memphis;
-            src: url(./fonts/Memphis-Medium.ttf);
-        }
-
-        @font-face {
-            font-family: Avenir;
-            src: url(./fonts/AvenirLTStd-Book.otf);
-        }
-
+        /* Enhanced Typography */
         h1, h2, h3, h4, h5, h6 {
             font-family: 'Memphis', sans-serif;
+            font-weight: 600;
+            margin-top: 1.8em;
+            margin-bottom: 0.6em;
         }
 
-        body, p, span, div {
-            font-family: 'Avenir', sans-serif;
-        }
-
-        /* Add 1 pixel black line to table */
         table {
             border-collapse: collapse;
-            
+            width: 100%;
+            margin: 1.5em 0;
         }
+
         th, td {
-            border: 1px solid black;
-            padding: 8px;
+            border: 1px solid #555;
+            padding: 10px 12px;
             text-align: left;
         }
 
+        th {
+            background: #f1f3f5;
+        }
+
+        [data-theme="dark"] th {
+            background: #334155;
+        }
+
+        /* Code blocks */
+        pre {
+            position: relative;
+            background: #0b0f14;
+            color: #e6edf3;
+            border-radius: 8px;
+            padding: 1.25em;
+            overflow-x: auto;
+            margin: 1.5em 0;
+            font-size: 13.5px;
+            line-height: 1.5;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            opacity: 0.85;
+            transition: all 0.2s;
+        }
+
+        .copy-button:hover {
+            opacity: 1;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .copy-button.copied {
+            background: #2b8a3e;
+        }
+
+        /* Scrollbar */
+        #html-output::-webkit-scrollbar {
+            width: 8px;
+        }
+        #html-output::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .status {
+            font-size: 0.8rem;
+            color: #6c757d;
+            padding: 4px 12px;
+        }
     </style>
 </head>
-<body>
+<body data-theme="light">
 
-    <textarea id="markdown-input" placeholder="Type Markdown here..."></textarea>
-    <div id="html-output">HTML Preview</div>
-    <button id="export-pdf" style="position: absolute; bottom: 10px; right: 10px; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Export as PDF</button>
+    <header>
+        <div class="logo">MarkDown</div>
+        
+        <div class="toolbar">
+            <button class="btn btn-sm btn-outline-primary" onclick="toggleTheme()">🌗 Theme</button>
+            <button class="btn btn-sm btn-outline-primary" onclick="clearEditor()">Clear</button>
+            <button class="btn btn-sm btn-primary" id="export-pdf">Export PDF</button>
+        </div>
+    </header>
 
-    <!-- Include marked.js library -->
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <div class="main">
+        <!-- Editor -->
+        <div class="editor-pane">
+            <div class="pane-header">
+                <strong>Markdown</strong>
+                <span class="ml-auto text-muted" id="word-count">0 words</span>
+            </div>
+            <textarea id="markdown-input" spellcheck="false" placeholder="Start writing in Markdown..."></textarea>
+            <div class="status">Live preview enabled • Changes saved to browser</div>
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-pane">
+            <div class="pane-header">
+                <strong>Preview</strong>
+            </div>
+            <div id="html-output">Your rendered Markdown will appear here...</div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked-highlight/lib/index.umd.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
     <script>
-        const markdownInput = document.getElementById('markdown-input');
-        const htmlOutput = document.getElementById('html-output');
+        // Initialize Marked with Highlight
+        const { markedHighlight } = globalThis.markedHighlight;
 
-        markdownInput.addEventListener('input', () => {
-            const markdownText = markdownInput.value;
-            const htmlContent = marked.parse(markdownText);
-            htmlOutput.innerHTML = htmlContent;
+        marked.use(
+            markedHighlight({
+                langPrefix: 'hljs language-',
+                highlight(code, lang) {
+                    if (lang && hljs.getLanguage(lang)) {
+                        return hljs.highlight(code, { language: lang }).value;
+                    }
+                    return hljs.highlightAuto(code).value;
+                }
+            })
+        );
+
+        const textarea = document.getElementById('markdown-input');
+        const preview = document.getElementById('html-output');
+        const wordCountEl = document.getElementById('word-count');
+
+        // Debounced render
+        let timeout;
+        function renderPreview() {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                const html = marked.parse(textarea.value);
+                preview.innerHTML = html;
+                addCopyButtons();
+                updateWordCount();
+            }, 180);
+        }
+
+        function updateWordCount() {
+            const words = textarea.value.trim().split(/\s+/).length;
+            wordCountEl.textContent = `${words} words`;
+        }
+
+        // Add copy buttons to code blocks
+        function addCopyButtons() {
+            document.querySelectorAll('pre').forEach(pre => {
+                if (pre.querySelector('.copy-button')) return;
+
+                const button = document.createElement('button');
+                button.className = 'copy-button';
+                button.textContent = 'Copy';
+                button.onclick = () => {
+                    const code = pre.querySelector('code') || pre;
+                    navigator.clipboard.writeText(code.textContent).then(() => {
+                        button.textContent = 'Copied!';
+                        button.classList.add('copied');
+                        setTimeout(() => {
+                            button.textContent = 'Copy';
+                            button.classList.remove('copied');
+                        }, 2000);
+                    });
+                };
+                pre.style.position = 'relative';
+                pre.appendChild(button);
+            });
+        }
+
+        // Theme toggle
+        function toggleTheme() {
+            const isDark = document.body.getAttribute('data-theme') === 'dark';
+            document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
+        }
+
+        function clearEditor() {
+            if (confirm('Clear all content?')) {
+                textarea.value = '';
+                renderPreview();
+                textarea.focus();
+            }
+        }
+
+        // Event listeners
+        textarea.addEventListener('input', () => {
+            renderPreview();
+            localStorage.setItem('markdown-content', textarea.value);
         });
 
+        // Load saved content
+        window.addEventListener('load', () => {
+            const saved = localStorage.getItem('markdown-content');
+            if (saved) textarea.value = saved;
+            renderPreview();
+        });
 
+        // PDF Export
         document.getElementById('export-pdf').addEventListener('click', () => {
-            const element = document.getElementById('html-output');
-            html2pdf().from(element).save('markdown.pdf');
+            const element = preview;
+            const opt = {
+                margin: 12,
+                filename: 'document.pdf',
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
         });
 
+        // Keyboard shortcut: Ctrl/Cmd + S to export
+        document.addEventListener('keydown', e => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                e.preventDefault();
+                document.getElementById('export-pdf').click();
+            }
+        });
     </script>
-
 </body>
 </html>
