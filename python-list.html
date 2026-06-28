@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Convert a line-separated list into a C# array declaration — copy-ready for your codebase.">
-    <title>C# List Generator — Some IF Statements</title>
+    <meta name="description" content="Convert a line-separated list into a Python list literal — copy-ready for scripts, notebooks, and tests.">
+    <title>Python List Generator — Some IF Statements</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
@@ -43,7 +43,7 @@
         }
 
         .code-area {
-            tab-size: 2;
+            tab-size: 4;
         }
 
         .toast-enter {
@@ -76,7 +76,7 @@
             </svg>
             <div>
                 <p id="toast-title" class="font-medium text-sm">Copied to clipboard</p>
-                <p id="toast-body" class="text-emerald-100 text-xs mt-0.5">Paste into Visual Studio, Rider, or VS Code.</p>
+                <p id="toast-body" class="text-emerald-100 text-xs mt-0.5">Paste into your editor, Jupyter, or REPL.</p>
             </div>
             <button type="button" id="toast-dismiss" class="ml-auto shrink-0 text-emerald-200 hover:text-white" aria-label="Dismiss notification">
                 <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -99,9 +99,9 @@
             <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                 <div>
                     <p class="text-xs font-semibold uppercase tracking-widest text-emerald-600 mb-1">Development</p>
-                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">C# List Generator</h1>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">Python List Generator</h1>
                     <p class="mt-2 text-slate-600 leading-relaxed max-w-2xl">
-                        Paste a line-separated list and get a ready-to-use C# array declaration. Numbers stay unquoted; everything else becomes a string literal.
+                        Paste a line-separated list and get a valid Python list literal. Numbers, <code class="mono text-sm text-slate-700">True</code>, <code class="mono text-sm text-slate-700">False</code>, and <code class="mono text-sm text-slate-700">None</code> are recognized; everything else becomes a quoted string.
                     </p>
                 </div>
                 <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
@@ -118,7 +118,6 @@
     </header>
 
     <main id="main" class="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
-        <!-- Toolbar -->
         <section aria-label="Actions" class="mb-6">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div class="flex flex-wrap gap-2" role="group" aria-label="List actions">
@@ -130,7 +129,7 @@
                         <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
-                        Generate C# array
+                        Generate Python list
                     </button>
                     <button
                         type="button"
@@ -161,7 +160,6 @@
             </p>
         </section>
 
-        <!-- Empty input warning -->
         <div
             id="empty-warning"
             class="hidden mb-6 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm"
@@ -170,7 +168,6 @@
             Add at least one non-empty line to the input list before generating.
         </div>
 
-        <!-- Editor panels -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <section aria-labelledby="input-heading">
                 <div class="flex items-center justify-between mb-2">
@@ -183,24 +180,24 @@
                     id="list-input"
                     rows="14"
                     spellcheck="false"
-                    placeholder="Alpha&#10;Beta&#10;Gamma&#10;42&#10;3.14"
+                    placeholder="Alpha&#10;Beta&#10;42&#10;3.14&#10;True&#10;None"
                     class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-800 text-sm leading-relaxed resize-y min-h-[16rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     aria-describedby="input-hint"
                 ></textarea>
                 <p id="input-hint" class="mt-2 text-xs text-slate-500">
-                    Blank lines are ignored. Use "Replace commas with dots" to normalize decimal separators in numeric values.
+                    Blank lines are ignored. Lines <code class="mono text-slate-600">true</code>, <code class="mono text-slate-600">false</code>, and <code class="mono text-slate-600">none</code> (any case) map to Python literals.
                 </p>
             </section>
 
             <section aria-labelledby="output-heading">
                 <div class="flex items-center justify-between mb-2">
                     <label for="list-output" id="output-heading" class="text-sm font-medium text-slate-700">
-                        C# output
+                        Python output
                     </label>
                     <button
                         type="button"
                         id="btn-copy"
-                        class="text-xs font-medium text-sky-600 hover:text-sky-700 inline-flex items-center gap-1 focus:outline-none focus-visible:underline"
+                        class="text-xs font-medium text-sky-600 hover:text-sky-700 inline-flex items-center gap-1 focus:outline-none focus-visible:underline disabled:opacity-40 disabled:pointer-events-none"
                         disabled
                     >
                         <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
@@ -214,12 +211,12 @@
                     rows="14"
                     readonly
                     spellcheck="false"
-                    placeholder="Generated C# will appear here…"
+                    placeholder="Generated Python will appear here…"
                     class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-100 text-slate-800 text-sm leading-relaxed resize-y min-h-[16rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
                     aria-describedby="output-hint"
                 ></textarea>
                 <p id="output-hint" class="mt-2 text-xs text-slate-500">
-                    Example format: <code class="mono text-slate-600">var arr = new[] { "Alpha", "Beta", 42 };</code>
+                    Example format: <code class="mono text-slate-600">items = ["Alpha", "Beta", 42, True]</code>
                 </p>
             </section>
         </div>
@@ -227,7 +224,7 @@
 
     <footer class="border-t border-slate-200 bg-white mt-auto">
         <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 text-sm text-slate-500">
-            <p>Input on the left, paste-ready C# on the right. No server round-trip — your list never leaves the browser.</p>
+            <p>Input on the left, paste-ready Python on the right. No server round-trip — your list never leaves the browser.</p>
         </div>
     </footer>
 
@@ -260,8 +257,13 @@
             return /^-?\d+(\.\d+)?$/.test(value);
         }
 
-        function toCSharpLiteral(value) {
+        function toPythonLiteral(value) {
+            const lower = value.toLowerCase();
+            if (lower === 'true') return 'True';
+            if (lower === 'false') return 'False';
+            if (lower === 'none') return 'None';
             if (isNumeric(value)) return value;
+
             const escaped = value
                 .replace(/\\/g, '\\\\')
                 .replace(/"/g, '\\"');
@@ -285,7 +287,7 @@
             emptyWarning.classList.remove('hidden');
         }
 
-        function generateArray() {
+        function generateList() {
             const lines = getLines(listInput.value);
 
             if (lines.length === 0) {
@@ -295,8 +297,8 @@
             }
 
             hideWarning();
-            const items = lines.map(toCSharpLiteral);
-            listOutput.value = `var arr = new[] { ${items.join(', ')} };`;
+            const items = lines.map(toPythonLiteral);
+            listOutput.value = `items = [${items.join(', ')}]`;
             updateStatus();
             listOutput.focus();
         }
@@ -330,7 +332,7 @@
                 toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500';
                 toastTitle.textContent = 'Copied to clipboard';
                 toastBody.className = 'text-emerald-100 text-xs mt-0.5';
-                toastBody.textContent = 'Paste into Visual Studio, Rider, or VS Code.';
+                toastBody.textContent = 'Paste into your editor, Jupyter, or REPL.';
             }
 
             toast.classList.remove('hidden');
@@ -360,7 +362,7 @@
             }
         }
 
-        btnGenerate.addEventListener('click', generateArray);
+        btnGenerate.addEventListener('click', generateList);
         btnReplaceCommas.addEventListener('click', replaceCommasWithDots);
         btnClearInput.addEventListener('click', clearInput);
         btnCopy.addEventListener('click', copyOutput);
@@ -375,7 +377,7 @@
 
             if ((e.key === 'g' || e.key === 'G') && !inField) {
                 e.preventDefault();
-                generateArray();
+                generateList();
             }
 
             if ((e.key === 'c' || e.key === 'C') && !inField && listOutput.value.trim()) {
