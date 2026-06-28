@@ -3,53 +3,482 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Base64 Encoder/Decoder</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container-fluid vh-100">
-        <div class="row h-100">
-            <!-- Left Panel: Input -->
-            <div class="col-md-6 d-flex flex-column align-items-center justify-content-center bg-light">
-                <h2>Base64 Input</h2>
-                <textarea id="base64Input" class="form-control" rows="5" placeholder="Type Base64 text or plain text here..."></textarea>
-                <div class="mt-3">
-                    <button id="decodeButton" class="btn btn-primary">Decode</button>
-                    <button id="encodeButton" class="btn btn-secondary">Encode</button>
-                </div>
-            </div>
+    <meta name="description" content="Encode or decode Base64 text in the browser — UTF-8 safe, copy-ready, no server round-trip.">
+    <title>Base64 Encoder / Decoder — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-            <!-- Right Panel: Output -->
-            <div class="col-md-6 d-flex flex-column align-items-center justify-content-center bg-secondary text-white">
-                <h2>Output Text</h2>
-                <div id="outputText" class="form-control text-start bg-dark text-white" style="height: 240px; overflow-y: auto;"></div>
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .code-area { tab-size: 2; }
+
+        .toast-enter {
+            animation: toast-in 0.25s ease;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(0.5rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .toast-enter { animation: none; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased flex flex-col">
+    <a href="#main" class="skip-link">Skip to encoder</a>
+
+    <div
+        id="toast"
+        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+    >
+        <div class="toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500">
+            <svg class="w-5 h-5 shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <div>
+                <p id="toast-title" class="font-medium text-sm">Copied to clipboard</p>
+                <p id="toast-body" class="text-emerald-100 text-xs mt-0.5">Paste wherever you need it.</p>
             </div>
+            <button type="button" id="toast-dismiss" class="ml-auto shrink-0 text-emerald-200 hover:text-white" aria-label="Dismiss notification">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
     </div>
 
+    <header class="border-b border-slate-200 bg-white">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+            <nav aria-label="Breadcrumb" class="mb-4">
+                <a href="index.html" class="text-sm text-sky-600 hover:text-sky-700 inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Tool Catalog
+                </a>
+            </nav>
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-sky-600 mb-1">Utility</p>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">Base64 Encoder / Decoder</h1>
+                    <p class="mt-2 text-slate-600 leading-relaxed max-w-2xl">
+                        Convert plain text to Base64 and back. Supports UTF-8 (emoji, accents, and more). Whitespace in Base64 input is ignored automatically.
+                    </p>
+                </div>
+                <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 shrink-0">
+                    Designed with NN/g heuristics
+                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
+        <section aria-label="Actions" class="mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex flex-wrap gap-2" role="group" aria-label="Base64 actions">
+                    <button
+                        type="button"
+                        id="btn-encode"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        Encode
+                    </button>
+                    <button
+                        type="button"
+                        id="btn-decode"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
+                        </svg>
+                        Decode
+                    </button>
+                    <button
+                        type="button"
+                        id="btn-swap"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                        disabled
+                    >
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        Use output as input
+                    </button>
+                    <button
+                        type="button"
+                        id="btn-clear"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-600 font-medium border border-slate-200 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        Clear all
+                    </button>
+                </div>
+                <p class="text-xs text-slate-500" aria-live="polite" id="status-line">
+                    Input <span id="input-chars">0</span> chars ·
+                    output <span id="output-status">empty</span> ·
+                    last action <span id="last-action">none</span>
+                </p>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">
+                Shortcuts:
+                <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">E</kbd> encode ·
+                <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">D</kbd> decode ·
+                <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">C</kbd> copy output
+            </p>
+        </section>
+
+        <div
+            id="error-alert"
+            class="hidden mb-6 px-4 py-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm"
+            role="alert"
+        >
+            <p id="error-message" class="font-medium"></p>
+            <p id="error-hint" class="mt-1 text-rose-700 text-xs"></p>
+        </div>
+
+        <div
+            id="empty-warning"
+            class="hidden mb-6 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm"
+            role="alert"
+        >
+            Enter some text in the input field before encoding or decoding.
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <section aria-labelledby="input-heading">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="text-input" id="input-heading" class="text-sm font-medium text-slate-700">
+                        Input
+                    </label>
+                    <span id="input-mode-hint" class="text-xs text-slate-400">Plain text or Base64</span>
+                </div>
+                <textarea
+                    id="text-input"
+                    rows="14"
+                    spellcheck="false"
+                    placeholder="Plain text to encode…&#10;&#10;SGVsbG8sIFdvcmxkIQ=="
+                    class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-800 text-sm leading-relaxed resize-y min-h-[16rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-describedby="input-hint"
+                ></textarea>
+                <p id="input-hint" class="mt-2 text-xs text-slate-500">
+                    Paste plain text and click <strong>Encode</strong>, or paste Base64 and click <strong>Decode</strong>.
+                </p>
+            </section>
+
+            <section aria-labelledby="output-heading">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="text-output" id="output-heading" class="text-sm font-medium text-slate-700">
+                        Output
+                    </label>
+                    <button
+                        type="button"
+                        id="btn-copy"
+                        class="text-xs font-medium text-sky-600 hover:text-sky-700 inline-flex items-center gap-1 focus:outline-none focus-visible:underline disabled:opacity-40 disabled:pointer-events-none"
+                        disabled
+                    >
+                        <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy output
+                    </button>
+                </div>
+                <textarea
+                    id="text-output"
+                    rows="14"
+                    readonly
+                    spellcheck="false"
+                    placeholder="Result will appear here…"
+                    class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-100 text-slate-800 text-sm leading-relaxed resize-y min-h-[16rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-describedby="output-hint"
+                    aria-live="polite"
+                ></textarea>
+                <p id="output-hint" class="mt-2 text-xs text-slate-500">
+                    Output length: <span id="output-chars">0</span> characters.
+                </p>
+            </section>
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white mt-auto">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 text-sm text-slate-500">
+            <p>All encoding and decoding runs locally in your browser. Nothing is sent to a server.</p>
+        </div>
+    </footer>
+
     <script>
-        const base64Input = document.getElementById('base64Input');
-        const outputText = document.getElementById('outputText');
-        const decodeButton = document.getElementById('decodeButton');
-        const encodeButton = document.getElementById('encodeButton');
+        const textInput = document.getElementById('text-input');
+        const textOutput = document.getElementById('text-output');
+        const inputChars = document.getElementById('input-chars');
+        const outputChars = document.getElementById('output-chars');
+        const outputStatus = document.getElementById('output-status');
+        const lastAction = document.getElementById('last-action');
+        const errorAlert = document.getElementById('error-alert');
+        const errorMessage = document.getElementById('error-message');
+        const errorHint = document.getElementById('error-hint');
+        const emptyWarning = document.getElementById('empty-warning');
+        const btnEncode = document.getElementById('btn-encode');
+        const btnDecode = document.getElementById('btn-decode');
+        const btnSwap = document.getElementById('btn-swap');
+        const btnClear = document.getElementById('btn-clear');
+        const btnCopy = document.getElementById('btn-copy');
+        const toast = document.getElementById('toast');
+        const toastDismiss = document.getElementById('toast-dismiss');
+        const toastInner = toast.querySelector('div');
+        const toastTitle = document.getElementById('toast-title');
+        const toastBody = document.getElementById('toast-body');
 
-        decodeButton.addEventListener('click', () => {
+        let toastTimer = null;
+
+        function encodeBase64(text) {
+            const bytes = new TextEncoder().encode(text);
+            let binary = '';
+            for (let i = 0; i < bytes.length; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return btoa(binary);
+        }
+
+        function decodeBase64(text) {
+            const cleaned = text.replace(/\s/g, '');
+            const binary = atob(cleaned);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+                bytes[i] = binary.charCodeAt(i);
+            }
+            return new TextDecoder().decode(bytes);
+        }
+
+        function hideAlerts() {
+            errorAlert.classList.add('hidden');
+            emptyWarning.classList.add('hidden');
+        }
+
+        function showError(message, hint) {
+            errorMessage.textContent = message;
+            errorHint.textContent = hint;
+            errorAlert.classList.remove('hidden');
+            emptyWarning.classList.add('hidden');
+            outputStatus.textContent = 'error';
+        }
+
+        function showEmptyWarning() {
+            emptyWarning.classList.remove('hidden');
+            errorAlert.classList.add('hidden');
+            textInput.focus();
+        }
+
+        function updateStatus(action = null) {
+            const inLen = textInput.value.length;
+            const outLen = textOutput.value.length;
+
+            inputChars.textContent = inLen;
+            outputChars.textContent = outLen;
+
+            const hasOutput = outLen > 0;
+            if (outputStatus.textContent !== 'error') {
+                outputStatus.textContent = hasOutput ? 'ready' : 'empty';
+            }
+
+            btnCopy.disabled = !hasOutput;
+            btnSwap.disabled = !hasOutput;
+
+            if (action) {
+                lastAction.textContent = action;
+            }
+        }
+
+        function encode() {
+            const text = textInput.value;
+
+            if (!text) {
+                showEmptyWarning();
+                return;
+            }
+
+            hideAlerts();
+
             try {
-                const decodedText = atob(base64Input.value);
-                outputText.textContent = decodedText;
-            } catch (e) {
-                outputText.textContent = "Invalid Base64 input";
+                textOutput.value = encodeBase64(text);
+                updateStatus('encoded');
+                textOutput.focus();
+            } catch {
+                textOutput.value = '';
+                showError(
+                    'Could not encode the input.',
+                    'The text may contain characters that cannot be converted. Try a shorter or simpler string.'
+                );
+                updateStatus('encode failed');
+            }
+        }
+
+        function decode() {
+            const text = textInput.value;
+
+            if (!text) {
+                showEmptyWarning();
+                return;
+            }
+
+            hideAlerts();
+
+            try {
+                textOutput.value = decodeBase64(text);
+                updateStatus('decoded');
+                textOutput.focus();
+            } catch {
+                textOutput.value = '';
+                showError(
+                    'Invalid Base64 input.',
+                    'Check for typos, missing padding (=), or non-Base64 characters. Whitespace is stripped automatically.'
+                );
+                updateStatus('decode failed');
+            }
+        }
+
+        function swapToInput() {
+            if (!textOutput.value) return;
+
+            textInput.value = textOutput.value;
+            textOutput.value = '';
+            hideAlerts();
+            outputStatus.textContent = 'empty';
+            lastAction.textContent = 'swapped';
+            updateStatus();
+            textInput.focus();
+        }
+
+        function clearAll() {
+            textInput.value = '';
+            textOutput.value = '';
+            hideAlerts();
+            outputStatus.textContent = 'empty';
+            lastAction.textContent = 'none';
+            updateStatus();
+            textInput.focus();
+        }
+
+        function showToast(message, isError = false) {
+            clearTimeout(toastTimer);
+
+            if (isError) {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-rose-600 text-white shadow-lg border border-rose-500';
+                toastTitle.textContent = message;
+                toastBody.className = 'text-rose-100 text-xs mt-0.5';
+                toastBody.textContent = 'Select the output area and copy manually.';
+            } else {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500';
+                toastTitle.textContent = 'Copied to clipboard';
+                toastBody.className = 'text-emerald-100 text-xs mt-0.5';
+                toastBody.textContent = 'Paste wherever you need it.';
+            }
+
+            toast.classList.remove('hidden');
+            toastTimer = setTimeout(() => toast.classList.add('hidden'), 4000);
+        }
+
+        async function copyOutput() {
+            const text = textOutput.value;
+            if (!text) return;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    textOutput.removeAttribute('readonly');
+                    textOutput.select();
+                    textOutput.setSelectionRange(0, text.length);
+                    const ok = document.execCommand('copy');
+                    textOutput.setAttribute('readonly', '');
+                    if (!ok) throw new Error('execCommand failed');
+                }
+                showToast();
+            } catch {
+                showToast('Copy failed', true);
+                textOutput.focus();
+                textOutput.select();
+            }
+        }
+
+        btnEncode.addEventListener('click', encode);
+        btnDecode.addEventListener('click', decode);
+        btnSwap.addEventListener('click', swapToInput);
+        btnClear.addEventListener('click', clearAll);
+        btnCopy.addEventListener('click', copyOutput);
+        toastDismiss.addEventListener('click', () => toast.classList.add('hidden'));
+
+        textInput.addEventListener('input', () => {
+            hideAlerts();
+            if (outputStatus.textContent === 'error') {
+                outputStatus.textContent = 'empty';
+            }
+            updateStatus();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            const inField = e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT';
+
+            if ((e.key === 'e' || e.key === 'E') && !inField) {
+                e.preventDefault();
+                encode();
+            }
+
+            if ((e.key === 'd' || e.key === 'D') && !inField) {
+                e.preventDefault();
+                decode();
+            }
+
+            if ((e.key === 'c' || e.key === 'C') && !inField && textOutput.value) {
+                e.preventDefault();
+                copyOutput();
             }
         });
 
-        encodeButton.addEventListener('click', () => {
-            try {
-                const encodedText = btoa(base64Input.value);
-                outputText.textContent = encodedText;
-            } catch (e) {
-                outputText.textContent = "Error encoding text";
-            }
-        });
+        updateStatus();
     </script>
 </body>
 </html>
