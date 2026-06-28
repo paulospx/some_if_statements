@@ -3,176 +3,434 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Start VM Generator</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-    <script src="js/clipboard.min.js"></script>
+    <meta name="description" content="Generate a plausible (and sarcastic) reason for starting your virtual machines — ready to copy and paste.">
+    <title>Start VM Reasons — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .reason-card {
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .reason-card.is-new {
+            animation: reason-in 0.35s ease;
+        }
+
+        @keyframes reason-in {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .toast-enter {
+            animation: toast-in 0.25s ease;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(0.5rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .reason-card.is-new,
+            .toast-enter {
+                animation: none;
+            }
+        }
+    </style>
 </head>
-<body>
-    <div class="content" style="padding:20px">
-        <div style="position:absolute;" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <strong class="mr-auto">Notification</strong>
-                <small class="text-muted">just now</small>
-                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="toast-body">
-                Reason command copied to clipboard. <br/>
-                Enjoy.
-            </div>
-        </div>
-        <div style="text-align:center;">
-        <h1>Start VM Reason</h1>
-        <img src="img/kitten.png" alt="Developer" style="width:400px"/>
-        <div style="padding:10px">
-        <h2 id="msg"></h2>
-        </div>
-        <div class="form-group">
-            <input type="text" class="form-control" id="commit_text" placeholder="Example Commit">
-            <div style="padding:10px;">
-            <button class="btn btn-primary btn-lg btn-cp" data-clipboard-target="#commit_text">Copy to Clipboard</button>
-            <button class="btn btn-primary btn-lg" onclick="generate_commit()">Generate another one.</button>
-            
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased flex flex-col">
+    <a href="#main" class="skip-link">Skip to generator</a>
+
+    <!-- Copy confirmation toast -->
+    <div
+        id="toast"
+        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+    >
+        <div class="toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500">
+            <svg class="w-5 h-5 shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
             <div>
+                <p id="toast-title" class="font-medium text-sm">Copied to clipboard</p>
+                <p id="toast-body" class="text-emerald-100 text-xs mt-0.5">Paste it into Slack, email, or your ticket system.</p>
+            </div>
+            <button type="button" id="toast-dismiss" class="ml-auto shrink-0 text-emerald-200 hover:text-white" aria-label="Dismiss notification">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
-        </div>
-
     </div>
+
+    <header class="border-b border-slate-200 bg-white">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 py-6">
+            <nav aria-label="Breadcrumb" class="mb-4">
+                <a href="index.html" class="text-sm text-sky-600 hover:text-sky-700 inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Tool Catalog
+                </a>
+            </nav>
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-sky-600 mb-1">Generator</p>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">Start VM Reasons</h1>
+                    <p class="mt-2 text-slate-600 leading-relaxed">
+                        Need a believable excuse for firing up virtual machines? Generate one, copy it, and get back to pretending you planned this all along.
+                    </p>
+                </div>
+                <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 shrink-0">
+                    Designed with NN/g heuristics
+                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="flex-1 max-w-3xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
+        <figure class="mb-8 text-center">
+            <img
+                src="img/kitten.png"
+                alt="A kitten sitting at a keyboard — your emotional support sysadmin"
+                class="mx-auto w-full max-w-xs sm:max-w-sm rounded-2xl border border-slate-200 shadow-sm"
+                width="400"
+                height="auto"
+            >
+            <figcaption class="mt-2 text-xs text-slate-500">Moral support for responsible VM stewardship</figcaption>
+        </figure>
+
+        <!-- Generated reason display -->
+        <section aria-labelledby="reason-heading" class="mb-8">
+            <div class="flex items-center justify-between mb-3">
+                <h2 id="reason-heading" class="text-sm font-medium text-slate-700">Your reason</h2>
+                <p class="text-xs text-slate-500" id="reason-meta" aria-live="polite">
+                    Generation <span id="reason-number">1</span>
+                </p>
+            </div>
+
+            <blockquote
+                id="reason-display"
+                class="reason-card rounded-xl border border-slate-200 bg-white px-6 py-8 shadow-sm text-center"
+                cite="#"
+            >
+                <p id="reason-text" class="text-lg sm:text-xl text-slate-800 leading-relaxed font-medium" aria-live="polite">
+                    <!-- populated by JS -->
+                </p>
+            </blockquote>
+        </section>
+
+        <!-- Copyable text field -->
+        <section aria-labelledby="copy-heading" class="mb-6">
+            <label for="reason-input" class="block text-sm font-medium text-slate-700 mb-2" id="copy-heading">
+                Plain text (for copying)
+            </label>
+            <input
+                type="text"
+                id="reason-input"
+                readonly
+                class="mono w-full px-4 py-3 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                aria-describedby="copy-hint"
+            >
+            <p id="copy-hint" class="mt-2 text-xs text-slate-500">
+                Select manually if copy fails, or use the button below.
+            </p>
+        </section>
+
+        <!-- Actions -->
+        <div class="flex flex-col sm:flex-row gap-3" role="group" aria-label="Generator actions">
+            <button
+                type="button"
+                id="btn-copy"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+            >
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copy to clipboard
+            </button>
+            <button
+                type="button"
+                id="btn-generate"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+            >
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Generate another
+            </button>
+        </div>
+
+        <p class="mt-6 text-center text-xs text-slate-500">
+            Shortcuts:
+            <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">R</kbd> generate ·
+            <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">C</kbd> copy
+        </p>
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white mt-auto">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 py-5 text-sm text-slate-500">
+            <p><span id="pool-count"></span> reasons in the rotation. No two in a row — because variety is the spice of plausible deniability.</p>
+        </div>
+    </footer>
+
     <script>
-    var my_commits = [
-        "Because chaos doesn’t create itself, but I do need tools.",
-        "I heard Skynet called and said, ‘Keep it up.’",
-        "To solve problems that wouldn’t exist if I had stayed in bed.",
-        "Building the future… one sarcastic keystroke at a time.",
-        "My manager’s KPI for ‘bare minimum’ awaits my magic touch.",
-        "Saving the world from another TPS report crisis.",
-        "Ensuring I don’t get replaced by a fresher who 'knows AI.'",
-        "The machines won’t misbehave if I don’t babysit them, right?",
-        "Running on caffeine and passive-aggressive optimism.",
-        "Because saying 'I’m productive' loudly only works with VMs running.",
-        "Firing up these VMs before my existential dread boots up.",
-        "My therapist said it’s healthy to pretend to care.",
-        "The IT overlords demand my tribute.",
-        "It’s either this or another LinkedIn post about synergy.",
-        "I promised my VMs I’d spend time with them. Commitment, you know?",
-        "If I don't, the interns might think I’m expendable.",
-        "Because this server room deserves my dazzling aura.",
-        "It's hard to be indispensable, but someone’s got to pretend.",
-        "They say you should dress for the job you want, but I need VMs for the one I have.",
-        "Tackling the daily carnival of corporate absurdity, one VM at a time.",
-        "The machines were feeling neglected, and I’m all about inclusivity.",
-        "Avoiding downtime, and by downtime, I mean my downtime.",
-        "Starting the VMs to justify the paychecks that justify my caffeine budget.",
-        "I need them running so I can fake being busy with a credible alibi.",
-        "Because someone somewhere said 'synergy,' and this feels like it.",
-        "Because someone’s got to keep these virtual overlords entertained.",
-        "My performance review depends on looking busy, not being busy.",
-        "The corporate gods require a daily offering of server hums.",
-        "If I don’t start them, who will uphold the delicate balance of mediocrity?",
-        "Because the VMs can’t run on my charm alone. I’ve tried.",
-        "Avoiding that awkward 'Why weren’t your VMs running?' email.",
-        "Fueling the illusion that I’m a crucial cog in this circus.",
-        "The virtual hamster wheels need a daily spin.",
-        "Because my paycheck demands a façade of responsibility.",
-        "These VMs and I have a codependent relationship: I turn them on, they pretend to care.",
-        "Firing up my VMs because the cloud just can’t handle my brilliance.",
-        "If I don’t start them, HR might notice I haven’t clocked in yet.",
-        "Because the matrix isn’t going to simulate itself.",
-        "My therapist said to find a routine, and here we are.",
-        "VMs need love too, and I’m nothing if not a giver.",
-        "Because without them, my job title is just a collection of words.",
-        "Every great hero needs their tools; these are my rusty swords.",
-        "Keeping the illusion alive that I’m indispensable. Thanks, VMs.",
-        "Because my virtual pets deserve attention too.",
-        "This is the digital equivalent of feeding the office goldfish.",
-        "Starting my VMs: the first step in my daily battle against irrelevance.",
-        "To remind the machines who’s really in charge here (it’s them).",
-        "Because turning them on feels like a small, victorious rebellion against the void.",
-        "If I don’t, they might unionize against me.",
-        "Because idle VMs lead to idle hands, and we can’t have that.",
-        "because it’s been deallocated so long it’s probably developing trust issues with me.",
-        "before my boss asks for that report that only exists inside it.",
-        "because my cat somehow stopped it and now I feel personally attacked.",
-        "or Netflix will keep buffering on my laptop like it’s 2007.",
-        "because it’s the only place where my terrible code actually runs.",
-        "before it starts a support group for abandoned cloud instances.",
-        "because my Docker containers are throwing a party without me.",
-        "or my team will realize the demo environment has been sleeping for three days.",
-        "before Azure starts charging me storage fees for emotional damage.",
-        "because my cryptocurrency miner is freezing its digital butt off.",
-        "so I can prove to my friends I don’t just “work from home,” I work from the cloud.",
-        "before it sends me another passive-aggressive “Still stopped?” notification.",
-        "because my SQL queries are stuck in existential limbo.",
-        "or my local laptop will overheat trying to run this monstrosity.",
-        "before the other VMs in my resource group start gossiping about how lazy I am.",
-        "because I left a Minecraft server running and my friends are trapped in the void.",
-        "so I can feel like a responsible adult for at least five minutes today.",
-        "before my CI/CD pipeline files for emotional distress.",
-        "because it’s the only machine that doesn’t judge my browser history.",
-        "or that one weird Stack Overflow trick will never get tested.",
-        "before it thinks I’ve broken up with it permanently.",
-        "so I can finally use those free credits before they expire.",
-        "because my AI training job has been waiting longer than my last relationship.",
-        "before it unionizes with all the other stopped instances.",
-        "so I can win an argument on Reddit about “it works in production.”",
-        "because my smart home somehow depends on it (long story).",
-        "before I forget why I even created the damn thing.",
-        "so the cloud gods stop judging my low utilization.",
-        "because it’s my emotional support compute instance.",
-        "or my legacy Windows app will keep blue-screening in protest.",
-        "before it develops separation anxiety from my RDP sessions.",
-        "so I can generate that one random number in the most overkill way possible.",
-        "because my local machine just ran out of RAM… again.",
-        "before it starts plotting revenge with the other deallocated VMs.",
-        "so I can refresh the portal 50 times and feel productive.",
-        "because it contains the only backup of my embarrassing 2023 PowerPoint.",
-        "or I’ll have no excuse to avoid doing actual work.",
-        "because it’s been offline longer than my New Year’s resolutions.",
-        "so my variables with terrible names finally feel at home.",
-        "before Azure thinks I’m too poor to run anything.",
-        "because turning it on is basically my version of “touching grass.”",
-        "so I can check if the internet still exists… from the cloud.",
-        "before it gets adopted by someone who actually uses it.",
-        "because my code reviews are pending inside it.",
-        "or I’ll lose the only environment where things don’t randomly break.",
-        "so I can finally say “I’m in the cloud” without lying.",
-        "before it sends me a digital break-up letter.",
-        "because if I don’t do it now, tomorrow I’ll panic and do it at 3 AM.",
-        "right now… because deep down, I know it misses me and my terrible decisions."        
-    ];
-    function generate_commit() {
-        var max = my_commits.length;
-        var rnd = Math.floor(Math.random() * max) + 1;
-        var msg = my_commits[rnd];
-        $("#msg").html(`"${msg}"`);
-        $("#commit_text").val(`${msg}`); 
-    }
+        const reasons = [
+            "Because chaos doesn't create itself, but I do need tools.",
+            "I heard Skynet called and said, 'Keep it up.'",
+            "To solve problems that wouldn't exist if I had stayed in bed.",
+            "Building the future… one sarcastic keystroke at a time.",
+            "My manager's KPI for 'bare minimum' awaits my magic touch.",
+            "Saving the world from another TPS report crisis.",
+            "Ensuring I don't get replaced by a fresher who 'knows AI.'",
+            "The machines won't misbehave if I don't babysit them, right?",
+            "Running on caffeine and passive-aggressive optimism.",
+            "Because saying 'I'm productive' loudly only works with VMs running.",
+            "Firing up these VMs before my existential dread boots up.",
+            "My therapist said it's healthy to pretend to care.",
+            "The IT overlords demand my tribute.",
+            "It's either this or another LinkedIn post about synergy.",
+            "I promised my VMs I'd spend time with them. Commitment, you know?",
+            "If I don't, the interns might think I'm expendable.",
+            "Because this server room deserves my dazzling aura.",
+            "It's hard to be indispensable, but someone's got to pretend.",
+            "They say you should dress for the job you want, but I need VMs for the one I have.",
+            "Tackling the daily carnival of corporate absurdity, one VM at a time.",
+            "The machines were feeling neglected, and I'm all about inclusivity.",
+            "Avoiding downtime, and by downtime, I mean my downtime.",
+            "Starting the VMs to justify the paychecks that justify my caffeine budget.",
+            "I need them running so I can fake being busy with a credible alibi.",
+            "Because someone somewhere said 'synergy,' and this feels like it.",
+            "Because someone's got to keep these virtual overlords entertained.",
+            "My performance review depends on looking busy, not being busy.",
+            "The corporate gods require a daily offering of server hums.",
+            "If I don't start them, who will uphold the delicate balance of mediocrity?",
+            "Because the VMs can't run on my charm alone. I've tried.",
+            "Avoiding that awkward 'Why weren't your VMs running?' email.",
+            "Fueling the illusion that I'm a crucial cog in this circus.",
+            "The virtual hamster wheels need a daily spin.",
+            "Because my paycheck demands a façade of responsibility.",
+            "These VMs and I have a codependent relationship: I turn them on, they pretend to care.",
+            "Firing up my VMs because the cloud just can't handle my brilliance.",
+            "If I don't start them, HR might notice I haven't clocked in yet.",
+            "Because the matrix isn't going to simulate itself.",
+            "My therapist said to find a routine, and here we are.",
+            "VMs need love too, and I'm nothing if not a giver.",
+            "Because without them, my job title is just a collection of words.",
+            "Every great hero needs their tools; these are my rusty swords.",
+            "Keeping the illusion alive that I'm indispensable. Thanks, VMs.",
+            "Because my virtual pets deserve attention too.",
+            "This is the digital equivalent of feeding the office goldfish.",
+            "Starting my VMs: the first step in my daily battle against irrelevance.",
+            "To remind the machines who's really in charge here (it's them).",
+            "Because turning them on feels like a small, victorious rebellion against the void.",
+            "If I don't, they might unionize against me.",
+            "Because idle VMs lead to idle hands, and we can't have that.",
+            "because it's been deallocated so long it's probably developing trust issues with me.",
+            "before my boss asks for that report that only exists inside it.",
+            "because my cat somehow stopped it and now I feel personally attacked.",
+            "or Netflix will keep buffering on my laptop like it's 2007.",
+            "because it's the only place where my terrible code actually runs.",
+            "before it starts a support group for abandoned cloud instances.",
+            "because my Docker containers are throwing a party without me.",
+            "or my team will realize the demo environment has been sleeping for three days.",
+            "before Azure starts charging me storage fees for emotional damage.",
+            "because my cryptocurrency miner is freezing its digital butt off.",
+            "so I can prove to my friends I don't just \"work from home,\" I work from the cloud.",
+            "before it sends me another passive-aggressive \"Still stopped?\" notification.",
+            "because my SQL queries are stuck in existential limbo.",
+            "or my local laptop will overheat trying to run this monstrosity.",
+            "before the other VMs in my resource group start gossiping about how lazy I am.",
+            "because I left a Minecraft server running and my friends are trapped in the void.",
+            "so I can feel like a responsible adult for at least five minutes today.",
+            "before my CI/CD pipeline files for emotional distress.",
+            "because it's the only machine that doesn't judge my browser history.",
+            "or that one weird Stack Overflow trick will never get tested.",
+            "before it thinks I've broken up with it permanently.",
+            "so I can finally use those free credits before they expire.",
+            "because my AI training job has been waiting longer than my last relationship.",
+            "before it unionizes with all the other stopped instances.",
+            "so I can win an argument on Reddit about \"it works in production.\"",
+            "because my smart home somehow depends on it (long story).",
+            "before I forget why I even created the damn thing.",
+            "so the cloud gods stop judging my low utilization.",
+            "because it's my emotional support compute instance.",
+            "or my legacy Windows app will keep blue-screening in protest.",
+            "before it develops separation anxiety from my RDP sessions.",
+            "so I can generate that one random number in the most overkill way possible.",
+            "because my local machine just ran out of RAM… again.",
+            "before it starts plotting revenge with the other deallocated VMs.",
+            "so I can refresh the portal 50 times and feel productive.",
+            "because it contains the only backup of my embarrassing 2023 PowerPoint.",
+            "or I'll have no excuse to avoid doing actual work.",
+            "because it's been offline longer than my New Year's resolutions.",
+            "so my variables with terrible names finally feel at home.",
+            "before Azure thinks I'm too poor to run anything.",
+            "because turning it on is basically my version of \"touching grass.\"",
+            "so I can check if the internet still exists… from the cloud.",
+            "before it gets adopted by someone who actually uses it.",
+            "because my code reviews are pending inside it.",
+            "or I'll lose the only environment where things don't randomly break.",
+            "so I can finally say \"I'm in the cloud\" without lying.",
+            "before it sends me a digital break-up letter.",
+            "because if I don't do it now, tomorrow I'll panic and do it at 3 AM.",
+            "right now… because deep down, I know it misses me and my terrible decisions."
+        ];
 
-    $(document).ready(function(){
-        $("body").attr("style","background-color:#DDD !important;");
-        generate_commit();
-        var clipboard = new ClipboardJS('.btn-cp');
-        clipboard.on('success', function(e) {
-            //console.info('Action:', e.action);
-            //console.info('Text:', e.text);
-            //console.info('Trigger:', e.trigger);
-            $('.toast').toast('show');
+        const reasonDisplay = document.getElementById('reason-display');
+        const reasonText = document.getElementById('reason-text');
+        const reasonInput = document.getElementById('reason-input');
+        const reasonNumber = document.getElementById('reason-number');
+        const poolCount = document.getElementById('pool-count');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnGenerate = document.getElementById('btn-generate');
+        const toast = document.getElementById('toast');
+        const toastDismiss = document.getElementById('toast-dismiss');
 
-            e.clearSelection();
+        let lastIndex = -1;
+        let generationCount = 0;
+        let toastTimer = null;
+
+        poolCount.textContent = reasons.length;
+
+        function pickRandomIndex() {
+            if (reasons.length <= 1) return 0;
+
+            let index;
+            do {
+                index = Math.floor(Math.random() * reasons.length);
+            } while (index === lastIndex);
+
+            return index;
+        }
+
+        function displayReason(index) {
+            const reason = reasons[index];
+            lastIndex = index;
+            generationCount += 1;
+
+            reasonText.textContent = `"${reason}"`;
+            reasonInput.value = reason;
+            reasonNumber.textContent = generationCount;
+
+            reasonDisplay.classList.remove('is-new');
+            void reasonDisplay.offsetWidth;
+            reasonDisplay.classList.add('is-new');
+        }
+
+        function generateReason() {
+            displayReason(pickRandomIndex());
+        }
+
+        const toastInner = toast.querySelector('div');
+        const toastTitle = document.getElementById('toast-title');
+        const toastBody = document.getElementById('toast-body');
+
+        function showToast(message, isError = false) {
+            clearTimeout(toastTimer);
+
+            if (isError) {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-rose-600 text-white shadow-lg border border-rose-500';
+                toastTitle.textContent = message;
+                toastBody.className = 'text-rose-100 text-xs mt-0.5';
+                toastBody.textContent = 'Select the text field and copy manually.';
+            } else {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500';
+                toastTitle.textContent = 'Copied to clipboard';
+                toastBody.className = 'text-emerald-100 text-xs mt-0.5';
+                toastBody.textContent = 'Paste it into Slack, email, or your ticket system.';
+            }
+
+            toast.classList.remove('hidden');
+            toastTimer = setTimeout(hideToast, 4000);
+        }
+
+        function hideToast() {
+            toast.classList.add('hidden');
+        }
+
+        async function copyReason() {
+            const text = reasonInput.value;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    reasonInput.removeAttribute('readonly');
+                    reasonInput.select();
+                    reasonInput.setSelectionRange(0, text.length);
+                    const ok = document.execCommand('copy');
+                    reasonInput.setAttribute('readonly', '');
+                    if (!ok) throw new Error('execCommand failed');
+                }
+                showToast();
+            } catch {
+                showToast('Copy failed', true);
+                reasonInput.focus();
+                reasonInput.select();
+            }
+        }
+
+        btnGenerate.addEventListener('click', generateReason);
+        btnCopy.addEventListener('click', copyReason);
+        toastDismiss.addEventListener('click', hideToast);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            if (e.key === 'r' || e.key === 'R') {
+                e.preventDefault();
+                generateReason();
+            }
+            if (e.key === 'c' || e.key === 'C') {
+                e.preventDefault();
+                copyReason();
+            }
         });
 
-        clipboard.on('error', function(e) {
-            console.error('Action:', e.action);
-            console.error('Trigger:', e.trigger);
-        });
- 
-    })
+        displayReason(pickRandomIndex());
     </script>
 </body>
 </html>
