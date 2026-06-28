@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Validate allocation weights and percentage compositions — check sums, flag negatives, and rank top contributors.">
+    <title>Composition Checker — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .code-area { tab-size: 2; }
+
+        .bar-fill {
+            transition: width 0.3s ease;
+        }
+
+        .toast-enter {
+            animation: toast-in 0.25s ease;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(0.5rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .bar-fill, .toast-enter { transition: none; animation: none; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased flex flex-col">
+    <a href="#main" class="skip-link">Skip to checker</a>
+
+    <div
+        id="toast"
+        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+    >
+        <div class="toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500">
+            <svg class="w-5 h-5 shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <div>
+                <p id="toast-title" class="font-medium text-sm">Copied to clipboard</p>
+                <p id="toast-body" class="text-emerald-100 text-xs mt-0.5">Paste into your report or sign-off memo.</p>
+            </div>
+            <button type="button" id="toast-dismiss" class="ml-auto shrink-0 text-emerald-200 hover:text-white" aria-label="Dismiss notification">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <header class="border-b border-slate-200 bg-white">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+            <nav aria-label="Breadcrumb" class="mb-4">
+                <a href="index.html" class="text-sm text-sky-600 hover:text-sky-700 inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Tool Catalog
+                </a>
+            </nav>
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-sky-600 mb-1">Utility</p>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">Composition Checker</h1>
+                    <p class="mt-2 text-slate-600 leading-relaxed max-w-2xl">
+                        Paste weights or percentages for an allocation table, benefit mix, or reinsurance share. Verify the total, spot negatives and outliers, and see who drives the composition.
+                    </p>
+                </div>
+                <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 shrink-0">
+                    Designed with NN/g heuristics
+                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
+        <section aria-label="Actions" class="mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex flex-wrap gap-2" role="group" aria-label="Checker actions">
+                    <button
+                        type="button"
+                        id="btn-check"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Run check
+                    </button>
+                    <button
+                        type="button"
+                        id="btn-clear"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-600 font-medium border border-slate-200 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        Clear all
+                    </button>
+                    <button
+                        type="button"
+                        id="btn-copy"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                        disabled
+                    >
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy report
+                    </button>
+                </div>
+                <p class="text-xs text-slate-500" aria-live="polite" id="status-line">
+                    <span id="item-count">0</span> items · verdict <span id="verdict-status">pending</span>
+                </p>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">
+                Shortcut:
+                <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">Enter</kbd> run check (when not typing)
+            </p>
+        </section>
+
+        <div
+            id="empty-warning"
+            class="hidden mb-6 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm"
+            role="alert"
+        >
+            Add at least one numeric value before running the check.
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-8">
+            <!-- Input + settings -->
+            <div class="lg:col-span-3 space-y-6">
+                <section aria-labelledby="input-heading">
+                    <div class="flex items-center justify-between mb-2">
+                        <label for="value-input" id="input-heading" class="text-sm font-medium text-slate-700">
+                            Weights or percentages
+                        </label>
+                        <span class="text-xs text-slate-400">One per line</span>
+                    </div>
+                    <textarea
+                        id="value-input"
+                        rows="14"
+                        spellcheck="false"
+                        placeholder="Life, 45.2&#10;P&C, 32.1&#10;Health, 22.7&#10;&#10;— or just numbers —&#10;45.2&#10;32.1&#10;22.7"
+                        class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-800 text-sm leading-relaxed resize-y min-h-[14rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                        aria-describedby="input-hint"
+                    ></textarea>
+                    <p id="input-hint" class="mt-2 text-xs text-slate-500">
+                        Optional labels: <code class="mono text-slate-600">Label, 12.5</code> or <code class="mono text-slate-600">Label	12.5</code>. Percent signs are stripped automatically.
+                    </p>
+                </section>
+            </div>
+
+            <!-- Settings -->
+            <div class="lg:col-span-2">
+                <section aria-labelledby="settings-heading" class="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+                    <h2 id="settings-heading" class="text-sm font-semibold text-slate-900 mb-4">Check settings</h2>
+
+                    <fieldset class="mb-5">
+                        <legend class="text-xs font-medium text-slate-700 mb-2">Expected total</legend>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                                <input type="radio" name="target-preset" value="100" class="text-sky-600 focus:ring-sky-500" checked>
+                                100% (percentages)
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                                <input type="radio" name="target-preset" value="1" class="text-sky-600 focus:ring-sky-500">
+                                1.0 (proportions)
+                            </label>
+                            <label class="flex items-center gap-2 text-sm text-slate-600 cursor-pointer">
+                                <input type="radio" name="target-preset" value="custom" class="text-sky-600 focus:ring-sky-500">
+                                Custom
+                            </label>
+                        </div>
+                        <label for="target-custom" class="sr-only">Custom expected total</label>
+                        <input
+                            type="number"
+                            id="target-custom"
+                            step="any"
+                            disabled
+                            placeholder="e.g. 1000"
+                            class="mono mt-2 w-full px-3 py-2 rounded-lg border border-slate-300 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 disabled:opacity-50"
+                        >
+                    </fieldset>
+
+                    <div class="mb-5">
+                        <label for="tolerance" class="block text-xs font-medium text-slate-700 mb-2">
+                            Sum tolerance (absolute)
+                        </label>
+                        <input
+                            type="number"
+                            id="tolerance"
+                            step="any"
+                            value="0.01"
+                            min="0"
+                            class="mono w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            aria-describedby="tolerance-hint"
+                        >
+                        <p id="tolerance-hint" class="mt-1.5 text-xs text-slate-500">Pass if |actual − expected| ≤ this value. Use 0.0001 for proportions.</p>
+                    </div>
+
+                    <div>
+                        <label for="outlier-threshold" class="block text-xs font-medium text-slate-700 mb-2">
+                            Dominance flag (share of total)
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <input
+                                type="number"
+                                id="outlier-threshold"
+                                step="1"
+                                value="40"
+                                min="1"
+                                max="100"
+                                class="mono w-20 px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            >
+                            <span class="text-sm text-slate-600">% or more</span>
+                        </div>
+                        <p class="mt-1.5 text-xs text-slate-500">Warn when a single line exceeds this share of the computed sum.</p>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <section id="results-section" class="hidden" aria-labelledby="results-heading">
+            <h2 id="results-heading" class="sr-only">Check results</h2>
+
+            <!-- Verdict banner -->
+            <div id="verdict-banner" class="mb-6 px-5 py-4 rounded-xl border flex items-start gap-3" role="status" aria-live="polite">
+                <div id="verdict-icon" class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" aria-hidden="true"></div>
+                <div>
+                    <p id="verdict-title" class="font-semibold text-lg"></p>
+                    <p id="verdict-detail" class="mt-1 text-sm opacity-90"></p>
+                </div>
+            </div>
+
+            <!-- Stat cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                    <p class="text-xs text-slate-500">Computed sum</p>
+                    <p id="stat-sum" class="mono mt-1 text-lg font-semibold text-slate-900">—</p>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                    <p class="text-xs text-slate-500">Expected total</p>
+                    <p id="stat-target" class="mono mt-1 text-lg font-semibold text-slate-900">—</p>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                    <p class="text-xs text-slate-500">Residual</p>
+                    <p id="stat-residual" class="mono mt-1 text-lg font-semibold text-slate-900">—</p>
+                </div>
+                <div class="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                    <p class="text-xs text-slate-500">Valid items</p>
+                    <p id="stat-valid" class="mono mt-1 text-lg font-semibold text-slate-900">—</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Issues -->
+                <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 bg-slate-50 border-b border-slate-100">
+                        <h3 class="text-sm font-semibold text-slate-800">Issues found</h3>
+                    </div>
+                    <ul id="issues-list" class="px-4 py-3 text-sm space-y-2 max-h-64 overflow-y-auto"></ul>
+                </div>
+
+                <!-- Top contributors -->
+                <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div class="px-4 py-3 bg-slate-50 border-b border-slate-100">
+                        <h3 class="text-sm font-semibold text-slate-800">Top contributors</h3>
+                    </div>
+                    <div id="contributors-list" class="px-4 py-4 space-y-3 max-h-64 overflow-y-auto"></div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white mt-auto">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 text-sm text-slate-500">
+            <p>All checks run locally in your browser. Rounding residuals within tolerance are normal — the residual line shows exactly how far off you are.</p>
+        </div>
+    </footer>
+
+    <script>
+        const valueInput = document.getElementById('value-input');
+        const targetCustom = document.getElementById('target-custom');
+        const toleranceInput = document.getElementById('tolerance');
+        const outlierThreshold = document.getElementById('outlier-threshold');
+        const targetRadios = document.querySelectorAll('input[name="target-preset"]');
+        const btnCheck = document.getElementById('btn-check');
+        const btnClear = document.getElementById('btn-clear');
+        const btnCopy = document.getElementById('btn-copy');
+        const itemCount = document.getElementById('item-count');
+        const verdictStatus = document.getElementById('verdict-status');
+        const emptyWarning = document.getElementById('empty-warning');
+        const resultsSection = document.getElementById('results-section');
+        const verdictBanner = document.getElementById('verdict-banner');
+        const verdictIcon = document.getElementById('verdict-icon');
+        const verdictTitle = document.getElementById('verdict-title');
+        const verdictDetail = document.getElementById('verdict-detail');
+        const statSum = document.getElementById('stat-sum');
+        const statTarget = document.getElementById('stat-target');
+        const statResidual = document.getElementById('stat-residual');
+        const statValid = document.getElementById('stat-valid');
+        const issuesList = document.getElementById('issues-list');
+        const contributorsList = document.getElementById('contributors-list');
+        const toast = document.getElementById('toast');
+        const toastDismiss = document.getElementById('toast-dismiss');
+        const toastInner = toast.querySelector('div');
+        const toastTitle = document.getElementById('toast-title');
+        const toastBody = document.getElementById('toast-body');
+
+        let lastReport = '';
+        let toastTimer = null;
+
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function formatNum(n, decimals = 6) {
+            const rounded = Number(n.toFixed(decimals));
+            return rounded.toString();
+        }
+
+        function parseLine(line, lineNum) {
+            let label = `Line ${lineNum}`;
+            let raw = line;
+
+            if (line.includes('\t')) {
+                const parts = line.split('\t').map(p => p.trim());
+                if (parts.length >= 2) {
+                    label = parts[0] || label;
+                    raw = parts[parts.length - 1];
+                }
+            } else if (line.includes(',')) {
+                const commaIdx = line.indexOf(',');
+                label = line.slice(0, commaIdx).trim() || label;
+                raw = line.slice(commaIdx + 1).trim();
+            }
+
+            raw = raw.replace(/%/g, '').trim();
+
+            if (raw === '') {
+                return { ok: false, label, lineNum, reason: 'empty value' };
+            }
+
+            const value = parseFloat(raw);
+            if (Number.isNaN(value)) {
+                return { ok: false, label, lineNum, raw, reason: 'not a number' };
+            }
+
+            return { ok: true, label, lineNum, value, raw };
+        }
+
+        function getLines(text) {
+            return text.split('\n').map(l => l.trim()).filter(l => l !== '');
+        }
+
+        function getTargetTotal() {
+            const preset = document.querySelector('input[name="target-preset"]:checked').value;
+            if (preset === '100') return 100;
+            if (preset === '1') return 1;
+            const custom = parseFloat(targetCustom.value);
+            return Number.isNaN(custom) ? null : custom;
+        }
+
+        function updateItemCount() {
+            itemCount.textContent = getLines(valueInput.value).length;
+        }
+
+        function hideWarning() {
+            emptyWarning.classList.add('hidden');
+        }
+
+        function setVerdict(type, title, detail) {
+            const styles = {
+                pass: {
+                    banner: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+                    icon: 'bg-emerald-100 text-emerald-600',
+                    svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />'
+                },
+                warn: {
+                    banner: 'bg-amber-50 border-amber-200 text-amber-900',
+                    icon: 'bg-amber-100 text-amber-700',
+                    svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />'
+                },
+                fail: {
+                    banner: 'bg-rose-50 border-rose-200 text-rose-900',
+                    icon: 'bg-rose-100 text-rose-600',
+                    svg: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />'
+                }
+            };
+
+            const s = styles[type];
+            verdictBanner.className = `mb-6 px-5 py-4 rounded-xl border flex items-start gap-3 ${s.banner}`;
+            verdictIcon.className = `w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${s.icon}`;
+            verdictIcon.innerHTML = `<svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">${s.svg}</svg>`;
+            verdictTitle.textContent = title;
+            verdictDetail.textContent = detail;
+            verdictStatus.textContent = type;
+        }
+
+        function runCheck() {
+            const lines = getLines(valueInput.value);
+
+            if (lines.length === 0) {
+                hideWarning();
+                emptyWarning.classList.remove('hidden');
+                resultsSection.classList.add('hidden');
+                verdictStatus.textContent = 'pending';
+                btnCopy.disabled = true;
+                lastReport = '';
+                valueInput.focus();
+                return;
+            }
+
+            const target = getTargetTotal();
+            if (target === null) {
+                hideWarning();
+                emptyWarning.classList.remove('hidden');
+                emptyWarning.textContent = 'Enter a valid custom expected total, or choose 100% / 1.0.';
+                return;
+            }
+
+            hideWarning();
+            emptyWarning.textContent = 'Add at least one numeric value before running the check.';
+
+            const tolerance = Math.max(0, parseFloat(toleranceInput.value) || 0);
+            const dominancePct = Math.min(100, Math.max(1, parseFloat(outlierThreshold.value) || 40));
+
+            const parsed = lines.map((line, i) => parseLine(line, i + 1));
+            const valid = parsed.filter(p => p.ok);
+            const invalid = parsed.filter(p => !p.ok);
+            const negatives = valid.filter(p => p.value < 0);
+
+            const sum = valid.reduce((acc, p) => acc + p.value, 0);
+            const residual = sum - target;
+            const sumOk = Math.abs(residual) <= tolerance;
+
+            const issues = [];
+
+            invalid.forEach(p => {
+                issues.push({ level: 'error', text: `${p.label} (line ${p.lineNum}): ${p.reason}${p.raw ? ` — "${p.raw}"` : ''}` });
+            });
+
+            negatives.forEach(p => {
+                issues.push({ level: 'error', text: `${p.label}: negative value (${formatNum(p.value)})` });
+            });
+
+            if (!sumOk) {
+                issues.push({
+                    level: 'error',
+                    text: `Sum ${formatNum(sum)} differs from expected ${formatNum(target)} by ${formatNum(residual)} (tolerance ±${formatNum(tolerance)})`
+                });
+            } else if (Math.abs(residual) > 0) {
+                issues.push({
+                    level: 'warn',
+                    text: `Rounding residual of ${formatNum(residual)} — within tolerance but non-zero`
+                });
+            }
+
+            const sorted = [...valid].sort((a, b) => b.value - a.value);
+            const topN = sorted.slice(0, 8);
+
+            if (sum > 0) {
+                topN.forEach(p => {
+                    const share = (p.value / sum) * 100;
+                    if (share >= dominancePct) {
+                        issues.push({
+                            level: 'warn',
+                            text: `${p.label} dominates at ${formatNum(share, 2)}% of total (threshold ${dominancePct}%)`
+                        });
+                    }
+                });
+
+                if (valid.length >= 3) {
+                    const mean = sum / valid.length;
+                    const variance = valid.reduce((acc, p) => acc + (p.value - mean) ** 2, 0) / valid.length;
+                    const stdDev = Math.sqrt(variance);
+                    if (stdDev > 0) {
+                        valid.forEach(p => {
+                            const z = (p.value - mean) / stdDev;
+                            if (z >= 2) {
+                                issues.push({
+                                    level: 'warn',
+                                    text: `${p.label}: statistical outlier (${formatNum(z, 2)}σ above mean)`
+                                });
+                            }
+                        });
+                    }
+                }
+            }
+
+            const hasErrors = issues.some(i => i.level === 'error');
+            const hasWarnings = issues.some(i => i.level === 'warn');
+
+            let verdictType, verdictTitleText, verdictDetailText;
+
+            if (hasErrors) {
+                verdictType = 'fail';
+                verdictTitleText = 'Check failed';
+                verdictDetailText = `${issues.filter(i => i.level === 'error').length} error(s) must be resolved before sign-off.`;
+            } else if (hasWarnings) {
+                verdictType = 'warn';
+                verdictTitleText = 'Passed with warnings';
+                verdictDetailText = 'Sum is within tolerance, but review flagged items before publishing.';
+            } else {
+                verdictType = 'pass';
+                verdictTitleText = 'Check passed';
+                verdictDetailText = `Composition sums to ${formatNum(target)} within ±${formatNum(tolerance)}. No issues detected.`;
+            }
+
+            setVerdict(verdictType, verdictTitleText, verdictDetailText);
+
+            statSum.textContent = formatNum(sum);
+            statTarget.textContent = formatNum(target);
+            statResidual.textContent = (residual >= 0 ? '+' : '') + formatNum(residual);
+            statResidual.className = `mono mt-1 text-lg font-semibold ${sumOk ? 'text-slate-900' : 'text-rose-700'}`;
+            statValid.textContent = `${valid.length} / ${lines.length}`;
+
+            if (issues.length === 0) {
+                issuesList.innerHTML = '<li class="text-slate-400 italic list-none">No issues — composition looks good.</li>';
+            } else {
+                issuesList.innerHTML = issues.map(issue => {
+                    const color = issue.level === 'error' ? 'text-rose-700' : 'text-amber-800';
+                    const icon = issue.level === 'error' ? '●' : '▲';
+                    return `<li class="${color}"><span aria-hidden="true">${icon}</span> ${escapeHtml(issue.text)}</li>`;
+                }).join('');
+            }
+
+            if (sorted.length === 0) {
+                contributorsList.innerHTML = '<p class="text-slate-400 italic text-sm">No valid values to rank.</p>';
+            } else {
+                const maxVal = sorted[0].value;
+                contributorsList.innerHTML = sorted.slice(0, 8).map(p => {
+                    const share = sum > 0 ? (p.value / sum) * 100 : 0;
+                    const barWidth = maxVal > 0 ? (p.value / maxVal) * 100 : 0;
+                    return `<div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="font-medium text-slate-700 truncate pr-2">${escapeHtml(p.label)}</span>
+                            <span class="mono text-slate-500 shrink-0">${formatNum(p.value)} · ${formatNum(share, 1)}%</span>
+                        </div>
+                        <div class="h-2 rounded-full bg-slate-100 overflow-hidden" role="presentation">
+                            <div class="bar-fill h-full rounded-full bg-sky-500" style="width: ${barWidth}%"></div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            lastReport = buildReport({
+                verdictType, sum, target, residual, tolerance, valid, issues, sorted
+            });
+
+            resultsSection.classList.remove('hidden');
+            btnCopy.disabled = false;
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function buildReport(data) {
+            const lines = [];
+            lines.push('Composition Check Report');
+            lines.push(`Verdict: ${data.verdictType.toUpperCase()}`);
+            lines.push(`Computed sum: ${formatNum(data.sum)}`);
+            lines.push(`Expected total: ${formatNum(data.target)}`);
+            lines.push(`Residual: ${formatNum(data.residual)}`);
+            lines.push(`Tolerance: ±${formatNum(data.tolerance)}`);
+            lines.push(`Valid items: ${data.valid.length}`);
+            lines.push('');
+
+            lines.push('Issues:');
+            if (data.issues.length === 0) {
+                lines.push('- (none)');
+            } else {
+                data.issues.forEach(i => lines.push(`- [${i.level.toUpperCase()}] ${i.text}`));
+            }
+
+            lines.push('');
+            lines.push('Top contributors:');
+            data.sorted.slice(0, 8).forEach(p => {
+                const share = data.sum > 0 ? (p.value / data.sum) * 100 : 0;
+                lines.push(`- ${p.label}: ${formatNum(p.value)} (${formatNum(share, 1)}%)`);
+            });
+
+            return lines.join('\n');
+        }
+
+        function clearAll() {
+            valueInput.value = '';
+            hideWarning();
+            resultsSection.classList.add('hidden');
+            verdictStatus.textContent = 'pending';
+            btnCopy.disabled = true;
+            lastReport = '';
+            updateItemCount();
+            valueInput.focus();
+        }
+
+        function showToast(message, isError = false) {
+            clearTimeout(toastTimer);
+
+            if (isError) {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-rose-600 text-white shadow-lg border border-rose-500';
+                toastTitle.textContent = message;
+                toastBody.className = 'text-rose-100 text-xs mt-0.5';
+                toastBody.textContent = 'Select the text and copy manually.';
+            } else {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500';
+                toastTitle.textContent = 'Copied to clipboard';
+                toastBody.className = 'text-emerald-100 text-xs mt-0.5';
+                toastBody.textContent = 'Paste into your report or sign-off memo.';
+            }
+
+            toast.classList.remove('hidden');
+            toastTimer = setTimeout(() => toast.classList.add('hidden'), 4000);
+        }
+
+        async function copyReport() {
+            if (!lastReport) return;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(lastReport);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = lastReport;
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    if (!ok) throw new Error('execCommand failed');
+                }
+                showToast();
+            } catch {
+                showToast('Copy failed', true);
+            }
+        }
+
+        targetRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                const isCustom = document.querySelector('input[name="target-preset"]:checked').value === 'custom';
+                targetCustom.disabled = !isCustom;
+                if (isCustom) targetCustom.focus();
+
+                const preset = radio.value;
+                if (preset === '1') toleranceInput.value = '0.0001';
+                else if (preset === '100') toleranceInput.value = '0.01';
+            });
+        });
+
+        btnCheck.addEventListener('click', runCheck);
+        btnClear.addEventListener('click', clearAll);
+        btnCopy.addEventListener('click', copyReport);
+        toastDismiss.addEventListener('click', () => toast.classList.add('hidden'));
+        valueInput.addEventListener('input', () => {
+            hideWarning();
+            updateItemCount();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            const inField = e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT';
+
+            if (e.key === 'Enter' && !inField) {
+                e.preventDefault();
+                runCheck();
+            }
+        });
+
+        updateItemCount();
+    </script>
+</body>
+</html>
