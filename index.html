@@ -3,35 +3,347 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catalog</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-    <div class="container">
-        <h1 class="mt-5">Catalog</h1>
-        <p class="lead">Welcome to the catalog of Automation. Please select a page to view:</p>
-        <ul class="list-group">
-            <li class="list-group-item"><a target="_blank" href="iwomm.html">It works on my machine 💻✅😎</a></li>
-            <li class="list-group-item"><a target="_blank"href="start_vm_reasons.html">Start VM Reasons Generator 🖥️✨</a></li>
-            <li class="list-group-item"><a target="_blank" href="commits.html">Automatic Git Commit Message Generator ✍️📋</a></li>
-            <li class="list-group-item"><a target="_blank" href="pdp.html">PDP Automatic Generator 🧩⚙️</a></li>
-            <li class="list-group-item"><a target="_blank" href="sprint_goal_generator.html">Sprint Goal Generator 🧩⚙️</a></li>
-            <li class="list-group-item"><a target="_blank" href="target.html">Quarterly Targets Generator 📅🎯</a></li>
-            <li class="list-group-item"><a target="_blank" href="musk_mail.html">Generates email to Musk with 5 Random Bullet points 📧🚀💡</a></li>
-            <li class="list-group-item"><a target="_blank" href="compare-list.html">Compares the Lists 🖥️💡</a></li>
-            <li class="list-group-item"><a target="_blank" href="cs-list.html">Generate C# Code ⚙️🖥️</a></li>
-            <li class="list-group-item"><a target="_blank" href="markdown.html">Markdown Visualizer ✍️📝</a></li>
-            <li class="list-group-item"><a target="_blank" href="base64.html">Base 64 💻🔑📥</a></li>
-            <li class="list-group-item"><a target="_blank" href="comparecsv.html">Compare CSV 💻🖥️📝</a></li>
-            <li class="list-group-item"><a target="_blank" href="compare-curves.html">Compare Curves ⚖️📝</a></li>
+    <meta name="description" content="A catalog of automation helpers and developer utilities — generators, comparators, and everyday workflow tools.">
+    <title>Some IF Statements — Tool Catalog</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-            
-            <!-- li class="list-group-item"><a target="_blank" href="sv.html?label=custom_label_here">Suck it. Screen with custom label 💻🔥🎨</a></li-->
-        </ul>
-    </div>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+        :root {
+            color-scheme: light dark;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .tool-card {
+            transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-1px);
+        }
+
+        .tool-card:focus-within {
+            outline: 2px solid #0ea5e9;
+            outline-offset: 2px;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .tool-card {
+                transition: none;
+            }
+            .tool-card:hover {
+                transform: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased">
+    <a href="#main" class="skip-link">Skip to tools</a>
+
+    <header class="border-b border-slate-200 bg-white">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-6">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-sky-600 mb-2">Some IF Statements</p>
+                    <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight text-slate-900">Tool Catalog</h1>
+                    <p class="mt-2 text-slate-600 max-w-2xl leading-relaxed">
+                        Automation helpers and developer utilities. Browse by category or search by name — each tool opens in a new tab so you can keep this catalog handy.
+                    </p>
+                </div>
+                <div class="flex flex-col items-start sm:items-end gap-2 shrink-0">
+                    <p class="text-sm text-slate-500" aria-live="polite" id="tool-count">
+                        <span class="font-medium text-slate-700" id="visible-count">13</span> of <span id="total-count">13</span> tools
+                    </p>
+                    <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1">
+                        Designed with NN/g heuristics
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+        <!-- Search & filter controls -->
+        <section aria-label="Find tools" class="mb-8">
+            <label for="search" class="block text-sm font-medium text-slate-700 mb-2">Search tools</label>
+            <div class="relative">
+                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input
+                    type="search"
+                    id="search"
+                    name="search"
+                    placeholder="Search by name or description…"
+                    autocomplete="off"
+                    class="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-describedby="search-hint"
+                >
+            </div>
+            <p id="search-hint" class="mt-2 text-xs text-slate-500">
+                Press <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600 text-[0.7rem]">/</kbd> to focus search.
+                Filter by category:
+            </p>
+
+            <div class="mt-3 flex flex-wrap gap-2" role="group" aria-label="Filter by category">
+                <button type="button" data-filter="all" class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-sky-600 text-white border border-sky-600" aria-pressed="true">All</button>
+                <button type="button" data-filter="generators" class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-300 hover:border-slate-400" aria-pressed="false">Generators</button>
+                <button type="button" data-filter="development" class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-300 hover:border-slate-400" aria-pressed="false">Development</button>
+                <button type="button" data-filter="comparison" class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-300 hover:border-slate-400" aria-pressed="false">Comparison</button>
+                <button type="button" data-filter="utilities" class="filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-300 hover:border-slate-400" aria-pressed="false">Utilities</button>
+            </div>
+        </section>
+
+        <!-- Empty state -->
+        <div id="empty-state" class="hidden text-center py-16 px-4" role="status">
+            <p class="text-lg font-medium text-slate-700">No tools match your search</p>
+            <p class="mt-1 text-slate-500">Try a different keyword or clear the category filter.</p>
+            <button type="button" id="reset-filters" class="mt-4 px-4 py-2 text-sm font-medium text-sky-700 bg-sky-50 border border-sky-200 rounded-lg hover:bg-sky-100">
+                Reset filters
+            </button>
+        </div>
+
+        <!-- Tool grid -->
+        <div id="tool-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-4" role="list"></div>
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white mt-auto">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-6 text-sm text-slate-500">
+            <p>Part of the <a href="https://github.com/paulospx/some_if_statements" class="text-sky-600 hover:text-sky-700 underline underline-offset-2" target="_blank" rel="noopener noreferrer">Some IF Statements</a> project.</p>
+        </div>
+    </footer>
+
+    <script>
+        const tools = [
+            {
+                href: 'iwomm.html',
+                title: 'It Works on My Machine',
+                description: 'Certification program for code that runs perfectly — on your machine.',
+                category: 'generators',
+                categoryLabel: 'Generator'
+            },
+            {
+                href: 'start_vm_reasons.html',
+                title: 'Start VM Reasons',
+                description: 'Generate plausible excuses for spinning up another virtual machine.',
+                category: 'generators',
+                categoryLabel: 'Generator'
+            },
+            {
+                href: 'commits.html',
+                title: 'Git Commit Messages',
+                description: 'Automatic commit message generator for when inspiration runs dry.',
+                category: 'generators',
+                categoryLabel: 'Generator'
+            },
+            {
+                href: 'pdp.html',
+                title: 'PDP Generator',
+                description: 'Draft a professional development plan without starting from a blank page.',
+                category: 'generators',
+                categoryLabel: 'Generator'
+            },
+            {
+                href: 'sprint_goal_generator.html',
+                title: 'Sprint Goal Generator',
+                description: 'Produce sprint goals that sound ambitious yet vaguely achievable.',
+                category: 'generators',
+                categoryLabel: 'Generator'
+            },
+            {
+                href: 'target.html',
+                title: 'Quarterly Targets',
+                description: 'Generate quarterly targets for planning sessions and OKR drafts.',
+                category: 'generators',
+                categoryLabel: 'Generator'
+            },
+            {
+                href: 'musk_mail.html',
+                title: 'Email to Musk',
+                description: 'Compose an email to Elon with five randomly generated bullet points.',
+                category: 'generators',
+                categoryLabel: 'Generator'
+            },
+            {
+                href: 'cs-list.html',
+                title: 'C# Code Generator',
+                description: 'Generate C# code snippets and list structures on demand.',
+                category: 'development',
+                categoryLabel: 'Development'
+            },
+            {
+                href: 'markdown.html',
+                title: 'Markdown Editor',
+                description: 'Write markdown with a live preview and syntax highlighting.',
+                category: 'development',
+                categoryLabel: 'Development'
+            },
+            {
+                href: 'compare-list.html',
+                title: 'List Comparator',
+                description: 'Compare two lists side by side and spot differences quickly.',
+                category: 'comparison',
+                categoryLabel: 'Comparison'
+            },
+            {
+                href: 'comparecsv.html',
+                title: 'CSV Comparator',
+                description: 'Diff two CSV files and highlight added, removed, and changed rows.',
+                category: 'comparison',
+                categoryLabel: 'Comparison'
+            },
+            {
+                href: 'compare-curves.html',
+                title: 'Yield Curve Comparator',
+                description: 'Compare two yield curves with instant visual and numeric differences.',
+                category: 'comparison',
+                categoryLabel: 'Comparison'
+            },
+            {
+                href: 'base64.html',
+                title: 'Base64 Encoder / Decoder',
+                description: 'Encode or decode Base64 strings in the browser — no server round-trip.',
+                category: 'utilities',
+                categoryLabel: 'Utility'
+            }
+        ];
+
+        const categoryColors = {
+            generators: 'bg-violet-50 text-violet-700 border-violet-200',
+            development: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            comparison: 'bg-amber-50 text-amber-800 border-amber-200',
+            utilities: 'bg-sky-50 text-sky-700 border-sky-200'
+        };
+
+        const grid = document.getElementById('tool-grid');
+        const searchInput = document.getElementById('search');
+        const emptyState = document.getElementById('empty-state');
+        const visibleCount = document.getElementById('visible-count');
+        const totalCount = document.getElementById('total-count');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const resetButton = document.getElementById('reset-filters');
+
+        let activeFilter = 'all';
+
+        totalCount.textContent = tools.length;
+
+        function renderTools() {
+            const query = searchInput.value.trim().toLowerCase();
+
+            const filtered = tools.filter(tool => {
+                const matchesCategory = activeFilter === 'all' || tool.category === activeFilter;
+                const haystack = `${tool.title} ${tool.description} ${tool.categoryLabel}`.toLowerCase();
+                const matchesSearch = !query || haystack.includes(query);
+                return matchesCategory && matchesSearch;
+            });
+
+            grid.innerHTML = filtered.map(tool => `
+                <article
+                    class="tool-card rounded-xl border border-slate-200 bg-white p-5 shadow-sm hover:border-sky-300 hover:shadow-md"
+                    role="listitem"
+                    data-category="${tool.category}"
+                >
+                    <div class="flex items-start justify-between gap-3 mb-3">
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium border ${categoryColors[tool.category]}">
+                            ${tool.categoryLabel}
+                        </span>
+                        <svg class="w-4 h-4 text-slate-300 shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                        </svg>
+                    </div>
+                    <h2 class="text-base font-semibold text-slate-900">
+                        <a
+                            href="${tool.href}"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            class="hover:text-sky-700 focus:outline-none focus-visible:underline"
+                        >
+                            ${tool.title}
+                            <span class="sr-only">(opens in new tab)</span>
+                        </a>
+                    </h2>
+                    <p class="mt-1.5 text-sm text-slate-600 leading-relaxed">${tool.description}</p>
+                </article>
+            `).join('');
+
+            visibleCount.textContent = filtered.length;
+            grid.classList.toggle('hidden', filtered.length === 0);
+            emptyState.classList.toggle('hidden', filtered.length > 0);
+        }
+
+        function setActiveFilter(filter) {
+            activeFilter = filter;
+            filterButtons.forEach(btn => {
+                const isActive = btn.dataset.filter === filter;
+                btn.setAttribute('aria-pressed', String(isActive));
+                btn.className = isActive
+                    ? 'filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-sky-600 text-white border border-sky-600'
+                    : 'filter-btn px-3 py-1.5 rounded-full text-sm font-medium bg-white text-slate-600 border border-slate-300 hover:border-slate-400';
+            });
+            renderTools();
+        }
+
+        searchInput.addEventListener('input', renderTools);
+
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', () => setActiveFilter(btn.dataset.filter));
+        });
+
+        resetButton.addEventListener('click', () => {
+            searchInput.value = '';
+            setActiveFilter('all');
+            searchInput.focus();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === '/' && document.activeElement !== searchInput) {
+                e.preventDefault();
+                searchInput.focus();
+            }
+            if (e.key === 'Escape' && document.activeElement === searchInput) {
+                searchInput.blur();
+            }
+        });
+
+        renderTools();
+    </script>
 </body>
 </html>
->
