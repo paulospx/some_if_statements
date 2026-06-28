@@ -3,49 +3,214 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Commit Messages Generator</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
-    <script src="js/clipboard.min.js"></script>
+    <meta name="description" content="Generate absurd git commit messages — then copy the full git commit command straight to your terminal.">
+    <title>Git Commit Messages — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .commit-card {
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .commit-card.is-new {
+            animation: commit-in 0.35s ease;
+        }
+
+        @keyframes commit-in {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .toast-enter {
+            animation: toast-in 0.25s ease;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(0.5rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .commit-card.is-new,
+            .toast-enter {
+                animation: none;
+            }
+        }
+    </style>
 </head>
-<body>
-    <div class="content" style="padding:20px">
-        <div style="position:absolute;" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <strong class="mr-auto">Notification</strong>
-                <small class="text-muted">just now</small>
-                <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-                <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="toast-body">
-                Commit command copied to clipboard. <br/>
-                Enjoy.
-            </div>
-        </div>
-        <div style="text-align:center;">
-        <h1>Commits Generator</h1>
-        <img src="img/dev.jpg" alt="Developer" style="width:400px"/>
-        <div style="padding:10px">
-        <h2 id="msg"></h2>
-        </div>
-        <div class="form-group">
-            <input type="text" class="form-control" id="commit_text" placeholder="Example Commit">
-            <div style="padding:10px;">
-            <button class="btn btn-primary btn-lg btn-cp" data-clipboard-target="#commit_text">Copy to Clipboard</button>
-            <button class="btn btn-primary btn-lg" onclick="generate_commit()">Generate another one.</button>
-            
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased flex flex-col">
+    <a href="#main" class="skip-link">Skip to generator</a>
+
+    <div
+        id="toast"
+        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+    >
+        <div class="toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500">
+            <svg class="w-5 h-5 shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
             <div>
+                <p id="toast-title" class="font-medium text-sm">Copied to clipboard</p>
+                <p id="toast-body" class="text-emerald-100 text-xs mt-0.5">Paste it into your terminal and hit Enter. No judgment.</p>
+            </div>
+            <button type="button" id="toast-dismiss" class="ml-auto shrink-0 text-emerald-200 hover:text-white" aria-label="Dismiss notification">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
+    </div>
+
+    <header class="border-b border-slate-200 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+            <nav aria-label="Breadcrumb" class="mb-4">
+                <a href="index.html" class="text-sm text-sky-600 hover:text-sky-700 inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Tool Catalog
+                </a>
+            </nav>
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-sky-600 mb-1">Generator</p>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">Git Commit Messages</h1>
+                    <p class="mt-2 text-slate-600 leading-relaxed max-w-2xl">
+                        Staring at a blank commit message? Generate something from the whatthecommit.com hall of fame — then copy the full <span class="mono text-slate-700">git commit -m</span> command and run with it.
+                    </p>
+                </div>
+                <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 shrink-0">
+                    Designed with NN/g heuristics
+                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
+        <figure class="mb-8 text-center">
+            <img
+                src="img/dev.jpg"
+                alt="Developer at a desk — probably about to commit something regrettable"
+                class="mx-auto w-full max-w-xs sm:max-w-md rounded-xl shadow-sm border border-slate-200"
+                width="400"
+                height="auto"
+            >
+            <figcaption class="mt-2 text-xs text-slate-500">Inspiration runs dry. Commit messages do not.</figcaption>
+        </figure>
+
+        <section aria-labelledby="message-heading" class="mb-8">
+            <div class="flex items-center justify-between mb-3 gap-4">
+                <h2 id="message-heading" class="text-sm font-medium text-slate-700">Your commit message</h2>
+                <p class="text-xs text-slate-500 shrink-0" id="commit-meta" aria-live="polite">
+                    Generation <span id="commit-number">1</span>
+                </p>
+            </div>
+
+            <blockquote
+                id="commit-display"
+                class="commit-card rounded-xl border border-slate-200 bg-white px-6 py-6 sm:py-8 shadow-sm text-left"
+            >
+                <p id="msg" class="text-base sm:text-lg text-slate-800 leading-relaxed" aria-live="polite"></p>
+            </blockquote>
+        </section>
+
+        <section aria-labelledby="command-heading" class="mb-6">
+            <label for="commit_text" class="block text-sm font-medium text-slate-700 mb-2" id="command-heading">
+                Git command (for copying)
+            </label>
+            <textarea
+                id="commit_text"
+                readonly
+                rows="2"
+                class="mono w-full px-4 py-3 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 text-sm resize-y min-h-[3rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                aria-describedby="command-hint"
+            ></textarea>
+            <p id="command-hint" class="mt-2 text-xs text-slate-500">
+                Copy the full command and paste it into your terminal. Select manually if the clipboard button fails.
+            </p>
+        </section>
+
+        <div class="flex flex-col sm:flex-row gap-3" role="group" aria-label="Generator actions">
+            <button
+                type="button"
+                id="btn-copy"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+            >
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copy to clipboard
+            </button>
+            <button
+                type="button"
+                id="btn-generate"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+            >
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Generate another
+            </button>
         </div>
 
-    </div>
+        <p class="mt-6 text-center text-xs text-slate-500">
+            Shortcuts:
+            <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">R</kbd> generate ·
+            <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">C</kbd> copy
+        </p>
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white mt-auto">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-5 text-sm text-slate-500">
+            <p><span id="pool-count"></span> messages in the rotation. Each one is production-ready. None of them are advisable.</p>
+        </div>
+    </footer>
+
     <script>
-    var my_commits = [
+    const my_commits = [
         ' - Temporary commit.',
         ' ¯\\_(ツ)_/¯',
         '"Get that shit outta my master."',
@@ -1375,33 +1540,124 @@
         "fixed some minor stuff, might need some additional work.",
         "git + ipynb = :("
     ];
-    function generate_commit() {
-        var max = my_commits.length;
-        var rnd = Math.floor(Math.random() * max) + 1;
-        var msg = my_commits[rnd];
-        $("#msg").html(`"${msg}"`);
-        $("#commit_text").val(`git commit -m "${msg}"`); 
-    }
 
-    $(document).ready(function(){
-        $("body").attr("style","background-color:#DDD !important;");
-        generate_commit();
-        var clipboard = new ClipboardJS('.btn-cp');
-        clipboard.on('success', function(e) {
-            //console.info('Action:', e.action);
-            //console.info('Text:', e.text);
-            //console.info('Trigger:', e.trigger);
-            $('.toast').toast('show');
+        const commitDisplay = document.getElementById('commit-display');
+        const msgEl = document.getElementById('msg');
+        const commitText = document.getElementById('commit_text');
+        const commitNumber = document.getElementById('commit-number');
+        const poolCount = document.getElementById('pool-count');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnGenerate = document.getElementById('btn-generate');
+        const toast = document.getElementById('toast');
+        const toastDismiss = document.getElementById('toast-dismiss');
+        const toastInner = toast.querySelector('div');
+        const toastTitle = document.getElementById('toast-title');
+        const toastBody = document.getElementById('toast-body');
 
-            e.clearSelection();
+        let lastIndex = -1;
+        let generationCount = 0;
+        let toastTimer = null;
+
+        poolCount.textContent = my_commits.length;
+
+        function pickRandomIndex() {
+            if (my_commits.length <= 1) return 0;
+
+            let index;
+            do {
+                index = Math.floor(Math.random() * my_commits.length);
+            } while (index === lastIndex);
+
+            return index;
+        }
+
+        function resizeTextarea() {
+            commitText.style.height = 'auto';
+            commitText.style.height = `${commitText.scrollHeight}px`;
+        }
+
+        function displayCommit(index) {
+            const msg = my_commits[index];
+            lastIndex = index;
+            generationCount += 1;
+
+            msgEl.innerHTML = `"${msg}"`;
+            commitText.value = `git commit -m "${msg}"`;
+            commitNumber.textContent = generationCount;
+            resizeTextarea();
+
+            commitDisplay.classList.remove('is-new');
+            void commitDisplay.offsetWidth;
+            commitDisplay.classList.add('is-new');
+        }
+
+        function generateCommit() {
+            displayCommit(pickRandomIndex());
+        }
+
+        function showToast(message, isError = false) {
+            clearTimeout(toastTimer);
+
+            if (isError) {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-rose-600 text-white shadow-lg border border-rose-500';
+                toastTitle.textContent = message;
+                toastBody.className = 'text-rose-100 text-xs mt-0.5';
+                toastBody.textContent = 'Select the command field and copy manually.';
+            } else {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500';
+                toastTitle.textContent = 'Copied to clipboard';
+                toastBody.className = 'text-emerald-100 text-xs mt-0.5';
+                toastBody.textContent = 'Paste it into your terminal and hit Enter. No judgment.';
+            }
+
+            toast.classList.remove('hidden');
+            toastTimer = setTimeout(hideToast, 4000);
+        }
+
+        function hideToast() {
+            toast.classList.add('hidden');
+        }
+
+        async function copyCommit() {
+            const text = commitText.value;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    commitText.removeAttribute('readonly');
+                    commitText.select();
+                    commitText.setSelectionRange(0, text.length);
+                    const ok = document.execCommand('copy');
+                    commitText.setAttribute('readonly', '');
+                    if (!ok) throw new Error('execCommand failed');
+                }
+                showToast();
+            } catch {
+                showToast('Copy failed', true);
+                commitText.focus();
+                commitText.select();
+            }
+        }
+
+        btnGenerate.addEventListener('click', generateCommit);
+        btnCopy.addEventListener('click', copyCommit);
+        toastDismiss.addEventListener('click', hideToast);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            if (e.key === 'r' || e.key === 'R') {
+                e.preventDefault();
+                generateCommit();
+            }
+            if (e.key === 'c' || e.key === 'C') {
+                e.preventDefault();
+                copyCommit();
+            }
         });
 
-        clipboard.on('error', function(e) {
-            console.error('Action:', e.action);
-            console.error('Trigger:', e.trigger);
-        });
- 
-    })
+        displayCommit(pickRandomIndex());
     </script>
 </body>
 </html>
