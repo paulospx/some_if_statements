@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Compare two blocks of text or code line by line — highlight added, removed, and unchanged lines in your browser.">
+    <title>Text / Code Diff — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .code-area { tab-size: 2; }
+
+        .diff-line {
+            display: grid;
+            grid-template-columns: 5.5rem 1.5rem 1fr;
+            gap: 0;
+            min-height: 1.625rem;
+            align-items: stretch;
+        }
+
+        .diff-gutter {
+            user-select: none;
+            text-align: right;
+            padding: 0.125rem 0.5rem;
+            border-right: 1px solid rgb(226 232 240);
+            color: rgb(148 163 184);
+            font-size: 0.75rem;
+            line-height: 1.625rem;
+            white-space: pre;
+        }
+
+        .diff-marker {
+            text-align: center;
+            font-weight: 600;
+            line-height: 1.625rem;
+            user-select: none;
+        }
+
+        .diff-content {
+            padding: 0.125rem 0.75rem;
+            line-height: 1.625rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .diff-equal { background: rgb(255 255 255); }
+        .diff-equal .diff-content { color: rgb(71 85 105); }
+
+        .diff-delete { background: rgb(255 241 242); }
+        .diff-delete .diff-marker { color: rgb(225 29 72); }
+        .diff-delete .diff-content { color: rgb(159 18 57); }
+
+        .diff-insert { background: rgb(236 253 245); }
+        .diff-insert .diff-marker { color: rgb(5 150 105); }
+        .diff-insert .diff-content { color: rgb(6 95 70); }
+
+        .diff-output {
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .toast-enter {
+            animation: toast-in 0.25s ease;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(0.5rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .toast-enter { animation: none; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased flex flex-col">
+    <a href="#main" class="skip-link">Skip to diff tool</a>
+
+    <div
+        id="toast"
+        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+    >
+        <div class="toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500">
+            <svg class="w-5 h-5 shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <div>
+                <p id="toast-title" class="font-medium text-sm">Copied to clipboard</p>
+                <p id="toast-body" class="text-emerald-100 text-xs mt-0.5">Paste into email, Slack, or your ticket.</p>
+            </div>
+            <button type="button" id="toast-dismiss" class="ml-auto shrink-0 text-emerald-200 hover:text-white" aria-label="Dismiss notification">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <header class="border-b border-slate-200 bg-white">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+            <nav aria-label="Breadcrumb" class="mb-4">
+                <a href="index.html" class="text-sm text-sky-600 hover:text-sky-700 inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Tool Catalog
+                </a>
+            </nav>
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-amber-700 mb-1">Comparison</p>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">Text / Code Diff</h1>
+                    <p class="mt-2 text-slate-600 leading-relaxed max-w-2xl">
+                        Paste an original snippet and an updated version — configs, logs, SQL, or any line-oriented text. See added, removed, and unchanged lines in a unified, color-coded diff.
+                    </p>
+                </div>
+                <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 shrink-0">
+                    Designed with NN/g heuristics
+                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
+        <section aria-label="Actions" class="mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex flex-wrap gap-2" role="group" aria-label="Diff actions">
+                    <button
+                        type="button"
+                        id="btn-compare"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        Compare
+                    </button>
+                    <button
+                        type="button"
+                        id="btn-swap"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        Swap sides
+                    </button>
+                    <button
+                        type="button"
+                        id="btn-clear"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-600 font-medium border border-slate-200 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        Clear all
+                    </button>
+                    <button
+                        type="button"
+                        id="btn-copy"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors disabled:opacity-40 disabled:pointer-events-none"
+                        disabled
+                    >
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy diff
+                    </button>
+                </div>
+                <p class="text-xs text-slate-500" aria-live="polite" id="status-line">
+                    Original <span id="count-original">0</span> lines · Updated <span id="count-updated">0</span> lines ·
+                    result <span id="result-status">pending</span>
+                </p>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">
+                Shortcuts:
+                <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">D</kbd> compare ·
+                <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">S</kbd> swap ·
+                <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">C</kbd> copy diff
+            </p>
+        </section>
+
+        <section aria-label="Diff options" class="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-4 sm:px-5">
+            <h2 class="text-sm font-medium text-slate-700 mb-3">Comparison options</h2>
+            <div class="flex flex-col sm:flex-row sm:flex-wrap gap-4 sm:gap-6">
+                <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                    <input type="checkbox" id="opt-show-unchanged" class="rounded border-slate-300 text-sky-600 focus:ring-sky-500" checked>
+                    Show unchanged lines
+                </label>
+                <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                    <input type="checkbox" id="opt-ignore-blank" class="rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+                    Ignore blank lines
+                </label>
+                <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                    <input type="checkbox" id="opt-ignore-whitespace" class="rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+                    Ignore leading/trailing whitespace
+                </label>
+            </div>
+        </section>
+
+        <div
+            id="empty-warning"
+            class="hidden mb-6 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm"
+            role="alert"
+        >
+            Add text to at least one side before comparing.
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <section aria-labelledby="original-heading">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="text-original" id="original-heading" class="text-sm font-medium text-slate-700">
+                        Original
+                    </label>
+                    <div class="flex items-center gap-3">
+                        <button type="button" id="btn-sample" class="text-xs font-medium text-sky-600 hover:text-sky-700 focus:outline-none focus-visible:underline">
+                            Load sample
+                        </button>
+                        <span class="text-xs text-slate-400">Before</span>
+                    </div>
+                </div>
+                <textarea
+                    id="text-original"
+                    rows="14"
+                    spellcheck="false"
+                    placeholder="server {&#10;  listen 80;&#10;  root /var/www;&#10;}"
+                    class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-800 text-sm leading-relaxed resize-y min-h-[16rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-describedby="original-hint"
+                ></textarea>
+                <p id="original-hint" class="mt-2 text-xs text-slate-500">Lines only here appear as <strong class="text-rose-700">removed</strong> in the diff.</p>
+            </section>
+
+            <section aria-labelledby="updated-heading">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="text-updated" id="updated-heading" class="text-sm font-medium text-slate-700">
+                        Updated
+                    </label>
+                    <span class="text-xs text-slate-400">After</span>
+                </div>
+                <textarea
+                    id="text-updated"
+                    rows="14"
+                    spellcheck="false"
+                    placeholder="server {&#10;  listen 443 ssl;&#10;  root /var/www;&#10;  gzip on;&#10;}"
+                    class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-800 text-sm leading-relaxed resize-y min-h-[16rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-describedby="updated-hint"
+                ></textarea>
+                <p id="updated-hint" class="mt-2 text-xs text-slate-500">Lines only here appear as <strong class="text-emerald-700">added</strong> in the diff.</p>
+            </section>
+        </div>
+
+        <section id="results-section" class="hidden" aria-labelledby="results-heading">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                <h2 id="results-heading" class="text-lg font-semibold text-slate-900">Unified diff</h2>
+                <p class="text-xs text-slate-500">
+                    <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-rose-200 border border-rose-300" aria-hidden="true"></span> removed</span>
+                    ·
+                    <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-emerald-200 border border-emerald-300" aria-hidden="true"></span> added</span>
+                    ·
+                    <span class="inline-flex items-center gap-1"><span class="w-2 h-2 rounded-sm bg-white border border-slate-200" aria-hidden="true"></span> unchanged</span>
+                </p>
+            </div>
+
+            <div class="flex flex-wrap gap-2 mb-4" role="status" aria-live="polite" id="summary-pills">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">
+                    <span class="w-2 h-2 rounded-full bg-rose-500" aria-hidden="true"></span>
+                    <span id="pill-removed">0 removed</span>
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500" aria-hidden="true"></span>
+                    <span id="pill-added">0 added</span>
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                    <span class="w-2 h-2 rounded-full bg-slate-400" aria-hidden="true"></span>
+                    <span id="pill-unchanged">0 unchanged</span>
+                </span>
+            </div>
+
+            <div
+                id="diff-output"
+                class="diff-output mono rounded-xl border border-slate-200 bg-white shadow-sm overflow-auto max-h-[32rem]"
+                role="region"
+                aria-label="Diff output"
+                tabindex="0"
+            ></div>
+        </section>
+
+        <div
+            id="identical-message"
+            class="hidden mt-6 px-4 py-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-sm text-center"
+            role="status"
+        >
+            Texts are identical — no line differences found with the current options.
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white mt-auto">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 text-sm text-slate-500">
+            <p>Diff runs entirely in your browser. Line comparison uses longest-common-subsequence alignment — best for line-oriented text, not word-level edits within a single line.</p>
+        </div>
+    </footer>
+
+    <script>
+        const SAMPLE_ORIGINAL = `SELECT id, name, status
+FROM users
+WHERE active = 1
+  AND role = 'admin'
+ORDER BY created_at DESC
+LIMIT 100;`;
+
+        const SAMPLE_UPDATED = `SELECT u.id, u.name, u.status, u.email
+FROM users u
+LEFT JOIN teams t ON t.id = u.team_id
+WHERE u.active = 1
+  AND u.role IN ('admin', 'owner')
+ORDER BY u.created_at DESC
+LIMIT 250;`;
+
+        const textOriginal = document.getElementById('text-original');
+        const textUpdated = document.getElementById('text-updated');
+        const countOriginal = document.getElementById('count-original');
+        const countUpdated = document.getElementById('count-updated');
+        const resultStatus = document.getElementById('result-status');
+        const emptyWarning = document.getElementById('empty-warning');
+        const resultsSection = document.getElementById('results-section');
+        const identicalMessage = document.getElementById('identical-message');
+        const diffOutput = document.getElementById('diff-output');
+        const pillRemoved = document.getElementById('pill-removed');
+        const pillAdded = document.getElementById('pill-added');
+        const pillUnchanged = document.getElementById('pill-unchanged');
+        const optShowUnchanged = document.getElementById('opt-show-unchanged');
+        const optIgnoreBlank = document.getElementById('opt-ignore-blank');
+        const optIgnoreWhitespace = document.getElementById('opt-ignore-whitespace');
+        const btnCompare = document.getElementById('btn-compare');
+        const btnSwap = document.getElementById('btn-swap');
+        const btnClear = document.getElementById('btn-clear');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnSample = document.getElementById('btn-sample');
+        const toast = document.getElementById('toast');
+        const toastDismiss = document.getElementById('toast-dismiss');
+        const toastInner = toast.querySelector('div');
+        const toastTitle = document.getElementById('toast-title');
+        const toastBody = document.getElementById('toast-body');
+
+        let lastDiff = null;
+        let lastCopyText = '';
+        let toastTimer = null;
+
+        function getOptions() {
+            return {
+                showUnchanged: optShowUnchanged.checked,
+                ignoreBlank: optIgnoreBlank.checked,
+                ignoreWhitespace: optIgnoreWhitespace.checked
+            };
+        }
+
+        function splitLines(text) {
+            if (!text) return [];
+            return text.replace(/\r\n/g, '\n').split('\n');
+        }
+
+        function countDisplayLines(text) {
+            const lines = splitLines(text);
+            if (lines.length === 1 && lines[0] === '') return 0;
+            return lines.length;
+        }
+
+        function prepareLines(text, options) {
+            const raw = splitLines(text);
+            const entries = [];
+
+            raw.forEach((line, index) => {
+                if (options.ignoreBlank && line.trim() === '') return;
+                entries.push({
+                    text: line,
+                    key: options.ignoreWhitespace ? line.trim() : line,
+                    sourceIndex: index + 1
+                });
+            });
+
+            return entries;
+        }
+
+        function linesMatch(a, b, options) {
+            if (options.ignoreWhitespace) {
+                return a.key === b.key;
+            }
+            return a.text === b.text;
+        }
+
+        function computeDiff(oldEntries, newEntries, options) {
+            const n = oldEntries.length;
+            const m = newEntries.length;
+            const dp = Array.from({ length: n + 1 }, () => new Array(m + 1).fill(0));
+
+            for (let i = 1; i <= n; i++) {
+                for (let j = 1; j <= m; j++) {
+                    if (linesMatch(oldEntries[i - 1], newEntries[j - 1], options)) {
+                        dp[i][j] = dp[i - 1][j - 1] + 1;
+                    } else {
+                        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                    }
+                }
+            }
+
+            const ops = [];
+            let i = n;
+            let j = m;
+
+            while (i > 0 || j > 0) {
+                if (i > 0 && j > 0 && linesMatch(oldEntries[i - 1], newEntries[j - 1], options)) {
+                    ops.unshift({
+                        type: 'equal',
+                        text: newEntries[j - 1].text,
+                        oldLine: oldEntries[i - 1].sourceIndex,
+                        newLine: newEntries[j - 1].sourceIndex
+                    });
+                    i--;
+                    j--;
+                } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+                    ops.unshift({
+                        type: 'insert',
+                        text: newEntries[j - 1].text,
+                        newLine: newEntries[j - 1].sourceIndex
+                    });
+                    j--;
+                } else {
+                    ops.unshift({
+                        type: 'delete',
+                        text: oldEntries[i - 1].text,
+                        oldLine: oldEntries[i - 1].sourceIndex
+                    });
+                    i--;
+                }
+            }
+
+            return ops;
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function formatGutter(oldLine, newLine) {
+            const oldPart = oldLine == null ? '     ' : String(oldLine).padStart(4, ' ');
+            const newPart = newLine == null ? '     ' : String(newLine).padStart(4, ' ');
+            return `${oldPart} ${newPart}`;
+        }
+
+        function formatCopyLine(op) {
+            if (op.type === 'equal') return `  ${op.text}`;
+            if (op.type === 'delete') return `- ${op.text}`;
+            return `+ ${op.text}`;
+        }
+
+        function summarize(ops) {
+            return {
+                removed: ops.filter((op) => op.type === 'delete').length,
+                added: ops.filter((op) => op.type === 'insert').length,
+                unchanged: ops.filter((op) => op.type === 'equal').length
+            };
+        }
+
+        function renderDiff(ops, options) {
+            const visible = options.showUnchanged ? ops : ops.filter((op) => op.type !== 'equal');
+
+            if (visible.length === 0) {
+                diffOutput.innerHTML = '<p class="px-4 py-6 text-sm text-slate-500 italic">No lines to display with current filters.</p>';
+                return '';
+            }
+
+            diffOutput.innerHTML = visible.map((op) => {
+                const marker = op.type === 'equal' ? ' ' : op.type === 'delete' ? '-' : '+';
+                const className = op.type === 'equal' ? 'diff-equal' : op.type === 'delete' ? 'diff-delete' : 'diff-insert';
+                const oldLine = op.type === 'insert' ? null : op.oldLine;
+                const newLine = op.type === 'delete' ? null : op.newLine;
+                const displayText = escapeHtml(op.text === '' ? ' ' : op.text);
+
+                return `<div class="diff-line ${className}">
+                    <span class="diff-gutter" aria-hidden="true">${formatGutter(oldLine, newLine)}</span>
+                    <span class="diff-marker" aria-hidden="true">${marker}</span>
+                    <span class="diff-content">${displayText}</span>
+                </div>`;
+            }).join('');
+
+            return visible.map(formatCopyLine).join('\n');
+        }
+
+        function updateInputCounts() {
+            countOriginal.textContent = countDisplayLines(textOriginal.value);
+            countUpdated.textContent = countDisplayLines(textUpdated.value);
+        }
+
+        function hideWarning() {
+            emptyWarning.classList.add('hidden');
+        }
+
+        function showWarning() {
+            emptyWarning.classList.remove('hidden');
+        }
+
+        function compare() {
+            const original = textOriginal.value;
+            const updated = textUpdated.value;
+
+            if (!original.trim() && !updated.trim()) {
+                showWarning();
+                resultsSection.classList.add('hidden');
+                identicalMessage.classList.add('hidden');
+                resultStatus.textContent = 'pending';
+                btnCopy.disabled = true;
+                lastDiff = null;
+                lastCopyText = '';
+                textOriginal.focus();
+                return;
+            }
+
+            hideWarning();
+            const options = getOptions();
+            const oldEntries = prepareLines(original, options);
+            const newEntries = prepareLines(updated, options);
+            const ops = computeDiff(oldEntries, newEntries, options);
+            const summary = summarize(ops);
+
+            lastDiff = { ops, summary, options };
+            const hasDiff = summary.removed > 0 || summary.added > 0;
+
+            resultStatus.textContent = hasDiff ? 'ready' : 'identical';
+            resultsSection.classList.remove('hidden');
+            identicalMessage.classList.toggle('hidden', hasDiff);
+
+            pillRemoved.textContent = `${summary.removed} removed`;
+            pillAdded.textContent = `${summary.added} added`;
+            pillUnchanged.textContent = `${summary.unchanged} unchanged`;
+
+            lastCopyText = renderDiff(ops, options);
+            btnCopy.disabled = !lastCopyText;
+
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function swapSides() {
+            const temp = textOriginal.value;
+            textOriginal.value = textUpdated.value;
+            textUpdated.value = temp;
+            updateInputCounts();
+            hideWarning();
+            resultStatus.textContent = 'pending';
+            resultsSection.classList.add('hidden');
+            identicalMessage.classList.add('hidden');
+            btnCopy.disabled = true;
+            lastDiff = null;
+            lastCopyText = '';
+            textOriginal.focus();
+        }
+
+        function clearAll() {
+            textOriginal.value = '';
+            textUpdated.value = '';
+            hideWarning();
+            resultsSection.classList.add('hidden');
+            identicalMessage.classList.add('hidden');
+            resultStatus.textContent = 'pending';
+            btnCopy.disabled = true;
+            lastDiff = null;
+            lastCopyText = '';
+            diffOutput.innerHTML = '';
+            updateInputCounts();
+            textOriginal.focus();
+        }
+
+        function loadSample() {
+            textOriginal.value = SAMPLE_ORIGINAL;
+            textUpdated.value = SAMPLE_UPDATED;
+            hideWarning();
+            resultStatus.textContent = 'pending';
+            resultsSection.classList.add('hidden');
+            identicalMessage.classList.add('hidden');
+            btnCopy.disabled = true;
+            lastDiff = null;
+            lastCopyText = '';
+            updateInputCounts();
+            textOriginal.focus();
+        }
+
+        function showToast(message, isError = false) {
+            clearTimeout(toastTimer);
+
+            if (isError) {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-rose-600 text-white shadow-lg border border-rose-500';
+                toastTitle.textContent = message;
+                toastBody.className = 'text-rose-100 text-xs mt-0.5';
+                toastBody.textContent = 'Select the diff output and copy manually.';
+            } else {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500';
+                toastTitle.textContent = 'Copied to clipboard';
+                toastBody.className = 'text-emerald-100 text-xs mt-0.5';
+                toastBody.textContent = 'Paste into email, Slack, or your ticket.';
+            }
+
+            toast.classList.remove('hidden');
+            toastTimer = setTimeout(() => toast.classList.add('hidden'), 4000);
+        }
+
+        async function copyDiff() {
+            if (!lastCopyText) return;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(lastCopyText);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = lastCopyText;
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    if (!ok) throw new Error('execCommand failed');
+                }
+                showToast();
+            } catch {
+                showToast('Copy failed', true);
+            }
+        }
+
+        btnCompare.addEventListener('click', compare);
+        btnSwap.addEventListener('click', swapSides);
+        btnClear.addEventListener('click', clearAll);
+        btnCopy.addEventListener('click', copyDiff);
+        btnSample.addEventListener('click', loadSample);
+        toastDismiss.addEventListener('click', () => toast.classList.add('hidden'));
+
+        textOriginal.addEventListener('input', () => {
+            hideWarning();
+            updateInputCounts();
+        });
+        textUpdated.addEventListener('input', updateInputCounts);
+
+        [optShowUnchanged, optIgnoreBlank, optIgnoreWhitespace].forEach((el) => {
+            el.addEventListener('change', () => {
+                if (lastDiff) compare();
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            const inField = e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT';
+
+            if ((e.key === 'd' || e.key === 'D') && !inField) {
+                e.preventDefault();
+                compare();
+            }
+
+            if ((e.key === 's' || e.key === 'S') && !inField) {
+                e.preventDefault();
+                swapSides();
+            }
+
+            if ((e.key === 'c' || e.key === 'C') && !inField && lastCopyText) {
+                e.preventDefault();
+                copyDiff();
+            }
+        });
+
+        updateInputCounts();
+    </script>
+</body>
+</html>
