@@ -1,419 +1,382 @@
-﻿<!DOCTYPE html>
-<html lang="en" xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-    <title>Paulo P.'s Random Target Generator</title>
-    
-    <meta property="title" content="Paulo P.&#39;s Random Target Generator">
-    <meta property="type" content="website">
-    <meta property="description" content="Random target generator...">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Generate quarterly targets packed with corporate buzzwords — ready to paste into your OKR doc or planning deck.">
+    <title>Quarterly Targets Generator — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
-    <script src="random_execuse_files/jquery.min.js"></script>
-    
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .target-card {
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .target-card.is-new {
+            animation: target-in 0.35s ease;
+        }
+
+        @keyframes target-in {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .toast-enter {
+            animation: toast-in 0.25s ease;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(0.5rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .target-card.is-new,
+            .toast-enter {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased flex flex-col">
+    <a href="#main" class="skip-link">Skip to generator</a>
+
+    <div
+        id="toast"
+        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+    >
+        <div class="toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500">
+            <svg class="w-5 h-5 shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <div>
+                <p id="toast-title" class="font-medium text-sm">Copied to clipboard</p>
+                <p id="toast-body" class="text-emerald-100 text-xs mt-0.5">Paste into your OKR doc, slide deck, or performance plan.</p>
+            </div>
+            <button type="button" id="toast-dismiss" class="ml-auto shrink-0 text-emerald-200 hover:text-white" aria-label="Dismiss notification">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <header class="border-b border-slate-200 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+            <nav aria-label="Breadcrumb" class="mb-4">
+                <a href="index.html" class="text-sm text-sky-600 hover:text-sky-700 inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Tool Catalog
+                </a>
+            </nav>
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-violet-600 mb-1">Generator</p>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">Quarterly Targets Generator</h1>
+                    <p class="mt-2 text-slate-600 leading-relaxed max-w-2xl">
+                        OKR season again? Spin up a quarterly target that sounds transformative, synergistic, and completely unmeasurable — then copy it before anyone asks for the KPIs.
+                    </p>
+                </div>
+                <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 shrink-0">
+                    Designed with NN/g heuristics
+                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
+        <figure class="mb-8 text-center">
+            <img
+                src="img/user_man_check-512.png"
+                alt="Businessperson giving a thumbs-up — fully confident in this target"
+                class="mx-auto w-32 h-32 sm:w-40 sm:h-40 rounded-full border-4 border-white shadow-md object-cover"
+                width="160"
+                height="160"
+            >
+            <figcaption class="mt-3 text-xs text-slate-500">Strategic. Ambiguous. Approved.</figcaption>
+        </figure>
+
+        <section aria-labelledby="target-heading" class="mb-8">
+            <div class="flex items-center justify-between mb-3 gap-4">
+                <h2 id="target-heading" class="text-sm font-medium text-slate-700">Your quarterly target</h2>
+                <p class="text-xs text-slate-500 shrink-0" id="target-meta" aria-live="polite">
+                    Generation <span id="target-number">1</span>
+                </p>
+            </div>
+
+            <blockquote
+                id="target-display"
+                class="target-card rounded-xl border border-slate-200 bg-white px-6 py-6 sm:py-8 shadow-sm text-center"
+            >
+                <p id="target-text" class="text-lg sm:text-xl text-slate-800 leading-relaxed font-medium" aria-live="polite"></p>
+                <p id="target-breakdown" class="mt-4 text-xs text-slate-400 mono"></p>
+            </blockquote>
+        </section>
+
+        <section aria-labelledby="copy-heading" class="mb-6">
+            <label for="target-input" class="block text-sm font-medium text-slate-700 mb-2" id="copy-heading">
+                Plain text (for copying)
+            </label>
+            <textarea
+                id="target-input"
+                readonly
+                rows="2"
+                class="mono w-full px-4 py-3 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 text-sm resize-y min-h-[3.5rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                aria-describedby="copy-hint"
+            ></textarea>
+            <p id="copy-hint" class="mt-2 text-xs text-slate-500">
+                Targets are generated as <em>verb + adjective + noun</em>. Select manually if copy fails.
+            </p>
+        </section>
+
+        <div class="flex flex-col sm:flex-row gap-3" role="group" aria-label="Generator actions">
+            <button
+                type="button"
+                id="btn-copy"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+            >
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copy to clipboard
+            </button>
+            <button
+                type="button"
+                id="btn-generate"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+            >
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Generate another
+            </button>
+        </div>
+
+        <p class="mt-6 text-center text-xs text-slate-500">
+            Shortcuts:
+            <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">R</kbd> generate ·
+            <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">C</kbd> copy
+        </p>
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white mt-auto">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-5 text-sm text-slate-500">
+            <p>
+                <span id="verb-count"></span> verbs ·
+                <span id="adj-count"></span> adjectives ·
+                <span id="noun-count"></span> nouns —
+                millions of combinations, zero accountability.
+            </p>
+        </div>
+    </footer>
+
     <script>
-        /*
-         * jQuery jSlots Plugin
-         * http://matthewlein.com/jslot/
-         * Copyright (c) 2011 Matthew Lein
-         * Version: 1.0.2 (7/26/2012)
-         * Dual licensed under the MIT and GPL licenses
-         * Requires: jQuery v1.4.1 or later
-         */
-      (function (a) { a.jSlots = function (c, b) { var d = this; d.$el = a(c); d.el = c; d.$el.data("jSlots", d); d.init = function () { d.options = a.extend({}, a.jSlots.defaultOptions, b); d.setup(); d.bindEvents(); }; a.jSlots.defaultOptions = { number: 3, winnerNumber: 1, spinner: "", spinEvent: "click", onStart: a.noop, onEnd: a.noop, onWin: a.noop, easing: "swing", time: 7000, loops: 6 }; d.randomRange = function (e, f) { return Math.floor(Math.random() * (1 + f - e)) + e; }; d.isSpinning = false; d.spinSpeed = 0; d.winCount = 0; d.doneCount = 0; d.$liHeight = 0; d.$liWidth = 0; d.winners = []; d.allSlots = []; d.setup = function () { var e = d.$el; var g = e.find("li").first(); d.$liHeight = g.outerHeight(); d.$liWidth = g.outerWidth(); d.liCount = d.$el.children().length; d.listHeight = d.$liHeight * d.liCount; d.increment = (d.options.time / d.options.loops) / d.options.loops; e.css("position", "relative"); g.clone().appendTo(e); d.$wrapper = e.wrap('<div class="jSlots-wrapper"></div>').parent(); d.$el.remove(); for (var f = d.options.number - 1; f >= 0; f--) { d.allSlots.push(new d.Slot()); } }; d.bindEvents = function () { a(d.options.spinner).bind(d.options.spinEvent, function (e) { if (!d.isSpinning) { d.playSlots(); } }); }; d.Slot = function () { this.spinSpeed = 0; this.el = d.$el.clone().appendTo(d.$wrapper)[0]; this.$el = a(this.el); this.loopCount = 0; this.number = 0; }; d.Slot.prototype = { spinEm: function () { var e = this; e.$el.css("top", -d.listHeight).animate({ top: "0px" }, e.spinSpeed, "linear", function () { e.lowerSpeed(); }); }, lowerSpeed: function () { this.spinSpeed += d.increment; this.loopCount++; if (this.loopCount < d.options.loops) { this.spinEm(); } else { this.finish(); } }, finish: function () { var e = this; var g = d.randomRange(1, d.liCount); var f = -((d.$liHeight * g) - d.$liHeight); var h = ((this.spinSpeed * 0.5) * (d.liCount)) / g; e.$el.css("top", -d.listHeight).animate({ top: f }, h, d.options.easing, function () { d.checkWinner(g, e); }); } }; d.checkWinner = function (f, g) { d.doneCount++; g.number = f; if ((a.isArray(d.options.winnerNumber) && d.options.winnerNumber.indexOf(f) > -1) || f === d.options.winnerNumber) { d.winCount++; d.winners.push(g.$el); } if (d.doneCount === d.options.number) { var e = []; a.each(d.allSlots, function (h, i) { e[h] = i.number; }); if (a.isFunction(d.options.onEnd)) { d.options.onEnd(e); } if (d.winCount && a.isFunction(d.options.onWin)) { d.options.onWin(d.winCount, d.winners, e); } d.isSpinning = false; } }; d.playSlots = function () { d.isSpinning = true; d.winCount = 0; d.doneCount = 0; d.winners = []; if (a.isFunction(d.options.onStart)) { d.options.onStart(); } a.each(d.allSlots, function (e, f) { this.spinSpeed = 0; this.loopCount = 0; this.spinEm(); }); }; d.onWin = function () { if (a.isFunction(d.options.onWin)) { d.options.onWin(); } }; d.init(); }; a.fn.jSlots = function (b) { if (this.length) { return this.each(function () { (new a.jSlots(this, b)); }); } }; })(jQuery);
-    </script>  
-    <script>
-        /*
- * jQuery Easing v1.3 - http://gsgd.co.uk/sandbox/jquery/easing/
- *
- * Uses the built in easing capabilities added In jQuery 1.1
- * to offer multiple easing options
- *
- * TERMS OF USE - jQuery Easing
- * 
- * Open source under the BSD License. 
- * 
- * Copyright © 2008 George McGinley Smith
- * All rights reserved.
- * 
- * Redistribution and use in source and binary forms, with or without modification, 
- * are permitted provided that the following conditions are met:
- * 
- * Redistributions of source code must retain the above copyright notice, this list of 
- * conditions and the following disclaimer.
- * Redistributions in binary form must reproduce the above copyright notice, this list 
- * of conditions and the following disclaimer in the documentation and/or other materials 
- * provided with the distribution.
- * 
- * Neither the name of the author nor the names of contributors may be used to endorse 
- * or promote products derived from this software without specific prior written permission.
- * 
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY 
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
- * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
- *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- *  EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
- *  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED 
- * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
- *  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED 
- * OF THE POSSIBILITY OF SUCH DAMAGE. 
- *
-*/
+        const verbs = [
+            'aggregate', 'architect', 'benchmark', 'brand', 'cultivate', 'deliver', 'deploy',
+            'disintermediate', 'drive', 'e-enable', 'embrace', 'empower', 'enable', 'engage',
+            'engineer', 'enhance', 'envisioneer', 'evolve', 'expedite', 'exploit', 'extend',
+            'facilitate', 'generate', 'grow', 'harness', 'implement', 'incentivize', 'incubate',
+            'innovate', 'integrate', 'iterate', 'leverage', 'matrix', 'maximize', 'mesh',
+            'monetize', 'morph', 'optimize', 'orchestrate', 'productize', 'recontextualize',
+            'redefine', 'reintermediate', 'reinvent', 'repurpose', 'revolutionize', 'scale',
+            'seize', 'strategize', 'streamline', 'syndicate', 'synergize', 'synthesize',
+            'target', 'transform', 'transition', 'unleash', 'utilize', 'visualize', 'whiteboard'
+        ];
 
-        // t: current time, b: begInnIng value, c: change In value, d: duration
-        jQuery.easing['jswing'] = jQuery.easing['swing'];
+        const adjectives = [
+            '24/365', '24/7', 'B2B', 'B2C', 'back-end', 'best-of-breed', 'bleeding-edge',
+            'bricks-and-clicks', 'clicks-and-mortar', 'collaborative', 'compelling',
+            'cross-platform', 'cross-media', 'customized', 'cutting-edge', 'distributed',
+            'dot-com', 'dynamic', 'e-business', 'efficient', 'end-to-end', 'enterprise',
+            'extensible', 'frictionless', 'front-end', 'global', 'granular', 'holistic',
+            'impactful', 'innovative', 'integrated', 'interactive', 'intuitive', 'killer',
+            'leading-edge', 'magnetic', 'mission-critical', 'next-generation', 'one-to-one',
+            'open-source', 'out-of-the-box', 'plug-and-play', 'proactive', 'real-time',
+            'revolutionary', 'rich', 'robust', 'scalable', 'seamless', 'sexy', 'sticky',
+            'strategic', 'synergistic', 'transparent', 'turn-key', 'ubiquitous', 'user-centric',
+            'value-added', 'vertical', 'viral', 'virtual', 'visionary', 'web-enabled',
+            'wireless', 'world-class'
+        ];
 
-        jQuery.extend(jQuery.easing,
-        {
-            def: 'easeOutQuad',
-            swing: function (x, t, b, c, d) {
-                //alert(jQuery.easing.default);
-                return jQuery.easing[jQuery.easing.def](x, t, b, c, d);
-            },
-            easeInQuad: function (x, t, b, c, d) {
-                return c * (t /= d) * t + b;
-            },
-            easeOutQuad: function (x, t, b, c, d) {
-                return -c * (t /= d) * (t - 2) + b;
-            },
-            easeInOutQuad: function (x, t, b, c, d) {
-                if ((t /= d / 2) < 1) return c / 2 * t * t + b;
-                return -c / 2 * ((--t) * (t - 2) - 1) + b;
-            },
-            easeInCubic: function (x, t, b, c, d) {
-                return c * (t /= d) * t * t + b;
-            },
-            easeOutCubic: function (x, t, b, c, d) {
-                return c * ((t = t / d - 1) * t * t + 1) + b;
-            },
-            easeInOutCubic: function (x, t, b, c, d) {
-                if ((t /= d / 2) < 1) return c / 2 * t * t * t + b;
-                return c / 2 * ((t -= 2) * t * t + 2) + b;
-            },
-            easeInQuart: function (x, t, b, c, d) {
-                return c * (t /= d) * t * t * t + b;
-            },
-            easeOutQuart: function (x, t, b, c, d) {
-                return -c * ((t = t / d - 1) * t * t * t - 1) + b;
-            },
-            easeInOutQuart: function (x, t, b, c, d) {
-                if ((t /= d / 2) < 1) return c / 2 * t * t * t * t + b;
-                return -c / 2 * ((t -= 2) * t * t * t - 2) + b;
-            },
-            easeInQuint: function (x, t, b, c, d) {
-                return c * (t /= d) * t * t * t * t + b;
-            },
-            easeOutQuint: function (x, t, b, c, d) {
-                return c * ((t = t / d - 1) * t * t * t * t + 1) + b;
-            },
-            easeInOutQuint: function (x, t, b, c, d) {
-                if ((t /= d / 2) < 1) return c / 2 * t * t * t * t * t + b;
-                return c / 2 * ((t -= 2) * t * t * t * t + 2) + b;
-            },
-            easeInSine: function (x, t, b, c, d) {
-                return -c * Math.cos(t / d * (Math.PI / 2)) + c + b;
-            },
-            easeOutSine: function (x, t, b, c, d) {
-                return c * Math.sin(t / d * (Math.PI / 2)) + b;
-            },
-            easeInOutSine: function (x, t, b, c, d) {
-                return -c / 2 * (Math.cos(Math.PI * t / d) - 1) + b;
-            },
-            easeInExpo: function (x, t, b, c, d) {
-                return (t == 0) ? b : c * Math.pow(2, 10 * (t / d - 1)) + b;
-            },
-            easeOutExpo: function (x, t, b, c, d) {
-                return (t == d) ? b + c : c * (-Math.pow(2, -10 * t / d) + 1) + b;
-            },
-            easeInOutExpo: function (x, t, b, c, d) {
-                if (t == 0) return b;
-                if (t == d) return b + c;
-                if ((t /= d / 2) < 1) return c / 2 * Math.pow(2, 10 * (t - 1)) + b;
-                return c / 2 * (-Math.pow(2, -10 * --t) + 2) + b;
-            },
-            easeInCirc: function (x, t, b, c, d) {
-                return -c * (Math.sqrt(1 - (t /= d) * t) - 1) + b;
-            },
-            easeOutCirc: function (x, t, b, c, d) {
-                return c * Math.sqrt(1 - (t = t / d - 1) * t) + b;
-            },
-            easeInOutCirc: function (x, t, b, c, d) {
-                if ((t /= d / 2) < 1) return -c / 2 * (Math.sqrt(1 - t * t) - 1) + b;
-                return c / 2 * (Math.sqrt(1 - (t -= 2) * t) + 1) + b;
-            },
-            easeInElastic: function (x, t, b, c, d) {
-                var s = 1.70158; var p = 0; var a = c;
-                if (t == 0) return b; if ((t /= d) == 1) return b + c; if (!p) p = d * .3;
-                if (a < Math.abs(c)) { a = c; var s = p / 4; }
-                else var s = p / (2 * Math.PI) * Math.asin(c / a);
-                return -(a * Math.pow(2, 10 * (t -= 1)) * Math.sin((t * d - s) * (2 * Math.PI) / p)) + b;
-            },
-            easeOutElastic: function (x, t, b, c, d) {
-                var s = 1.70158; var p = 0; var a = c;
-                if (t == 0) return b; if ((t /= d) == 1) return b + c; if (!p) p = d * .3;
-                if (a < Math.abs(c)) { a = c; var s = p / 4; }
-                else var s = p / (2 * Math.PI) * Math.asin(c / a);
-                return a * Math.pow(2, -10 * t) * Math.sin((t * d - s) * (2 * Math.PI) / p) + c + b;
-            },
-            easeInOutElastic: function (x, t, b, c, d) {
-                var s = 1.70158; var p = 0; var a = c;
-                if (t == 0) return b; if ((t /= d / 2) == 2) return b + c; if (!p) p = d * (.3 * 1.5);
-                if (a < Math.abs(c)) { a = c; var s = p / 4; }
-                else var s = p / (2 * Math.PI) * Math.asin(c / a);
-                if (t < 1) return -.5 * (a * Math.pow(2, 10 * (t -= 1)) * Math.sin((t * d - s) * (2 * Math.PI) / p)) + b;
-                return a * Math.pow(2, -10 * (t -= 1)) * Math.sin((t * d - s) * (2 * Math.PI) / p) * .5 + c + b;
-            },
-            easeInBack: function (x, t, b, c, d, s) {
-                if (s == undefined) s = 1.70158;
-                return c * (t /= d) * t * ((s + 1) * t - s) + b;
-            },
-            easeOutBack: function (x, t, b, c, d, s) {
-                if (s == undefined) s = 1.70158;
-                return c * ((t = t / d - 1) * t * ((s + 1) * t + s) + 1) + b;
-            },
-            easeInOutBack: function (x, t, b, c, d, s) {
-                if (s == undefined) s = 1.70158;
-                if ((t /= d / 2) < 1) return c / 2 * (t * t * (((s *= (1.525)) + 1) * t - s)) + b;
-                return c / 2 * ((t -= 2) * t * (((s *= (1.525)) + 1) * t + s) + 2) + b;
-            },
-            easeInBounce: function (x, t, b, c, d) {
-                return c - jQuery.easing.easeOutBounce(x, d - t, 0, c, d) + b;
-            },
-            easeOutBounce: function (x, t, b, c, d) {
-                if ((t /= d) < (1 / 2.75)) {
-                    return c * (7.5625 * t * t) + b;
-                } else if (t < (2 / 2.75)) {
-                    return c * (7.5625 * (t -= (1.5 / 2.75)) * t + .75) + b;
-                } else if (t < (2.5 / 2.75)) {
-                    return c * (7.5625 * (t -= (2.25 / 2.75)) * t + .9375) + b;
+        const actionItems = [
+            'applications', 'architectures', 'bandwidth', 'channels', 'communities', 'content',
+            'convergence', 'deliverables', 'e-business', 'e-commerce', 'e-markets', 'e-services',
+            'e-tailers', 'experiences', 'eyeballs', 'functionalities', 'infomediaries',
+            'infrastructures', 'initiatives', 'interfaces', 'markets', 'methodologies', 'metrics',
+            'mindshare', 'models', 'networks', 'niches', 'paradigms', 'partnerships', 'platforms',
+            'portals', 'relationships', 'ROI', 'synergies', 'web-readiness', 'schemas', 'solutions',
+            'supply-chains', 'systems', 'technologies', 'users', 'vortals', 'web services', 'data',
+            'big data', 'analytics', 'business-intelligence', 'data storage', 'data analysis',
+            'searching', 'visualization'
+        ];
+
+        const targetDisplay = document.getElementById('target-display');
+        const targetText = document.getElementById('target-text');
+        const targetBreakdown = document.getElementById('target-breakdown');
+        const targetInput = document.getElementById('target-input');
+        const targetNumber = document.getElementById('target-number');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnGenerate = document.getElementById('btn-generate');
+        const toast = document.getElementById('toast');
+        const toastDismiss = document.getElementById('toast-dismiss');
+        const toastInner = toast.querySelector('div');
+        const toastTitle = document.getElementById('toast-title');
+        const toastBody = document.getElementById('toast-body');
+
+        let lastTarget = '';
+        let generationCount = 0;
+        let toastTimer = null;
+
+        document.getElementById('verb-count').textContent = verbs.length;
+        document.getElementById('adj-count').textContent = adjectives.length;
+        document.getElementById('noun-count').textContent = actionItems.length;
+
+        function pick(arr) {
+            return arr[Math.floor(Math.random() * arr.length)];
+        }
+
+        function buildTarget() {
+            const verb = pick(verbs);
+            const adjective = pick(adjectives);
+            const noun = pick(actionItems);
+            const text = `${verb} ${adjective} ${noun}`;
+            return { text, verb, adjective, noun };
+        }
+
+        function generateUniqueTarget() {
+            let result;
+            let attempts = 0;
+
+            do {
+                result = buildTarget();
+                attempts += 1;
+            } while (result.text === lastTarget && attempts < 20);
+
+            return result;
+        }
+
+        function displayTarget(result) {
+            lastTarget = result.text;
+            generationCount += 1;
+
+            targetText.textContent = result.text;
+            targetInput.value = result.text;
+            targetNumber.textContent = generationCount;
+            targetBreakdown.textContent = `${result.verb} · ${result.adjective} · ${result.noun}`;
+
+            targetDisplay.classList.remove('is-new');
+            void targetDisplay.offsetWidth;
+            targetDisplay.classList.add('is-new');
+        }
+
+        function generateTarget() {
+            displayTarget(generateUniqueTarget());
+        }
+
+        function showToast(message, isError = false) {
+            clearTimeout(toastTimer);
+
+            if (isError) {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-rose-600 text-white shadow-lg border border-rose-500';
+                toastTitle.textContent = message;
+                toastBody.className = 'text-rose-100 text-xs mt-0.5';
+                toastBody.textContent = 'Select the text field and copy manually.';
+            } else {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500';
+                toastTitle.textContent = 'Copied to clipboard';
+                toastBody.className = 'text-emerald-100 text-xs mt-0.5';
+                toastBody.textContent = 'Paste into your OKR doc, slide deck, or performance plan.';
+            }
+
+            toast.classList.remove('hidden');
+            toastTimer = setTimeout(() => toast.classList.add('hidden'), 4000);
+        }
+
+        async function copyTarget() {
+            const text = targetInput.value;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
                 } else {
-                    return c * (7.5625 * (t -= (2.625 / 2.75)) * t + .984375) + b;
+                    targetInput.removeAttribute('readonly');
+                    targetInput.select();
+                    targetInput.setSelectionRange(0, text.length);
+                    const ok = document.execCommand('copy');
+                    targetInput.setAttribute('readonly', '');
+                    if (!ok) throw new Error('execCommand failed');
                 }
-            },
-            easeInOutBounce: function (x, t, b, c, d) {
-                if (t < d / 2) return jQuery.easing.easeInBounce(x, t * 2, 0, c, d) * .5 + b;
-                return jQuery.easing.easeOutBounce(x, t * 2 - d, 0, c, d) * .5 + c * .5 + b;
+                showToast();
+            } catch {
+                showToast('Copy failed', true);
+                targetInput.focus();
+                targetInput.select();
+            }
+        }
+
+        btnGenerate.addEventListener('click', generateTarget);
+        btnCopy.addEventListener('click', copyTarget);
+        toastDismiss.addEventListener('click', () => toast.classList.add('hidden'));
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            if (e.key === 'r' || e.key === 'R') {
+                e.preventDefault();
+                generateTarget();
+            }
+            if (e.key === 'c' || e.key === 'C') {
+                e.preventDefault();
+                copyTarget();
             }
         });
 
-        /*
-         *
-         * TERMS OF USE - EASING EQUATIONS
-         * 
-         * Open source under the BSD License. 
-         * 
-         * Copyright © 2001 Robert Penner
-         * All rights reserved.
-         * 
-         * Redistribution and use in source and binary forms, with or without modification, 
-         * are permitted provided that the following conditions are met:
-         * 
-         * Redistributions of source code must retain the above copyright notice, this list of 
-         * conditions and the following disclaimer.
-         * Redistributions in binary form must reproduce the above copyright notice, this list 
-         * of conditions and the following disclaimer in the documentation and/or other materials 
-         * provided with the distribution.
-         * 
-         * Neither the name of the author nor the names of contributors may be used to endorse 
-         * or promote products derived from this software without specific prior written permission.
-         * 
-         * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY 
-         * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-         * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-         *  COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
-         *  EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-         *  GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED 
-         * AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
-         *  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED 
-         * OF THE POSSIBILITY OF SUCH DAMAGE. 
-         *
-         */
-    </script>  
-    <link rel="stylesheet" href="random_execuse_files/bootstrap.min.css">
-    
-
-    <meta property="fb:app_id" content="1531438663755205">
-
-    <style>
-        .jSlots-wrapper {  
-            overflow: hidden; /* to hide the magic */  
-            height: 100px; /* whatever the height of your list items are */  
-        }  
-
-        .comments{
-            margin-top:15px;
-        }
-
-        h1{
-            font-family: 'Corben', cursive;
-            font-weight:700;
-            text-align:center;
-            font-size:80px;
-        }
-        
-        h1 span{
-            display:block;
-            font-size:75%;
-        }
-
-.bubble 
-{
-position: relative;
-padding: 10px 40px;
-background: #FFFFFF;
--webkit-border-radius: 5px;
--moz-border-radius: 5px;
-border-radius: 5px;
-border: #7F7F7F solid 1px;
-text-align: center;
-            font-size:18px;
-            font-family: 'Corben', cursive;
-            font-weight:700;
-}
-
-.bubble:after 
-{
-content: '';
-position: absolute;
-border-style: solid;
-border-width: 15px 40px 15px 0;
-border-color: transparent #FFFFFF;
-display: block;
-width: 0;
-z-index: 1;
-margin-top: -15px;
-left: -40px;
-top: 72%;
-}
-
-.bubble:before 
-{
-content: '';
-position: absolute;
-border-style: solid;
-border-width: 15px 40px 15px 0;
-border-color: transparent #7F7F7F;
-display: block;
-width: 0;
-z-index: 0;
-margin-top: -15px;
-left: -41px;
-top: 72%;
-}
-
-        /*ul.slot {
-            display:block;
-            height:80px
-        }*/
-
-        ul.slot li {
-            display:block;
-            font-family: 'Corben', cursive;
-            font-weight:700;
-            font-size:28px;
-            /*padding:12px 0;*/
-            height:100px;
-        }
-
-        p.slug{
-            text-align:center;
-            margin:40px 0 70px;
-            font-size:20px;
-        }
-
-        img.avatar{
-            position:relative;
-            top:-80px;
-            width:480px;
-            padding:8px;
-            border: #E6E6E6 solid 3px;
-        }
-
-        img.avatar:hover{
-            cursor:pointer;
-        }
-
-        h4{
-            display:block;
-            font-family: 'Corben', cursive;
-            font-weight:700;
-            text-align:center;
-            font-size:14px;
-        }
-    </style>
-
-<style type="text/css">.fb_hidden{position:absolute;top:-10000px;z-index:10001}.fb_reposition{overflow:hidden;position:relative}.fb_invisible{display:none}.fb_reset{background:none;border:0;border-spacing:0;color:#000;cursor:auto;direction:ltr;font-family:"lucida grande", tahoma, verdana, arial, sans-serif;font-size:11px;font-style:normal;font-variant:normal;font-weight:normal;letter-spacing:normal;line-height:1;margin:0;overflow:visible;padding:0;text-align:left;text-decoration:none;text-indent:0;text-shadow:none;text-transform:none;visibility:visible;white-space:normal;word-spacing:normal}.fb_reset>div{overflow:hidden}.fb_link img{border:none}@keyframes fb_transform{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}.fb_animate{animation:fb_transform .3s forwards}
-.fb_dialog{background:rgba(82, 82, 82, .7);position:absolute;top:-10000px;z-index:10001}.fb_reset .fb_dialog_legacy{overflow:visible}.fb_dialog_advanced{padding:10px;-moz-border-radius:8px;-webkit-border-radius:8px;border-radius:8px}.fb_dialog_content{background:#fff;color:#333}
-    .fb_dialog_close_icon {
-        background: url(img/user_man_check-512.png) no-repeat scroll 0 0 transparent;
-        _background-image: url(https://fbstatic-a.akamaihd.net/rsrc.php/v2/yL/r/s816eWC-2sl.gif);
-        cursor: pointer;
-        display: block;
-        height: 15px;
-        position: absolute;
-        right: 18px;
-        top: 17px;
-        width: 15px
-    }.fb_dialog_mobile .fb_dialog_close_icon{top:5px;left:5px;right:auto}.fb_dialog_padding{background-color:transparent;position:absolute;width:1px;z-index:-1}.fb_dialog_close_icon:hover{background:url(https://fbstatic-a.akamaihd.net/rsrc.php/v2/yq/r/IE9JII6Z1Ys.png) no-repeat scroll 0 -15px transparent;_background-image:url(https://fbstatic-a.akamaihd.net/rsrc.php/v2/yL/r/s816eWC-2sl.gif)}.fb_dialog_close_icon:active{background:url(https://fbstatic-a.akamaihd.net/rsrc.php/v2/yq/r/IE9JII6Z1Ys.png) no-repeat scroll 0 -30px transparent;_background-image:url(https://fbstatic-a.akamaihd.net/rsrc.php/v2/yL/r/s816eWC-2sl.gif)}.fb_dialog_loader{background-color:#f6f7f8;border:1px solid #606060;font-size:24px;padding:20px}.fb_dialog_top_left,.fb_dialog_top_right,.fb_dialog_bottom_left,.fb_dialog_bottom_right{height:10px;width:10px;overflow:hidden;position:absolute}.fb_dialog_top_left{background:url(https://fbstatic-a.akamaihd.net/rsrc.php/v2/ye/r/8YeTNIlTZjm.png) no-repeat 0 0;left:-10px;top:-10px}.fb_dialog_top_right{background:url(https://fbstatic-a.akamaihd.net/rsrc.php/v2/ye/r/8YeTNIlTZjm.png) no-repeat 0 -10px;right:-10px;top:-10px}.fb_dialog_bottom_left{background:url(https://fbstatic-a.akamaihd.net/rsrc.php/v2/ye/r/8YeTNIlTZjm.png) no-repeat 0 -20px;bottom:-10px;left:-10px}.fb_dialog_bottom_right{background:url(https://fbstatic-a.akamaihd.net/rsrc.php/v2/ye/r/8YeTNIlTZjm.png) no-repeat 0 -30px;right:-10px;bottom:-10px}.fb_dialog_vert_left,.fb_dialog_vert_right,.fb_dialog_horiz_top,.fb_dialog_horiz_bottom{position:absolute;background:#525252;filter:alpha(opacity=70);opacity:.7}.fb_dialog_vert_left,.fb_dialog_vert_right{width:10px;height:100%}.fb_dialog_vert_left{margin-left:-10px}.fb_dialog_vert_right{right:0;margin-right:-10px}.fb_dialog_horiz_top,.fb_dialog_horiz_bottom{width:100%;height:10px}.fb_dialog_horiz_top{margin-top:-10px}.fb_dialog_horiz_bottom{bottom:0;margin-bottom:-10px}.fb_dialog_iframe{line-height:0}.fb_dialog_content .dialog_title{background:#6d84b4;border:1px solid #3a5795;color:#fff;font-size:14px;font-weight:bold;margin:0}.fb_dialog_content .dialog_title>span{background:url(https://fbstatic-a.akamaihd.net/rsrc.php/v2/yd/r/Cou7n-nqK52.gif) no-repeat 5px 50%;float:left;padding:5px 0 7px 26px}body.fb_hidden{-webkit-transform:none;height:100%;margin:0;overflow:visible;position:absolute;top:-10000px;left:0;width:100%}.fb_dialog.fb_dialog_mobile.loading{background:url(https://fbstatic-a.akamaihd.net/rsrc.php/v2/ya/r/3rhSv5V8j3o.gif) white no-repeat 50% 50%;min-height:100%;min-width:100%;overflow:hidden;position:absolute;top:0;z-index:10001}.fb_dialog.fb_dialog_mobile.loading.centered{width:auto;height:auto;min-height:initial;min-width:initial;background:none}.fb_dialog.fb_dialog_mobile.loading.centered #fb_dialog_loader_spinner{width:100%}.fb_dialog.fb_dialog_mobile.loading.centered .fb_dialog_content{background:none}.loading.centered #fb_dialog_loader_close{color:#fff;display:block;padding-top:20px;clear:both;font-size:18px}#fb-root #fb_dialog_ipad_overlay{background:rgba(0, 0, 0, .45);position:absolute;bottom:0;left:0;right:0;top:0;width:100%;min-height:100%;z-index:10000}#fb-root #fb_dialog_ipad_overlay.hidden{display:none}.fb_dialog.fb_dialog_mobile.loading iframe{visibility:hidden}.fb_dialog_content .dialog_header{-webkit-box-shadow:white 0 1px 1px -1px inset;background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#738ABA), to(#2C4987));border-bottom:1px solid;border-color:#1d4088;color:#fff;font:14px Helvetica, sans-serif;font-weight:bold;text-overflow:ellipsis;text-shadow:rgba(0, 30, 84, .296875) 0 -1px 0;vertical-align:middle;white-space:nowrap}.fb_dialog_content .dialog_header table{-webkit-font-smoothing:subpixel-antialiased;height:43px;width:100%}.fb_dialog_content .dialog_header td.header_left{font-size:12px;padding-left:5px;vertical-align:middle;width:60px}.fb_dialog_content .dialog_header td.header_right{font-size:12px;padding-right:5px;vertical-align:middle;width:60px}.fb_dialog_content .touchable_button{background:-webkit-gradient(linear, 0% 0%, 0% 100%, from(#4966A6), color-stop(.5, #355492), to(#2A4887));border:1px solid #2f477a;-webkit-background-clip:padding-box;-webkit-border-radius:3px;-webkit-box-shadow:rgba(0, 0, 0, .117188) 0 1px 1px inset, rgba(255, 255, 255, .167969) 0 1px 0;display:inline-block;margin-top:3px;max-width:85px;line-height:18px;padding:4px 12px;position:relative}.fb_dialog_content .dialog_header .touchable_button input{border:none;background:none;color:#fff;font:12px Helvetica, sans-serif;font-weight:bold;margin:2px -12px;padding:2px 6px 3px 6px;text-shadow:rgba(0, 30, 84, .296875) 0 -1px 0}.fb_dialog_content .dialog_header .header_center{color:#fff;font-size:16px;font-weight:bold;line-height:18px;text-align:center;vertical-align:middle}.fb_dialog_content .dialog_content{background:url(https://fbstatic-a.akamaihd.net/rsrc.php/v2/y9/r/jKEcVPZFk-2.gif) no-repeat 50% 50%;border:1px solid #555;border-bottom:0;border-top:0;height:150px}.fb_dialog_content .dialog_footer{background:#f6f7f8;border:1px solid #555;border-top-color:#ccc;height:40px}#fb_dialog_loader_close{float:left}.fb_dialog.fb_dialog_mobile .fb_dialog_close_button{text-shadow:rgba(0, 30, 84, .296875) 0 -1px 0}.fb_dialog.fb_dialog_mobile .fb_dialog_close_icon{visibility:hidden}#fb_dialog_loader_spinner{animation:rotateSpinner 1.2s linear infinite;background-color:transparent;background-image:url(https://fbstatic-a.akamaihd.net/rsrc.php/v2/yD/r/t-wz8gw1xG1.png);background-repeat:no-repeat;background-position:50% 50%;height:24px;width:24px}@keyframes rotateSpinner{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
-.fb_iframe_widget{display:inline-block;position:relative}.fb_iframe_widget span{display:inline-block;position:relative;text-align:justify}.fb_iframe_widget iframe{position:absolute}.fb_iframe_widget_fluid_desktop,.fb_iframe_widget_fluid_desktop span,.fb_iframe_widget_fluid_desktop iframe{max-width:100%}.fb_iframe_widget_fluid_desktop iframe{min-width:220px;position:relative}.fb_iframe_widget_lift{z-index:1}.fb_hide_iframes iframe{position:relative;left:-10000px}.fb_iframe_widget_loader{position:relative;display:inline-block}.fb_iframe_widget_fluid{display:inline}.fb_iframe_widget_fluid span{width:100%}.fb_iframe_widget_loader iframe{min-height:32px;z-index:2;zoom:1}.fb_iframe_widget_loader .FB_Loader{background:url(https://fbstatic-a.akamaihd.net/rsrc.php/v2/y9/r/jKEcVPZFk-2.gif) no-repeat;height:32px;width:32px;margin-left:-16px;position:absolute;left:50%;z-index:4}</style></head>
-<body>
-    <div class="container">
-        <h1>Paulo P.'s <span>Random Target Generator</span></h1>
-        <div class="row" style="margin-top:100px;">
-            <div class="col-md-4">
-                <div class="pards">
-                    <img src="img/user_man_check-512.png" class="img-circle avatar pardsSpinner">
-                    <h4>Click on the photo above to get another target!</h4>
-                </div>
-            </div>
-            <div class="col-md-8">
-                <div class="bubble">                    
-                    Your target is
-                    <div class="jSlots-wrapper">
-                      <div id="target" style='font-size:30px;'></div>
-					</div>                   
-                   
-            </div>
-            <div style="text-align:center;">
-            </div>
-        </div>
-    </div>
-	  <script type="text/javascript" charset="utf-8">
-				var verbs = ['aggregate','architect','benchmark','brand','cultivate','deliver','deploy','disintermediate','drive','e-enable','embrace','empower','enable','engage','engineer','enhance','envisioneer','evolve','expedite','exploit','extend','facilitate','generate','grow','harness','implement','incentivize','incubate','innovate','integrate','iterate','leverage','matrix','maximize','mesh','monetize','morph','optimize','orchestrate','productize','recontextualize','redefine','reintermediate','reinvent','repurpose','revolutionize','scale','seize','strategize','streamline','syndicate','synergize','synthesize','target','transform','transition','unleash','utilize','visualize','whiteboard'];
-				var adjectives = ['24/365','24/7','B2B','B2C','back-end','best-of-breed','bleeding-edge','bricks-and-clicks','clicks-and-mortar','collaborative','compelling','cross-platform','cross-media','customized','cutting-edge','distributed','dot-com','dynamic','e-business','efficient','end-to-end','enterprise','extensible','frictionless','front-end','global','granular','holistic','impactful','innovative','integrated','interactive','intuitive','killer','leading-edge','magnetic','mission-critical','next-generation','one-to-one','open-source','out-of-the-box','plug-and-play','proactive','real-time','revolutionary','rich','robust','scalable','seamless','sexy','sticky','strategic','synergistic','transparent','turn-key','ubiquitous','user-centric','value-added','vertical','viral','virtual','visionary','web-enabled','wireless','world-class'];
-				var action_items = ['applications','architectures','bandwidth','channels','communities','content','convergence','deliverables','e-business','e-commerce','e-markets','e-services','e-tailers','experiences','eyeballs','functionalities','infomediaries','infrastructures','initiatives','interfaces','markets','methodologies','metrics','mindshare','models','networks','niches','paradigms','partnerships','platforms','portals','relationships','ROI','synergies','web-readiness','schemas','solutions','supply-chains','systems','technologies','users','vortals','web services', 'content', 'data', 'big data', 'analytics', 'business-intelligence','data storage', 'data analysis', 'searching','visualization'];
-			
-				function random(max) {
-					return Math.floor(Math.random() * max) + 1 ;
-				}
-				
-				function retarget(){ 
-					return verbs[random(verbs.length)] + ' ' + adjectives[random(adjectives.length)] + ' ' + action_items[random(action_items.length)];
-				}
-				
-				
-                var counter = 0;
-                var showAdOn = 5;
-
-                $(function () {
-                    $(".pardsSpinner").bind("click", function () {
-						$("#target").html(retarget());
-                        $(".pardsAd").hide();
-                        $(".pards").show();
-                        counter++;
-
-                    });
-
-                    $(".pardsSpinner").click();
-            });
-
-            $('.slot').jSlots({
-                spinner: '.pardsSpinner',
-                number: 3,
-                time: 800,
-                loops: 2,
-                easing: 'easeOutSine'
-            });
-
-        </script>
-
-
+        displayTarget(generateUniqueTarget());
+    </script>
 </body>
 </html>
