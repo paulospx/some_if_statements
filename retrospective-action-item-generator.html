@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Generate retrospective action items ranked by how often they appear in software teams — owner, due date, and copy-ready text included.">
+    <title>Retrospective Action Item Generator — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .action-card {
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .action-card.is-new {
+            animation: action-in 0.35s ease;
+        }
+
+        @keyframes action-in {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .toast-enter {
+            animation: toast-in 0.25s ease;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(0.5rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .action-card.is-new,
+            .toast-enter {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased flex flex-col">
+    <a href="#main" class="skip-link">Skip to generator</a>
+
+    <div
+        id="toast"
+        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+    >
+        <div class="toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500">
+            <svg class="w-5 h-5 shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <div>
+                <p id="toast-title" class="font-medium text-sm">Copied to clipboard</p>
+                <p id="toast-body" class="text-emerald-100 text-xs mt-0.5">Paste it into Confluence, Miro, or your retro board.</p>
+            </div>
+            <button type="button" id="toast-dismiss" class="ml-auto shrink-0 text-emerald-200 hover:text-white" aria-label="Dismiss notification">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <header class="border-b border-slate-200 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+            <nav aria-label="Breadcrumb" class="mb-4">
+                <a href="index.html" class="text-sm text-sky-600 hover:text-sky-700 inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Tool Catalog
+                </a>
+            </nav>
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-sky-600 mb-1">Generator</p>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">Retrospective Action Item Generator</h1>
+                    <p class="mt-2 text-slate-600 leading-relaxed max-w-2xl">
+                        Sprint retro ending and the board is empty? Generate an action item drawn from the most commonly cited improvements in software retrospectives — ranked #1 to #50, with owner and due date ready to paste.
+                    </p>
+                </div>
+                <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 shrink-0">
+                    Designed with NN/g heuristics
+                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
+        <figure class="mb-8 text-center">
+            <img
+                src="img/undraw_goals_re_lu76.svg"
+                alt="Illustration of a person reaching toward a target — like your retro action item, visible but distant"
+                class="mx-auto w-full max-w-xs sm:max-w-md"
+                width="400"
+                height="auto"
+            >
+            <figcaption class="mt-2 text-xs text-slate-500">Accountable on paper. Measurable in theory.</figcaption>
+        </figure>
+
+        <section aria-label="Generation mode" class="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-4 sm:px-5">
+            <h2 class="text-sm font-medium text-slate-700 mb-3">How to pick</h2>
+            <fieldset class="border-0 p-0 m-0">
+                <legend class="sr-only">Action item selection mode</legend>
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <label class="flex-1 inline-flex items-start gap-3 px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer has-[:checked]:border-sky-500 has-[:checked]:bg-sky-50">
+                        <input type="radio" name="pick-mode" value="weighted" class="mt-1 text-sky-600 focus:ring-sky-500" checked>
+                        <span>
+                            <span class="block text-sm font-medium text-slate-800">Weighted (realistic)</span>
+                            <span class="block text-xs text-slate-500 mt-0.5">Favors top-ranked items — like most real retros.</span>
+                        </span>
+                    </label>
+                    <label class="flex-1 inline-flex items-start gap-3 px-4 py-3 rounded-lg border border-slate-200 bg-slate-50 cursor-pointer has-[:checked]:border-sky-500 has-[:checked]:bg-sky-50">
+                        <input type="radio" name="pick-mode" value="uniform" class="mt-1 text-sky-600 focus:ring-sky-500">
+                        <span>
+                            <span class="block text-sm font-medium text-slate-800">Any rank</span>
+                            <span class="block text-xs text-slate-500 mt-0.5">Equal chance across all 50 items.</span>
+                        </span>
+                    </label>
+                </div>
+            </fieldset>
+        </section>
+
+        <section aria-labelledby="action-heading" class="mb-8">
+            <div class="flex items-center justify-between mb-3 gap-4">
+                <h2 id="action-heading" class="text-sm font-medium text-slate-700">Your action item</h2>
+                <p class="text-xs text-slate-500 shrink-0" id="action-meta" aria-live="polite">
+                    Generation <span id="action-number">1</span>
+                </p>
+            </div>
+
+            <div
+                id="action-display"
+                class="action-card rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden text-left"
+                aria-live="polite"
+            >
+                <div class="px-6 py-4 bg-violet-50 border-b border-violet-100 flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-violet-700">
+                        Frequency rank <span id="rank-badge">#1</span> of <span id="rank-total">50</span>
+                    </p>
+                    <p id="rank-label" class="text-xs text-violet-600">Most commonly cited in software retrospectives</p>
+                </div>
+                <div class="px-6 py-6 sm:py-8">
+                    <p id="action-text" class="text-base sm:text-lg text-slate-800 leading-relaxed font-medium"></p>
+                </div>
+                <dl class="divide-y divide-slate-100 border-t border-slate-100">
+                    <div class="px-6 py-4 grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+                        <div>
+                            <dt class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Owner</dt>
+                            <dd id="owner-text" class="text-sm text-slate-800"></dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Due</dt>
+                            <dd id="due-text" class="text-sm text-slate-800"></dd>
+                        </div>
+                        <div>
+                            <dt class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Success metric</dt>
+                            <dd id="metric-text" class="text-sm text-slate-600 italic"></dd>
+                        </div>
+                    </div>
+                </dl>
+            </div>
+        </section>
+
+        <section aria-labelledby="copy-heading" class="mb-6">
+            <label for="action-input" class="block text-sm font-medium text-slate-700 mb-2" id="copy-heading">
+                Plain text (for copying)
+            </label>
+            <textarea
+                id="action-input"
+                readonly
+                rows="6"
+                class="mono w-full px-4 py-3 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 text-sm resize-y min-h-[8rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                aria-describedby="copy-hint"
+            ></textarea>
+            <p id="copy-hint" class="mt-2 text-xs text-slate-500">
+                Ready for Confluence, Jira, Miro, or the retro column nobody checks next sprint.
+            </p>
+        </section>
+
+        <div class="flex flex-col sm:flex-row gap-3 mb-8" role="group" aria-label="Generator actions">
+            <button
+                type="button"
+                id="btn-copy"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+            >
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copy to clipboard
+            </button>
+            <button
+                type="button"
+                id="btn-generate"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+            >
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Generate another
+            </button>
+            <button
+                type="button"
+                id="btn-top"
+                class="sm:max-w-[12rem] inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-violet-50 text-violet-800 font-medium border border-violet-200 hover:bg-violet-100 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 transition-colors"
+            >
+                Pick #1
+            </button>
+        </div>
+
+        <p class="mb-10 text-center text-xs text-slate-500">
+            Shortcuts:
+            <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">R</kbd> generate ·
+            <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">C</kbd> copy
+        </p>
+
+        <section aria-labelledby="ranking-heading">
+            <details class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden group">
+                <summary class="px-5 py-4 text-sm font-medium text-slate-800 cursor-pointer hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500">
+                    <span id="ranking-heading">Browse full ranking</span>
+                    <span class="text-slate-500 font-normal"> — all <span id="list-count">50</span> items in descending frequency order</span>
+                </summary>
+                <ol id="ranked-list" class="divide-y divide-slate-100 border-t border-slate-100 max-h-96 overflow-y-auto text-sm"></ol>
+            </details>
+            <p class="mt-2 text-xs text-slate-500">
+                Ranked from industry-wide retro patterns: communication, meetings, tech debt, and documentation lead every time.
+            </p>
+        </section>
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white mt-auto">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-5 text-sm text-slate-500">
+            <p><span id="pool-count">50</span> action items ordered by how often they reappear across software retrospectives. Carried forward to next retro: optional.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Ordered by descending frequency — most cited software retro action themes first.
+        const actionItems = [
+            'Improve communication within the team and with stakeholders',
+            'Reduce the number of meetings and protect focus time for deep work',
+            'Allocate dedicated sprint capacity for technical debt',
+            'Improve documentation — code comments, READMEs, and architecture notes',
+            'Clarify requirements and acceptance criteria earlier in the cycle',
+            'Speed up code review turnaround and reduce review queue time',
+            'Increase automated test coverage and reduce manual regression',
+            'Introduce more pair programming or mob programming sessions',
+            'Improve sprint planning accuracy and estimation practices',
+            'Reduce context switching by limiting work in progress',
+            'Improve CI/CD pipeline speed, reliability, and feedback loops',
+            'Automate manual deployment and release steps',
+            'Improve monitoring, alerting, and observability for production',
+            'Create or update runbooks and incident response playbooks',
+            'Break user stories into smaller, independently deliverable tasks',
+            'Involve QA earlier — shift testing left in the workflow',
+            'Strengthen the definition of done across the team',
+            'Schedule regular knowledge-sharing or lunch-and-learn sessions',
+            'Reduce cross-team dependencies and handoff delays',
+            'Improve backlog refinement and ticket readiness before sprint start',
+            'Standardize local development environment setup and onboarding',
+            'Fix or quarantine flaky tests in the automated test suite',
+            'Improve collaboration with adjacent teams (platform, security, data)',
+            'Raise the quality bar for ticket descriptions and acceptance criteria',
+            'Enforce consistent linting, formatting, and code style standards',
+            'Reduce mid-sprint scope creep and unplanned interrupt work',
+            'Improve onboarding materials for new engineers joining the team',
+            'Follow up on action items from previous retrospectives before adding new ones',
+            'Improve API and integration contract documentation',
+            'Reserve regular time for innovation, spikes, and improvement work',
+            'Improve board hygiene and visibility of work in progress',
+            'Reduce on-call burden and after-hours incident load',
+            'Improve staging and pre-production parity with production',
+            'Integrate security review earlier in the development lifecycle',
+            'Add performance and load testing to the release checklist',
+            'Reduce interrupt-driven work from Slack, email, and ad-hoc requests',
+            'Establish or refresh team working agreements and norms',
+            'Rotate on-call and support responsibilities more equitably',
+            'Improve error messages, structured logging, and debuggability',
+            'Adopt architecture decision records (ADRs) for significant choices',
+            'Reduce build and compile times in the development pipeline',
+            'Include accessibility checks in the definition of done',
+            'Close the feedback loop between customer support and engineering',
+            'Plan incremental refactoring of high-risk legacy modules',
+            'Improve database migration and rollback practices',
+            'Publish clearer release notes and changelogs for each release',
+            'Dedicate capacity each sprint to reducing the open bug backlog',
+            'Improve design-to-development handoff and spec completeness',
+            'Test mobile and responsive layouts earlier in the cycle',
+            'Celebrate team wins more consistently in retros and demos'
+        ];
+
+        const owners = [
+            'Team',
+            'Scrum Master',
+            'Tech Lead',
+            'Product Owner',
+            'Engineering Manager',
+            'Everyone',
+            'On-call rotation',
+            'Unassigned (TBD)'
+        ];
+
+        const dueDates = [
+            'Next sprint',
+            'End of this sprint',
+            'Sprint +1',
+            'Sprint +2',
+            'End of quarter',
+            'Ongoing',
+            'Before next release',
+            'When bandwidth allows'
+        ];
+
+        const successMetrics = [
+            'Team sentiment improves measurably',
+            'Fewer repeat incidents in retro',
+            'Metric TBD at next planning',
+            'Stakeholders report better clarity',
+            'Cycle time decreases slightly',
+            'Zero escalations on this topic (stretch goal)',
+            'At least one demo proves progress',
+            'Nobody mentions it again for two sprints'
+        ];
+
+        const rankLabels = [
+            'Most commonly cited in software retrospectives',
+            'Extremely common — appears in most team retros',
+            'Very common across agile teams',
+            'Frequently raised when delivery slips',
+            'Common when quality or ops pain surfaces',
+            'Regular guest on retro boards nationwide',
+            'Still popular — you have seen this one before',
+            'Less common but reliably recycled quarterly',
+            'Niche, yet someone suggests it every few sprints',
+            'Rare air — the long tail of retro folklore'
+        ];
+
+        const actionDisplay = document.getElementById('action-display');
+        const actionText = document.getElementById('action-text');
+        const ownerText = document.getElementById('owner-text');
+        const dueText = document.getElementById('due-text');
+        const metricText = document.getElementById('metric-text');
+        const rankBadge = document.getElementById('rank-badge');
+        const rankTotal = document.getElementById('rank-total');
+        const rankLabel = document.getElementById('rank-label');
+        const actionInput = document.getElementById('action-input');
+        const actionNumber = document.getElementById('action-number');
+        const poolCount = document.getElementById('pool-count');
+        const listCount = document.getElementById('list-count');
+        const rankedList = document.getElementById('ranked-list');
+        const pickModeRadios = document.querySelectorAll('input[name="pick-mode"]');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnGenerate = document.getElementById('btn-generate');
+        const btnTop = document.getElementById('btn-top');
+        const toast = document.getElementById('toast');
+        const toastDismiss = document.getElementById('toast-dismiss');
+        const toastInner = toast.querySelector('div');
+        const toastTitle = document.getElementById('toast-title');
+        const toastBody = document.getElementById('toast-body');
+
+        let lastIndex = -1;
+        let generationCount = 0;
+        let toastTimer = null;
+
+        const total = actionItems.length;
+        rankTotal.textContent = total;
+        poolCount.textContent = total;
+        listCount.textContent = total;
+
+        function getPickMode() {
+            const selected = document.querySelector('input[name="pick-mode"]:checked');
+            return selected ? selected.value : 'weighted';
+        }
+
+        function pickRandomItem(excludeIndex) {
+            const candidates = actionItems.map((_, i) => i).filter((i) => i !== excludeIndex);
+
+            if (candidates.length === 0) return 0;
+
+            if (getPickMode() === 'uniform') {
+                return candidates[Math.floor(Math.random() * candidates.length)];
+            }
+
+            const weights = candidates.map((i) => total - i);
+            const weightSum = weights.reduce((sum, w) => sum + w, 0);
+            let roll = Math.random() * weightSum;
+
+            for (let n = 0; n < candidates.length; n++) {
+                roll -= weights[n];
+                if (roll <= 0) return candidates[n];
+            }
+
+            return candidates[candidates.length - 1];
+        }
+
+        function pickRandom(array) {
+            return array[Math.floor(Math.random() * array.length)];
+        }
+
+        function getRankLabel(rank) {
+            if (rank <= 5) return rankLabels[0];
+            if (rank <= 10) return rankLabels[1];
+            if (rank <= 15) return rankLabels[2];
+            if (rank <= 20) return rankLabels[3];
+            if (rank <= 25) return rankLabels[4];
+            if (rank <= 30) return rankLabels[5];
+            if (rank <= 40) return rankLabels[6];
+            if (rank <= 45) return rankLabels[7];
+            if (rank <= 48) return rankLabels[8];
+            return rankLabels[9];
+        }
+
+        function formatPlainText(index, owner, due, metric) {
+            const rank = index + 1;
+            return [
+                `Action item: ${actionItems[index]}`,
+                `Owner: ${owner}`,
+                `Due: ${due}`,
+                `Frequency rank: #${rank} of ${total}`,
+                `Success metric: ${metric}`
+            ].join('\n');
+        }
+
+        function resizeTextarea() {
+            actionInput.style.height = 'auto';
+            actionInput.style.height = `${actionInput.scrollHeight}px`;
+        }
+
+        function displayActionItem(index) {
+            const owner = pickRandom(owners);
+            const due = pickRandom(dueDates);
+            const metric = pickRandom(successMetrics);
+            const rank = index + 1;
+
+            lastIndex = index;
+            generationCount += 1;
+
+            actionText.textContent = actionItems[index];
+            ownerText.textContent = owner;
+            dueText.textContent = due;
+            metricText.textContent = metric;
+            rankBadge.textContent = `#${rank}`;
+            rankLabel.textContent = getRankLabel(rank);
+            actionNumber.textContent = generationCount;
+            actionInput.value = formatPlainText(index, owner, due, metric);
+            resizeTextarea();
+
+            actionDisplay.classList.remove('is-new');
+            void actionDisplay.offsetWidth;
+            actionDisplay.classList.add('is-new');
+        }
+
+        function generateActionItem(forceIndex = null) {
+            const index = forceIndex == null ? pickRandomItem(lastIndex) : forceIndex;
+            displayActionItem(index);
+        }
+
+        function renderRankedList() {
+            rankedList.innerHTML = actionItems
+                .map((item, index) => {
+                    const rank = index + 1;
+                    return `<li class="px-5 py-3 flex gap-3 hover:bg-slate-50">
+                        <span class="mono shrink-0 w-8 text-right text-xs font-medium text-violet-600 pt-0.5" aria-hidden="true">#${rank}</span>
+                        <span class="text-slate-700 leading-relaxed">${item}</span>
+                    </li>`;
+                })
+                .join('');
+        }
+
+        function showToast(message, isError = false) {
+            clearTimeout(toastTimer);
+
+            if (isError) {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-rose-600 text-white shadow-lg border border-rose-500';
+                toastTitle.textContent = message;
+                toastBody.className = 'text-rose-100 text-xs mt-0.5';
+                toastBody.textContent = 'Select the text area and copy manually.';
+            } else {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500';
+                toastTitle.textContent = 'Copied to clipboard';
+                toastBody.className = 'text-emerald-100 text-xs mt-0.5';
+                toastBody.textContent = 'Paste it into Confluence, Miro, or your retro board.';
+            }
+
+            toast.classList.remove('hidden');
+            toastTimer = setTimeout(hideToast, 4000);
+        }
+
+        function hideToast() {
+            toast.classList.add('hidden');
+        }
+
+        async function copyActionItem() {
+            const text = actionInput.value;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    actionInput.removeAttribute('readonly');
+                    actionInput.select();
+                    actionInput.setSelectionRange(0, text.length);
+                    const ok = document.execCommand('copy');
+                    actionInput.setAttribute('readonly', '');
+                    if (!ok) throw new Error('execCommand failed');
+                }
+                showToast();
+            } catch {
+                showToast('Copy failed', true);
+                actionInput.focus();
+                actionInput.select();
+            }
+        }
+
+        btnGenerate.addEventListener('click', () => generateActionItem());
+        btnTop.addEventListener('click', () => generateActionItem(0));
+        btnCopy.addEventListener('click', copyActionItem);
+        toastDismiss.addEventListener('click', hideToast);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            if (e.key === 'r' || e.key === 'R') {
+                e.preventDefault();
+                generateActionItem();
+            }
+            if (e.key === 'c' || e.key === 'C') {
+                e.preventDefault();
+                copyActionItem();
+            }
+        });
+
+        renderRankedList();
+        generateActionItem();
+    </script>
+</body>
+</html>
