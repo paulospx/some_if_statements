@@ -3,68 +3,523 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Compare List</title>
-    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Comic+Neue:ital,wght@0,300;0,400;0,700;1,300;1,400;1,700&family=Fira+Code:wght@300..700&family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Noto+Sans+Cuneiform&display=swap" rel="stylesheet">
+    <meta name="description" content="Compare two line-separated lists and see what was removed, added, and unchanged — instantly, in your browser.">
+    <title>List Comparator — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        textarea.form-control, div.row {
-            font-family: "Fira Sans", sans-serif !important;
-            font-weight: 300;
-            font-style: normal;
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .code-area { tab-size: 2; }
+
+        .result-panel {
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .toast-enter {
+            animation: toast-in 0.25s ease;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(0.5rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .toast-enter { animation: none; }
         }
     </style>
 </head>
-<body>
-    <div class="container mt-4">
-        <div class="row">
-            <div class="col-md-6">
-                <h2>List 1</h2>
-                <textarea class="form-control" id="list1" rows="10" placeholder="Enter text here..."></textarea>
-            </div>
-            <div class="col-md-6">
-                <h2>List 2</h2>
-                <textarea class="form-control" id="list2" rows="10" placeholder="Enter text here..."></textarea>
-            </div>
-        </div>
-        <button class="btn btn-primary mt-3" onclick="showResult()">Compare Lists</button>
-        <div class="row" id="result"> 
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased flex flex-col">
+    <a href="#main" class="skip-link">Skip to comparator</a>
 
+    <div
+        id="toast"
+        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+    >
+        <div class="toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500">
+            <svg class="w-5 h-5 shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <div>
+                <p id="toast-title" class="font-medium text-sm">Copied to clipboard</p>
+                <p id="toast-body" class="text-emerald-100 text-xs mt-0.5">Paste into email, Slack, or your ticket.</p>
+            </div>
+            <button type="button" id="toast-dismiss" class="ml-auto shrink-0 text-emerald-200 hover:text-white" aria-label="Dismiss notification">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
         </div>
     </div>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <header class="border-b border-slate-200 bg-white">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+            <nav aria-label="Breadcrumb" class="mb-4">
+                <a href="index.html" class="text-sm text-sky-600 hover:text-sky-700 inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Tool Catalog
+                </a>
+            </nav>
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-amber-700 mb-1">Comparison</p>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">List Comparator</h1>
+                    <p class="mt-2 text-slate-600 leading-relaxed max-w-2xl">
+                        Paste an original list and an updated list — one item per line. See exactly what was removed, added, and what stayed the same.
+                    </p>
+                </div>
+                <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 shrink-0">
+                    Designed with NN/g heuristics
+                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
+        <section aria-label="Actions" class="mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex flex-wrap gap-2" role="group" aria-label="Comparison actions">
+                    <button
+                        type="button"
+                        id="btn-compare"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        </svg>
+                        Compare lists
+                    </button>
+                    <button
+                        type="button"
+                        id="btn-swap"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        Swap lists
+                    </button>
+                    <button
+                        type="button"
+                        id="btn-clear"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-600 font-medium border border-slate-200 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        Clear all
+                    </button>
+                </div>
+                <p class="text-xs text-slate-500" aria-live="polite" id="status-line">
+                    Original <span id="count-original">0</span> · Updated <span id="count-updated">0</span> ·
+                    result <span id="result-status">pending</span>
+                </p>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">
+                Shortcuts:
+                <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">D</kbd> compare ·
+                <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">S</kbd> swap
+            </p>
+        </section>
+
+        <div
+            id="empty-warning"
+            class="hidden mb-6 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm"
+            role="alert"
+        >
+            Add at least one item to either list before comparing.
+        </div>
+
+        <!-- Input lists -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <section aria-labelledby="original-heading">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="list-original" id="original-heading" class="text-sm font-medium text-slate-700">
+                        Original list
+                    </label>
+                    <span class="text-xs text-slate-400">Before</span>
+                </div>
+                <textarea
+                    id="list-original"
+                    rows="12"
+                    spellcheck="false"
+                    placeholder="apple&#10;banana&#10;cherry"
+                    class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-800 text-sm leading-relaxed resize-y min-h-[14rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-describedby="original-hint"
+                ></textarea>
+                <p id="original-hint" class="mt-2 text-xs text-slate-500">Items only in this list will appear under <strong>Removed</strong>.</p>
+            </section>
+
+            <section aria-labelledby="updated-heading">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="list-updated" id="updated-heading" class="text-sm font-medium text-slate-700">
+                        Updated list
+                    </label>
+                    <span class="text-xs text-slate-400">After</span>
+                </div>
+                <textarea
+                    id="list-updated"
+                    rows="12"
+                    spellcheck="false"
+                    placeholder="banana&#10;cherry&#10;date&#10;elderberry"
+                    class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-800 text-sm leading-relaxed resize-y min-h-[14rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-describedby="updated-hint"
+                ></textarea>
+                <p id="updated-hint" class="mt-2 text-xs text-slate-500">Items only in this list will appear under <strong>Added</strong>.</p>
+            </section>
+        </div>
+
+        <!-- Results -->
+        <section id="results-section" class="hidden" aria-labelledby="results-heading">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                <h2 id="results-heading" class="text-lg font-semibold text-slate-900">Comparison results</h2>
+                <button
+                    type="button"
+                    id="btn-copy-all"
+                    class="text-sm font-medium text-sky-600 hover:text-sky-700 inline-flex items-center gap-1.5 focus:outline-none focus-visible:underline self-start"
+                >
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Copy full report
+                </button>
+            </div>
+
+            <!-- Summary pills -->
+            <div class="flex flex-wrap gap-2 mb-6" role="status" aria-live="polite" id="summary-pills">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-rose-50 text-rose-700 border border-rose-200">
+                    <span class="w-2 h-2 rounded-full bg-rose-500" aria-hidden="true"></span>
+                    <span id="pill-removed">0 removed</span>
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500" aria-hidden="true"></span>
+                    <span id="pill-added">0 added</span>
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                    <span class="w-2 h-2 rounded-full bg-slate-400" aria-hidden="true"></span>
+                    <span id="pill-unchanged">0 unchanged</span>
+                </span>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Removed -->
+                <div class="result-panel rounded-xl border border-rose-200 bg-white shadow-sm overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-3 bg-rose-50 border-b border-rose-100">
+                        <h3 class="text-sm font-semibold text-rose-800">Removed</h3>
+                        <button type="button" id="btn-copy-removed" class="text-xs font-medium text-rose-700 hover:text-rose-900 focus:outline-none focus-visible:underline">
+                            Copy
+                        </button>
+                    </div>
+                    <ul id="list-removed" class="mono px-4 py-3 text-sm text-slate-800 max-h-64 overflow-y-auto space-y-1"></ul>
+                </div>
+
+                <!-- Added -->
+                <div class="result-panel rounded-xl border border-emerald-200 bg-white shadow-sm overflow-hidden">
+                    <div class="flex items-center justify-between px-4 py-3 bg-emerald-50 border-b border-emerald-100">
+                        <h3 class="text-sm font-semibold text-emerald-800">Added</h3>
+                        <button type="button" id="btn-copy-added" class="text-xs font-medium text-emerald-700 hover:text-emerald-900 focus:outline-none focus-visible:underline">
+                            Copy
+                        </button>
+                    </div>
+                    <ul id="list-added" class="mono px-4 py-3 text-sm text-slate-800 max-h-64 overflow-y-auto space-y-1"></ul>
+                </div>
+            </div>
+
+            <!-- Unchanged (collapsible detail) -->
+            <details id="unchanged-details" class="mt-6 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                <summary class="px-4 py-3 text-sm font-medium text-slate-700 cursor-pointer hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500">
+                    Show unchanged items (<span id="unchanged-count">0</span>)
+                </summary>
+                <ul id="list-unchanged" class="mono px-4 py-3 text-sm text-slate-600 border-t border-slate-100 max-h-48 overflow-y-auto space-y-1"></ul>
+            </details>
+        </section>
+
+        <!-- Identical lists message -->
+        <div
+            id="identical-message"
+            class="hidden mt-6 px-4 py-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-sm text-center"
+            role="status"
+        >
+            Lists are identical — no differences found.
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white mt-auto">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 text-sm text-slate-500">
+            <p>Comparison runs entirely in your browser. Matching is exact and case-sensitive; blank lines are ignored.</p>
+        </div>
+    </footer>
+
     <script>
+        const listOriginal = document.getElementById('list-original');
+        const listUpdated = document.getElementById('list-updated');
+        const countOriginal = document.getElementById('count-original');
+        const countUpdated = document.getElementById('count-updated');
+        const resultStatus = document.getElementById('result-status');
+        const emptyWarning = document.getElementById('empty-warning');
+        const resultsSection = document.getElementById('results-section');
+        const identicalMessage = document.getElementById('identical-message');
+        const listRemovedEl = document.getElementById('list-removed');
+        const listAddedEl = document.getElementById('list-added');
+        const listUnchangedEl = document.getElementById('list-unchanged');
+        const pillRemoved = document.getElementById('pill-removed');
+        const pillAdded = document.getElementById('pill-added');
+        const pillUnchanged = document.getElementById('pill-unchanged');
+        const unchangedCount = document.getElementById('unchanged-count');
+        const unchangedDetails = document.getElementById('unchanged-details');
+        const btnCompare = document.getElementById('btn-compare');
+        const btnSwap = document.getElementById('btn-swap');
+        const btnClear = document.getElementById('btn-clear');
+        const btnCopyAll = document.getElementById('btn-copy-all');
+        const btnCopyRemoved = document.getElementById('btn-copy-removed');
+        const btnCopyAdded = document.getElementById('btn-copy-added');
+        const toast = document.getElementById('toast');
+        const toastDismiss = document.getElementById('toast-dismiss');
+        const toastInner = toast.querySelector('div');
+        const toastTitle = document.getElementById('toast-title');
+        const toastBody = document.getElementById('toast-body');
+
+        let lastResult = null;
+        let toastTimer = null;
+
+        function getLines(text) {
+            return text
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line !== '');
+        }
+
         function compareLists(oldList, newList) {
             const removed = oldList.filter(item => !newList.includes(item));
             const added = newList.filter(item => !oldList.includes(item));
-            return { removed, added };
+            const unchanged = oldList.filter(item => newList.includes(item));
+            return { removed, added, unchanged };
         }
 
-        // Give a method that gets text from list1 and list2 and converts to list of strings by line breaks
-        function getTextAsList(textareaId) {
-            const text = document.getElementById(textareaId).value;
-            return text.split('\n').map(item => item.trim()).filter(item => item !== '');
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
         }
 
-        function showResult() {
-            const oldList = getTextAsList('list1');
-            const newList = getTextAsList('list2');
-            const { removed, added } = compareLists(oldList, newList);
-
-            const resultDiv = document.getElementById('result');
-            resultDiv.innerHTML = `${removed.length} items removed: <br>` + removed.join('<br>') + `<br><br>` +
-                                  `${added.length} items added: <br>` + added.join('<br>');
+        function renderItemList(ul, items, emptyMessage) {
+            if (items.length === 0) {
+                ul.innerHTML = `<li class="text-slate-400 italic list-none">${emptyMessage}</li>`;
+                return;
+            }
+            ul.innerHTML = items
+                .map(item => `<li class="py-0.5 border-b border-slate-50 last:border-0">${escapeHtml(item)}</li>`)
+                .join('');
         }
-        
 
-        // Example usage
-        const oldList = ["apple", "banana", "cherry"];
-        const newList = ["banana", "cherry", "date", "elderberry"];
+        function updateInputCounts() {
+            countOriginal.textContent = getLines(listOriginal.value).length;
+            countUpdated.textContent = getLines(listUpdated.value).length;
+        }
 
-        const { removed, added } = compareLists(oldList, newList);
-        console.log("Removed:", removed);
-        console.log("Added:", added);
+        function hideWarning() {
+            emptyWarning.classList.add('hidden');
+        }
+
+        function showWarning() {
+            emptyWarning.classList.remove('hidden');
+        }
+
+        function compare() {
+            const oldList = getLines(listOriginal.value);
+            const newList = getLines(listUpdated.value);
+
+            if (oldList.length === 0 && newList.length === 0) {
+                showWarning();
+                resultsSection.classList.add('hidden');
+                identicalMessage.classList.add('hidden');
+                resultStatus.textContent = 'pending';
+                listOriginal.focus();
+                return;
+            }
+
+            hideWarning();
+            const result = compareLists(oldList, newList);
+            lastResult = result;
+
+            const { removed, added, unchanged } = result;
+            const hasDiff = removed.length > 0 || added.length > 0;
+
+            resultStatus.textContent = hasDiff ? 'ready' : 'identical';
+            resultsSection.classList.remove('hidden');
+            identicalMessage.classList.toggle('hidden', hasDiff);
+
+            pillRemoved.textContent = `${removed.length} removed`;
+            pillAdded.textContent = `${added.length} added`;
+            pillUnchanged.textContent = `${unchanged.length} unchanged`;
+            unchangedCount.textContent = unchanged.length;
+
+            renderItemList(listRemovedEl, removed, 'No items removed');
+            renderItemList(listAddedEl, added, 'No items added');
+            renderItemList(listUnchangedEl, unchanged, 'No unchanged items');
+
+            unchangedDetails.open = false;
+
+            resultsSection.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function swapLists() {
+            const temp = listOriginal.value;
+            listOriginal.value = listUpdated.value;
+            listUpdated.value = temp;
+            updateInputCounts();
+            hideWarning();
+            resultStatus.textContent = 'pending';
+            resultsSection.classList.add('hidden');
+            identicalMessage.classList.add('hidden');
+            lastResult = null;
+            listOriginal.focus();
+        }
+
+        function clearAll() {
+            listOriginal.value = '';
+            listUpdated.value = '';
+            hideWarning();
+            resultsSection.classList.add('hidden');
+            identicalMessage.classList.add('hidden');
+            resultStatus.textContent = 'pending';
+            lastResult = null;
+            updateInputCounts();
+            listOriginal.focus();
+        }
+
+        function formatReport(result) {
+            if (!result) return '';
+            const sections = [];
+
+            sections.push(`Removed (${result.removed.length}):`);
+            sections.push(result.removed.length ? result.removed.map(i => `- ${i}`).join('\n') : '- (none)');
+
+            sections.push('');
+            sections.push(`Added (${result.added.length}):`);
+            sections.push(result.added.length ? result.added.map(i => `- ${i}`).join('\n') : '- (none)');
+
+            sections.push('');
+            sections.push(`Unchanged (${result.unchanged.length}):`);
+            sections.push(result.unchanged.length ? result.unchanged.map(i => `- ${i}`).join('\n') : '- (none)');
+
+            return sections.join('\n');
+        }
+
+        function showToast(message, isError = false) {
+            clearTimeout(toastTimer);
+
+            if (isError) {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-rose-600 text-white shadow-lg border border-rose-500';
+                toastTitle.textContent = message;
+                toastBody.className = 'text-rose-100 text-xs mt-0.5';
+                toastBody.textContent = 'Select the text and copy manually.';
+            } else {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500';
+                toastTitle.textContent = 'Copied to clipboard';
+                toastBody.className = 'text-emerald-100 text-xs mt-0.5';
+                toastBody.textContent = 'Paste into email, Slack, or your ticket.';
+            }
+
+            toast.classList.remove('hidden');
+            toastTimer = setTimeout(() => toast.classList.add('hidden'), 4000);
+        }
+
+        async function copyText(text) {
+            if (!text) return;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    const ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.select();
+                    const ok = document.execCommand('copy');
+                    document.body.removeChild(ta);
+                    if (!ok) throw new Error('execCommand failed');
+                }
+                showToast();
+            } catch {
+                showToast('Copy failed', true);
+            }
+        }
+
+        btnCompare.addEventListener('click', compare);
+        btnSwap.addEventListener('click', swapLists);
+        btnClear.addEventListener('click', clearAll);
+        btnCopyAll.addEventListener('click', () => copyText(formatReport(lastResult)));
+        btnCopyRemoved.addEventListener('click', () => copyText(lastResult?.removed.join('\n') ?? ''));
+        btnCopyAdded.addEventListener('click', () => copyText(lastResult?.added.join('\n') ?? ''));
+        toastDismiss.addEventListener('click', () => toast.classList.add('hidden'));
+
+        listOriginal.addEventListener('input', () => {
+            hideWarning();
+            updateInputCounts();
+        });
+        listUpdated.addEventListener('input', updateInputCounts);
+
+        document.addEventListener('keydown', (e) => {
+            const inField = e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT';
+
+            if ((e.key === 'd' || e.key === 'D') && !inField) {
+                e.preventDefault();
+                compare();
+            }
+
+            if ((e.key === 's' || e.key === 'S') && !inField) {
+                e.preventDefault();
+                swapLists();
+            }
+        });
+
+        updateInputCounts();
     </script>
 </body>
 </html>
