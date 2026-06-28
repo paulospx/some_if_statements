@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Format, minify, and validate JSON in the browser — instant feedback, copy-ready output, no server round-trip.">
+    <title>JSON Formatter &amp; Validator — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .code-area { tab-size: 2; }
+
+        .toast-enter {
+            animation: toast-in 0.25s ease;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(0.5rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .toast-enter { animation: none; }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased flex flex-col">
+    <a href="#main" class="skip-link">Skip to formatter</a>
+
+    <div
+        id="toast"
+        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+    >
+        <div class="toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500">
+            <svg class="w-5 h-5 shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <div>
+                <p id="toast-title" class="font-medium text-sm">Copied to clipboard</p>
+                <p id="toast-body" class="text-emerald-100 text-xs mt-0.5">Paste into your editor, API client, or config file.</p>
+            </div>
+            <button type="button" id="toast-dismiss" class="ml-auto shrink-0 text-emerald-200 hover:text-white" aria-label="Dismiss notification">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <header class="border-b border-slate-200 bg-white">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+            <nav aria-label="Breadcrumb" class="mb-4">
+                <a href="index.html" class="text-sm text-sky-600 hover:text-sky-700 inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Tool Catalog
+                </a>
+            </nav>
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-sky-600 mb-1">Development</p>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">JSON Formatter &amp; Validator</h1>
+                    <p class="mt-2 text-slate-600 leading-relaxed max-w-2xl">
+                        Paste messy JSON from logs, API responses, or config files. Validate syntax, pretty-print with readable indentation, or minify for transport — all locally in your browser.
+                    </p>
+                </div>
+                <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 shrink-0">
+                    Designed with NN/g heuristics
+                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
+        <section aria-label="Actions" class="mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex flex-wrap gap-2" role="group" aria-label="JSON actions">
+                    <button
+                        type="button"
+                        id="btn-format"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+                        </svg>
+                        Format
+                    </button>
+                    <button
+                        type="button"
+                        id="btn-minify"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                        Minify
+                    </button>
+                    <button
+                        type="button"
+                        id="btn-validate"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Validate
+                    </button>
+                    <button
+                        type="button"
+                        id="btn-swap"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                        disabled
+                    >
+                        <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                        </svg>
+                        Use output as input
+                    </button>
+                    <button
+                        type="button"
+                        id="btn-clear"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-600 font-medium border border-slate-200 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+                    >
+                        Clear all
+                    </button>
+                </div>
+                <p class="text-xs text-slate-500" aria-live="polite" id="status-line">
+                    Input <span id="input-chars">0</span> chars ·
+                    validation <span id="validation-status">pending</span> ·
+                    last action <span id="last-action">none</span>
+                </p>
+            </div>
+            <p class="mt-3 text-xs text-slate-500">
+                Shortcuts:
+                <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">F</kbd> format ·
+                <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">M</kbd> minify ·
+                <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">C</kbd> copy output
+            </p>
+        </section>
+
+        <section aria-label="Format options" class="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-4 sm:px-5">
+            <h2 class="text-sm font-medium text-slate-700 mb-3">Format options</h2>
+            <div class="flex flex-col sm:flex-row sm:flex-wrap gap-4 sm:gap-6">
+                <fieldset class="border-0 p-0 m-0">
+                    <legend class="text-xs font-medium text-slate-500 mb-2">Indentation</legend>
+                    <div class="flex gap-2" role="group" aria-label="Indentation size">
+                        <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-sm cursor-pointer has-[:checked]:border-sky-500 has-[:checked]:bg-sky-50 has-[:checked]:text-sky-800">
+                            <input type="radio" name="indent" value="2" class="text-sky-600 focus:ring-sky-500" checked>
+                            2 spaces
+                        </label>
+                        <label class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-sm cursor-pointer has-[:checked]:border-sky-500 has-[:checked]:bg-sky-50 has-[:checked]:text-sky-800">
+                            <input type="radio" name="indent" value="4" class="text-sky-600 focus:ring-sky-500">
+                            4 spaces
+                        </label>
+                    </div>
+                </fieldset>
+                <div class="flex items-end">
+                    <label class="inline-flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                        <input type="checkbox" id="sort-keys" class="rounded border-slate-300 text-sky-600 focus:ring-sky-500">
+                        Sort object keys alphabetically
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <div
+            id="error-alert"
+            class="hidden mb-6 px-4 py-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm"
+            role="alert"
+        >
+            <p id="error-message" class="font-medium"></p>
+            <p id="error-location" class="mt-1 text-rose-700 text-xs mono"></p>
+            <p id="error-hint" class="mt-1 text-rose-700 text-xs"></p>
+        </div>
+
+        <div
+            id="success-alert"
+            class="hidden mb-6 px-4 py-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm"
+            role="status"
+        >
+            <p id="success-message" class="font-medium"></p>
+            <p id="success-details" class="mt-1 text-emerald-700 text-xs"></p>
+        </div>
+
+        <div
+            id="empty-warning"
+            class="hidden mb-6 px-4 py-3 rounded-lg bg-amber-50 border border-amber-200 text-amber-800 text-sm"
+            role="alert"
+        >
+            Paste JSON in the input field before formatting, minifying, or validating.
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <section aria-labelledby="input-heading">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="json-input" id="input-heading" class="text-sm font-medium text-slate-700">
+                        Input JSON
+                    </label>
+                    <button
+                        type="button"
+                        id="btn-sample"
+                        class="text-xs font-medium text-sky-600 hover:text-sky-700 focus:outline-none focus-visible:underline"
+                    >
+                        Load sample
+                    </button>
+                </div>
+                <textarea
+                    id="json-input"
+                    rows="16"
+                    spellcheck="false"
+                    placeholder='{"name":"Ada","skills":["logic","analytical"],"active":true}'
+                    class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-800 text-sm leading-relaxed resize-y min-h-[18rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 invalid:border-rose-400"
+                    aria-describedby="input-hint"
+                    aria-invalid="false"
+                ></textarea>
+                <p id="input-hint" class="mt-2 text-xs text-slate-500">
+                    Validation runs as you type. Use <strong>Format</strong> or <strong>Minify</strong> to write the result to the output panel.
+                </p>
+            </section>
+
+            <section aria-labelledby="output-heading">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="json-output" id="output-heading" class="text-sm font-medium text-slate-700">
+                        Output
+                    </label>
+                    <button
+                        type="button"
+                        id="btn-copy"
+                        class="text-xs font-medium text-sky-600 hover:text-sky-700 inline-flex items-center gap-1 focus:outline-none focus-visible:underline disabled:opacity-40 disabled:pointer-events-none"
+                        disabled
+                    >
+                        <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy output
+                    </button>
+                </div>
+                <textarea
+                    id="json-output"
+                    rows="16"
+                    readonly
+                    spellcheck="false"
+                    placeholder="Formatted or minified JSON will appear here…"
+                    class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-100 text-slate-800 text-sm leading-relaxed resize-y min-h-[18rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-describedby="output-hint"
+                    aria-live="polite"
+                ></textarea>
+                <p id="output-hint" class="mt-2 text-xs text-slate-500">
+                    Output length: <span id="output-chars">0</span> characters.
+                </p>
+            </section>
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white mt-auto">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 text-sm text-slate-500">
+            <p>All parsing and formatting runs locally in your browser. Your JSON never leaves this page.</p>
+        </div>
+    </footer>
+
+    <script>
+        const SAMPLE_JSON = {
+            project: 'some_if_statements',
+            version: 1,
+            tools: ['commits', 'base64', 'compare-list'],
+            metadata: {
+                author: 'Paulo',
+                tags: ['utilities', 'generators'],
+                active: true
+            },
+            stats: {
+                generators: 8,
+                utilities: 3
+            }
+        };
+
+        const jsonInput = document.getElementById('json-input');
+        const jsonOutput = document.getElementById('json-output');
+        const inputChars = document.getElementById('input-chars');
+        const outputChars = document.getElementById('output-chars');
+        const validationStatus = document.getElementById('validation-status');
+        const lastAction = document.getElementById('last-action');
+        const errorAlert = document.getElementById('error-alert');
+        const errorMessage = document.getElementById('error-message');
+        const errorLocation = document.getElementById('error-location');
+        const errorHint = document.getElementById('error-hint');
+        const successAlert = document.getElementById('success-alert');
+        const successMessage = document.getElementById('success-message');
+        const successDetails = document.getElementById('success-details');
+        const emptyWarning = document.getElementById('empty-warning');
+        const sortKeys = document.getElementById('sort-keys');
+        const indentRadios = document.querySelectorAll('input[name="indent"]');
+        const btnFormat = document.getElementById('btn-format');
+        const btnMinify = document.getElementById('btn-minify');
+        const btnValidate = document.getElementById('btn-validate');
+        const btnSwap = document.getElementById('btn-swap');
+        const btnClear = document.getElementById('btn-clear');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnSample = document.getElementById('btn-sample');
+        const toast = document.getElementById('toast');
+        const toastDismiss = document.getElementById('toast-dismiss');
+        const toastInner = toast.querySelector('div');
+        const toastTitle = document.getElementById('toast-title');
+        const toastBody = document.getElementById('toast-body');
+
+        let toastTimer = null;
+        let validateTimer = null;
+
+        function getIndent() {
+            const selected = document.querySelector('input[name="indent"]:checked');
+            return selected ? Number(selected.value) : 2;
+        }
+
+        function sortObjectKeys(value) {
+            if (Array.isArray(value)) {
+                return value.map(sortObjectKeys);
+            }
+            if (value !== null && typeof value === 'object') {
+                return Object.keys(value)
+                    .sort((a, b) => a.localeCompare(b))
+                    .reduce((acc, key) => {
+                        acc[key] = sortObjectKeys(value[key]);
+                        return acc;
+                    }, {});
+            }
+            return value;
+        }
+
+        function getLineCol(text, position) {
+            const before = text.slice(0, position);
+            const lines = before.split('\n');
+            return {
+                line: lines.length,
+                column: lines[lines.length - 1].length + 1
+            };
+        }
+
+        function extractErrorPosition(message) {
+            const positionMatch = message.match(/position\s+(\d+)/i);
+            if (positionMatch) return Number(positionMatch[1]);
+
+            const lineColMatch = message.match(/line\s+(\d+)\s+column\s+(\d+)/i);
+            if (lineColMatch) {
+                return { line: Number(lineColMatch[1]), column: Number(lineColMatch[2]) };
+            }
+
+            return null;
+        }
+
+        function getErrorHint(text, message) {
+            const lower = message.toLowerCase();
+
+            if (text.includes("'")) {
+                return 'JSON requires double quotes for strings and property names. Replace single quotes with ".';
+            }
+            if (lower.includes('trailing comma') || /,\s*[}\]]/.test(text)) {
+                return 'Remove trailing commas before } or ]. Standard JSON does not allow them.';
+            }
+            if (/\bundefined\b/.test(text)) {
+                return 'undefined is not valid JSON. Use null or omit the property.';
+            }
+            if (/\/\/|\/\*/.test(text)) {
+                return 'Comments are not valid in JSON. Remove // or /* */ blocks before parsing.';
+            }
+            if (lower.includes('unexpected token') && text.includes('NaN')) {
+                return 'NaN is not valid JSON. Use null or a string instead.';
+            }
+            if (lower.includes('unexpected end')) {
+                return 'The document may be truncated — check for missing }, ], or closing quotes.';
+            }
+
+            return 'Check for missing commas, unclosed brackets, or unescaped characters inside strings.';
+        }
+
+        function analyzeValue(value) {
+            const type = Array.isArray(value) ? 'array' : typeof value;
+            let topLevelCount = 0;
+            let depth = 0;
+
+            function walk(node, level) {
+                depth = Math.max(depth, level);
+                if (node !== null && typeof node === 'object') {
+                    if (level === 1) {
+                        topLevelCount = Array.isArray(node) ? node.length : Object.keys(node).length;
+                    }
+                    if (Array.isArray(node)) {
+                        node.forEach((item) => walk(item, level + 1));
+                    } else {
+                        Object.values(node).forEach((item) => walk(item, level + 1));
+                    }
+                }
+            }
+
+            walk(value, 1);
+
+            return { type, topLevelCount, depth };
+        }
+
+        function parseInput(text) {
+            const trimmed = text.trim();
+            if (!trimmed) {
+                return { error: { message: 'Input is empty.', hint: 'Paste JSON or load the sample to get started.' } };
+            }
+
+            try {
+                let parsed = JSON.parse(trimmed);
+                if (sortKeys.checked) {
+                    parsed = sortObjectKeys(parsed);
+                }
+                return { parsed };
+            } catch (err) {
+                const message = err.message || 'Invalid JSON.';
+                let locationText = '';
+                const position = extractErrorPosition(message);
+
+                if (typeof position === 'number') {
+                    const { line, column } = getLineCol(trimmed, position);
+                    locationText = `Near line ${line}, column ${column}.`;
+                } else if (position && position.line) {
+                    locationText = `Near line ${position.line}, column ${position.column}.`;
+                }
+
+                return {
+                    error: {
+                        message,
+                        locationText,
+                        hint: getErrorHint(trimmed, message)
+                    }
+                };
+            }
+        }
+
+        function hideAlerts() {
+            errorAlert.classList.add('hidden');
+            successAlert.classList.add('hidden');
+            emptyWarning.classList.add('hidden');
+        }
+
+        function showError(error) {
+            errorMessage.textContent = error.message;
+            errorLocation.textContent = error.locationText || '';
+            errorLocation.classList.toggle('hidden', !error.locationText);
+            errorHint.textContent = error.hint;
+            errorAlert.classList.remove('hidden');
+            successAlert.classList.add('hidden');
+            emptyWarning.classList.add('hidden');
+            jsonInput.setAttribute('aria-invalid', 'true');
+            validationStatus.textContent = 'invalid';
+        }
+
+        function showSuccess(parsed, actionLabel) {
+            const { type, topLevelCount, depth } = analyzeValue(parsed);
+            const countLabel = type === 'array' ? `${topLevelCount} items` : `${topLevelCount} keys`;
+
+            successMessage.textContent = actionLabel === 'validate'
+                ? 'Valid JSON.'
+                : `Valid JSON — ${actionLabel} complete.`;
+            successDetails.textContent = `Root type: ${type} · ${countLabel} at top level · depth ${depth}`;
+            successAlert.classList.remove('hidden');
+            errorAlert.classList.add('hidden');
+            emptyWarning.classList.add('hidden');
+            jsonInput.setAttribute('aria-invalid', 'false');
+            validationStatus.textContent = 'valid';
+        }
+
+        function showEmptyWarning() {
+            emptyWarning.classList.remove('hidden');
+            errorAlert.classList.add('hidden');
+            successAlert.classList.add('hidden');
+            jsonInput.focus();
+        }
+
+        function updateCounts() {
+            const inLen = jsonInput.value.length;
+            const outLen = jsonOutput.value.length;
+
+            inputChars.textContent = inLen;
+            outputChars.textContent = outLen;
+            btnCopy.disabled = outLen === 0;
+            btnSwap.disabled = outLen === 0;
+        }
+
+        function writeOutput(parsed, minify = false) {
+            jsonOutput.value = minify
+                ? JSON.stringify(parsed)
+                : JSON.stringify(parsed, null, getIndent());
+            updateCounts();
+        }
+
+        function runValidate(showPanel = true) {
+            const text = jsonInput.value;
+
+            if (!text.trim()) {
+                validationStatus.textContent = 'pending';
+                jsonInput.setAttribute('aria-invalid', 'false');
+                if (showPanel) showEmptyWarning();
+                return null;
+            }
+
+            const result = parseInput(text);
+
+            if (result.error) {
+                if (showPanel) showError(result.error);
+                return null;
+            }
+
+            if (showPanel) showSuccess(result.parsed, 'validate');
+            return result.parsed;
+        }
+
+        function formatJson() {
+            const text = jsonInput.value;
+            if (!text.trim()) {
+                showEmptyWarning();
+                return;
+            }
+
+            hideAlerts();
+            const result = parseInput(text);
+
+            if (result.error) {
+                showError(result.error);
+                lastAction.textContent = 'format failed';
+                return;
+            }
+
+            writeOutput(result.parsed, false);
+            showSuccess(result.parsed, 'format');
+            lastAction.textContent = 'formatted';
+            jsonOutput.focus();
+        }
+
+        function minifyJson() {
+            const text = jsonInput.value;
+            if (!text.trim()) {
+                showEmptyWarning();
+                return;
+            }
+
+            hideAlerts();
+            const result = parseInput(text);
+
+            if (result.error) {
+                showError(result.error);
+                lastAction.textContent = 'minify failed';
+                return;
+            }
+
+            writeOutput(result.parsed, true);
+            showSuccess(result.parsed, 'minify');
+            lastAction.textContent = 'minified';
+            jsonOutput.focus();
+        }
+
+        function validateOnly() {
+            hideAlerts();
+            const parsed = runValidate(true);
+            lastAction.textContent = parsed ? 'validated' : 'validate failed';
+        }
+
+        function swapToInput() {
+            if (!jsonOutput.value) return;
+
+            jsonInput.value = jsonOutput.value;
+            jsonOutput.value = '';
+            hideAlerts();
+            lastAction.textContent = 'swapped';
+            validationStatus.textContent = 'pending';
+            updateCounts();
+            scheduleValidation();
+            jsonInput.focus();
+        }
+
+        function clearAll() {
+            jsonInput.value = '';
+            jsonOutput.value = '';
+            hideAlerts();
+            validationStatus.textContent = 'pending';
+            lastAction.textContent = 'none';
+            jsonInput.setAttribute('aria-invalid', 'false');
+            updateCounts();
+            jsonInput.focus();
+        }
+
+        function loadSample() {
+            jsonInput.value = JSON.stringify(SAMPLE_JSON);
+            jsonOutput.value = '';
+            hideAlerts();
+            lastAction.textContent = 'sample loaded';
+            updateCounts();
+            scheduleValidation();
+            jsonInput.focus();
+        }
+
+        function scheduleValidation() {
+            clearTimeout(validateTimer);
+            validateTimer = setTimeout(() => {
+                const text = jsonInput.value;
+                if (!text.trim()) {
+                    validationStatus.textContent = 'pending';
+                    jsonInput.setAttribute('aria-invalid', 'false');
+                    errorAlert.classList.add('hidden');
+                    successAlert.classList.add('hidden');
+                    return;
+                }
+
+                const result = parseInput(text);
+                if (result.error) {
+                    validationStatus.textContent = 'invalid';
+                    jsonInput.setAttribute('aria-invalid', 'true');
+                } else {
+                    validationStatus.textContent = 'valid';
+                    jsonInput.setAttribute('aria-invalid', 'false');
+                }
+            }, 250);
+        }
+
+        function showToast(message, isError = false) {
+            clearTimeout(toastTimer);
+
+            if (isError) {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-rose-600 text-white shadow-lg border border-rose-500';
+                toastTitle.textContent = message;
+                toastBody.className = 'text-rose-100 text-xs mt-0.5';
+                toastBody.textContent = 'Select the output area and copy manually.';
+            } else {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500';
+                toastTitle.textContent = 'Copied to clipboard';
+                toastBody.className = 'text-emerald-100 text-xs mt-0.5';
+                toastBody.textContent = 'Paste into your editor, API client, or config file.';
+            }
+
+            toast.classList.remove('hidden');
+            toastTimer = setTimeout(() => toast.classList.add('hidden'), 4000);
+        }
+
+        async function copyOutput() {
+            const text = jsonOutput.value;
+            if (!text) return;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    jsonOutput.removeAttribute('readonly');
+                    jsonOutput.select();
+                    jsonOutput.setSelectionRange(0, text.length);
+                    const ok = document.execCommand('copy');
+                    jsonOutput.setAttribute('readonly', '');
+                    if (!ok) throw new Error('execCommand failed');
+                }
+                showToast();
+            } catch {
+                showToast('Copy failed', true);
+                jsonOutput.focus();
+                jsonOutput.select();
+            }
+        }
+
+        btnFormat.addEventListener('click', formatJson);
+        btnMinify.addEventListener('click', minifyJson);
+        btnValidate.addEventListener('click', validateOnly);
+        btnSwap.addEventListener('click', swapToInput);
+        btnClear.addEventListener('click', clearAll);
+        btnCopy.addEventListener('click', copyOutput);
+        btnSample.addEventListener('click', loadSample);
+        toastDismiss.addEventListener('click', () => toast.classList.add('hidden'));
+
+        jsonInput.addEventListener('input', () => {
+            hideAlerts();
+            updateCounts();
+            scheduleValidation();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            const inField = e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT';
+
+            if ((e.key === 'f' || e.key === 'F') && !inField) {
+                e.preventDefault();
+                formatJson();
+            }
+
+            if ((e.key === 'm' || e.key === 'M') && !inField) {
+                e.preventDefault();
+                minifyJson();
+            }
+
+            if ((e.key === 'c' || e.key === 'C') && !inField && jsonOutput.value) {
+                e.preventDefault();
+                copyOutput();
+            }
+        });
+
+        updateCounts();
+    </script>
+</body>
+</html>
