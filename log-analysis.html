@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Paste server logs and instantly highlight timestamps, log levels, IP addresses, class names, servers, and numbers.">
+    <title>Log Analysis — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        :root {
+            color-scheme: light;
+            --bg: #f8fafc;
+            --bg-elevated: #ffffff;
+            --bg-code: #f1f5f9;
+            --text: #0f172a;
+            --text-muted: #64748b;
+            --text-subtle: #94a3b8;
+            --border: #e2e8f0;
+            --border-strong: #cbd5e1;
+            --accent: #0284c7;
+            --accent-hover: #0369a1;
+            --focus-ring: #0ea5e9;
+            --gutter-bg: #f8fafc;
+            --gutter-text: #94a3b8;
+            --live-dot: #10b981;
+
+            --hl-datetime-bg: #ede9fe;
+            --hl-datetime-text: #5b21b6;
+            --hl-level-error-bg: #fee2e2;
+            --hl-level-error-text: #b91c1c;
+            --hl-level-warn-bg: #fef3c7;
+            --hl-level-warn-text: #b45309;
+            --hl-level-info-bg: #dbeafe;
+            --hl-level-info-text: #1d4ed8;
+            --hl-level-debug-bg: #e2e8f0;
+            --hl-level-debug-text: #475569;
+            --hl-level-trace-bg: #f1f5f9;
+            --hl-level-trace-text: #64748b;
+            --hl-ip-bg: #ccfbf1;
+            --hl-ip-text: #0f766e;
+            --hl-number-bg: #ffedd5;
+            --hl-number-text: #c2410c;
+            --hl-class-bg: #e0e7ff;
+            --hl-class-text: #4338ca;
+            --hl-server-bg: #d1fae5;
+            --hl-server-text: #047857;
+        }
+
+        [data-theme="dark"] {
+            color-scheme: dark;
+            --bg: #0b1120;
+            --bg-elevated: #111827;
+            --bg-code: #0f172a;
+            --text: #e2e8f0;
+            --text-muted: #94a3b8;
+            --text-subtle: #64748b;
+            --border: #1e293b;
+            --border-strong: #334155;
+            --accent: #38bdf8;
+            --accent-hover: #7dd3fc;
+            --focus-ring: #38bdf8;
+            --gutter-bg: #0f172a;
+            --gutter-text: #475569;
+            --live-dot: #34d399;
+
+            --hl-datetime-bg: rgba(139, 92, 246, 0.22);
+            --hl-datetime-text: #c4b5fd;
+            --hl-level-error-bg: rgba(239, 68, 68, 0.2);
+            --hl-level-error-text: #fca5a5;
+            --hl-level-warn-bg: rgba(245, 158, 11, 0.2);
+            --hl-level-warn-text: #fcd34d;
+            --hl-level-info-bg: rgba(59, 130, 246, 0.2);
+            --hl-level-info-text: #93c5fd;
+            --hl-level-debug-bg: rgba(100, 116, 139, 0.25);
+            --hl-level-debug-text: #cbd5e1;
+            --hl-level-trace-bg: rgba(71, 85, 105, 0.25);
+            --hl-level-trace-text: #94a3b8;
+            --hl-ip-bg: rgba(20, 184, 166, 0.2);
+            --hl-ip-text: #5eead4;
+            --hl-number-bg: rgba(249, 115, 22, 0.2);
+            --hl-number-text: #fdba74;
+            --hl-class-bg: rgba(99, 102, 241, 0.22);
+            --hl-class-text: #a5b4fc;
+            --hl-server-bg: rgba(16, 185, 129, 0.2);
+            --hl-server-text: #6ee7b7;
+        }
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+            font-feature-settings: "tnum";
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: var(--accent);
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .surface {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            filter: brightness(1.05);
+        }
+
+        .btn-secondary {
+            background: var(--bg-elevated);
+            color: var(--text-muted);
+            border: 1px solid var(--border-strong);
+        }
+
+        .btn-secondary:hover {
+            color: var(--text);
+            border-color: var(--text-subtle);
+        }
+
+        .legend-chip {
+            transition: opacity 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .legend-chip[aria-pressed="false"] {
+            opacity: 0.45;
+        }
+
+        .legend-chip:focus-visible {
+            outline: 2px solid var(--focus-ring);
+            outline-offset: 2px;
+        }
+
+        .log-line {
+            display: grid;
+            grid-template-columns: 3.5rem 1fr;
+            min-height: 1.5rem;
+        }
+
+        .log-gutter {
+            user-select: none;
+            text-align: right;
+            padding: 0 0.75rem 0 0.5rem;
+            color: var(--gutter-text);
+            background: var(--gutter-bg);
+            border-right: 1px solid var(--border);
+            font-size: 0.75rem;
+            line-height: 1.5rem;
+        }
+
+        .log-content {
+            padding: 0 0.75rem;
+            line-height: 1.5rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-size: 0.8125rem;
+        }
+
+        .log-output {
+            background: var(--bg-code);
+        }
+
+        .hl {
+            border-radius: 0.2rem;
+            padding: 0.05rem 0.15rem;
+            font-weight: 500;
+        }
+
+        .hl-datetime { background: var(--hl-datetime-bg); color: var(--hl-datetime-text); }
+        .hl-level-error { background: var(--hl-level-error-bg); color: var(--hl-level-error-text); }
+        .hl-level-warn { background: var(--hl-level-warn-bg); color: var(--hl-level-warn-text); }
+        .hl-level-info { background: var(--hl-level-info-bg); color: var(--hl-level-info-text); }
+        .hl-level-debug { background: var(--hl-level-debug-bg); color: var(--hl-level-debug-text); }
+        .hl-level-trace { background: var(--hl-level-trace-bg); color: var(--hl-level-trace-text); }
+        .hl-ip { background: var(--hl-ip-bg); color: var(--hl-ip-text); }
+        .hl-number { background: var(--hl-number-bg); color: var(--hl-number-text); }
+        .hl-class { background: var(--hl-class-bg); color: var(--hl-class-text); }
+        .hl-server { background: var(--hl-server-bg); color: var(--hl-server-text); }
+
+        .live-indicator {
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .live-indicator { animation: none; }
+            .legend-chip { transition: none; }
+        }
+
+        .theme-icon-light,
+        [data-theme="dark"] .theme-icon-dark { display: none; }
+        [data-theme="dark"] .theme-icon-light { display: block; }
+    </style>
+</head>
+<body data-theme="light">
+    <a href="#main" class="skip-link">Skip to log analyzer</a>
+
+    <header class="surface border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+            <nav aria-label="Breadcrumb" class="mb-4">
+                <a href="index.html" class="text-sm hover:underline inline-flex items-center gap-1" style="color: var(--accent);">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Tool Catalog
+                </a>
+            </nav>
+            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest mb-1" style="color: var(--accent);">Diagnostics</p>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight">Log Analysis</h1>
+                    <p class="mt-2 leading-relaxed max-w-2xl" style="color: var(--text-muted);">
+                        Paste raw log output and scan it faster. Timestamps, severity levels, hosts, IP addresses,
+                        class names, and numbers are highlighted instantly — toggle categories on or off as you read.
+                    </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 shrink-0">
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium surface">
+                        <span class="w-2 h-2 rounded-full live-indicator" style="background: var(--live-dot);" aria-hidden="true"></span>
+                        <span id="live-status">Live parsing</span>
+                    </div>
+                    <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="text-xs inline-flex items-center gap-1 hover:underline"
+                       style="color: var(--text-subtle);">
+                        Designed with NN/g heuristics
+                        <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
+        <section aria-label="Toolbar" class="mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex flex-wrap gap-2" role="group" aria-label="Log actions">
+                    <button type="button" id="btn-sample"
+                            class="btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                            style="--tw-ring-color: var(--focus-ring);">
+                        Load sample
+                    </button>
+                    <button type="button" id="btn-clear"
+                            class="btn-secondary inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                            style="--tw-ring-color: var(--focus-ring);">
+                        Clear
+                    </button>
+                    <button type="button" id="btn-copy"
+                            class="btn-secondary inline-flex items-center gap-2 px-4 py-2.5 rounded-lg font-medium text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                            style="--tw-ring-color: var(--focus-ring);">
+                        Copy raw log
+                    </button>
+                </div>
+                <div class="flex items-center gap-3">
+                    <p class="text-xs" style="color: var(--text-muted);" aria-live="polite" id="status-line">
+                        <span id="stat-lines">0</span> lines ·
+                        <span id="stat-chars">0</span> chars
+                    </p>
+                    <button type="button" id="btn-theme"
+                            class="btn-secondary inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                            style="--tw-ring-color: var(--focus-ring);"
+                            aria-label="Toggle light and dark theme">
+                        <svg class="w-4 h-4 theme-icon-dark" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                        <svg class="w-4 h-4 theme-icon-light" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <span id="theme-label">Dark</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <section aria-labelledby="legend-heading" class="mb-6 surface rounded-2xl p-4 sm:p-5">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                <div>
+                    <h2 id="legend-heading" class="text-sm font-semibold">Highlight legend</h2>
+                    <p class="text-xs mt-0.5" style="color: var(--text-muted);">Click a category to show or hide it. Counts update as you type.</p>
+                </div>
+                <button type="button" id="btn-reset-filters"
+                        class="text-xs font-medium hover:underline self-start focus:outline-none focus-visible:underline"
+                        style="color: var(--accent);">
+                    Reset all filters
+                </button>
+            </div>
+            <div id="legend" class="flex flex-wrap gap-2" role="group" aria-label="Highlight categories"></div>
+        </section>
+
+        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            <section aria-labelledby="input-heading">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="log-input" id="input-heading" class="text-sm font-medium">Raw log</label>
+                    <span class="text-xs" style="color: var(--text-subtle);">Paste · drop · type</span>
+                </div>
+                <textarea id="log-input"
+                          rows="22"
+                          spellcheck="false"
+                          placeholder="2026-06-29 14:32:01,482 INFO  [prod-api-03.internal] com.acme.auth.SessionService — User login from 203.0.113.42&#10;2026-06-29 14:32:02,119 ERROR [prod-api-03.internal] com.acme.db.ConnectionPool — Connection timeout after 30000ms"
+                          class="mono code-area w-full px-4 py-4 rounded-2xl text-sm leading-relaxed resize-y min-h-[28rem] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 surface"
+                          style="background: var(--bg-code); color: var(--text); --tw-ring-color: var(--focus-ring);"
+                          aria-describedby="input-hint"></textarea>
+                <p id="input-hint" class="mt-2 text-xs" style="color: var(--text-muted);">
+                    Supports common formats: ISO timestamps, Apache/Nginx access logs, Java/Python logger output, IPv4/IPv6.
+                </p>
+            </section>
+
+            <section aria-labelledby="output-heading">
+                <div class="flex items-center justify-between mb-2">
+                    <h2 id="output-heading" class="text-sm font-medium">Highlighted view</h2>
+                    <span class="text-xs" style="color: var(--text-subtle);" id="feature-summary">—</span>
+                </div>
+                <div id="log-output"
+                     class="log-output mono rounded-2xl border overflow-auto min-h-[28rem] max-h-[70vh] surface"
+                     style="border-color: var(--border);"
+                     role="region"
+                     aria-label="Highlighted log output"
+                     tabindex="0">
+                    <p class="p-6 text-sm" style="color: var(--text-muted);">Paste a log on the left to see highlighted output here.</p>
+                </div>
+            </section>
+        </div>
+
+        <section class="mt-8 surface rounded-2xl p-5" aria-labelledby="stats-heading">
+            <h2 id="stats-heading" class="text-sm font-semibold mb-4">Feature summary</h2>
+            <div id="stats-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3"></div>
+        </section>
+    </main>
+
+    <div id="toast"
+         class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]"
+         role="status"
+         aria-live="polite">
+        <div class="flex items-center gap-3 px-4 py-3 rounded-xl text-white shadow-lg"
+             style="background: #059669; border: 1px solid #10b981;">
+            <svg class="w-5 h-5 shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <p id="toast-message" class="text-sm font-medium">Copied to clipboard</p>
+        </div>
+    </div>
+
+    <script>
+        const CATEGORIES = [
+            { id: 'datetime', label: 'Datetime', chipClass: 'hl-datetime', priority: 1 },
+            { id: 'level', label: 'Log level', chipClass: 'hl-level-info', priority: 2 },
+            { id: 'ip', label: 'IP address', chipClass: 'hl-ip', priority: 3 },
+            { id: 'class', label: 'Class', chipClass: 'hl-class', priority: 4 },
+            { id: 'server', label: 'Server', chipClass: 'hl-server', priority: 5 },
+            { id: 'number', label: 'Number', chipClass: 'hl-number', priority: 6 }
+        ];
+
+        const LEVEL_CLASS = {
+            error: 'hl-level-error',
+            warn: 'hl-level-warn',
+            info: 'hl-level-info',
+            debug: 'hl-level-debug',
+            trace: 'hl-level-trace'
+        };
+
+        const PATTERNS = [
+            {
+                type: 'datetime',
+                regex: /\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:[.,]\d{1,9})?(?:Z|[+-]\d{2}:?\d{2})?/g
+            },
+            {
+                type: 'datetime',
+                regex: /\d{2}\/\d{2}\/\d{4}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d{1,9})?/g
+            },
+            {
+                type: 'datetime',
+                regex: /\d{2}\/[A-Za-z]{3}\/\d{4}:\d{2}:\d{2}:\d{2}(?: [+-]\d{4})?/g
+            },
+            {
+                type: 'datetime',
+                regex: /\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{1,2}\s+\d{2}:\d{2}:\d{2}(?:\.\d+)?\s+\d{4}\b/g
+            },
+            {
+                type: 'datetime',
+                regex: /\b\d{2}:\d{2}:\d{2}(?:[.,]\d{1,9})?\b/g
+            },
+            {
+                type: 'level',
+                regex: /\b(TRACE|DEBUG|INFO|INFORMATION|NOTICE|WARN(?:ING)?|ERROR|ERR|FATAL|CRITICAL|SEVERE|ALERT|EMERG(?:ENCY)?)\b/gi,
+                mapClass: match => {
+                    const token = match.toUpperCase();
+                    if (/^(ERROR|ERR|FATAL|CRITICAL|SEVERE|ALERT|EMERG)/.test(token)) return LEVEL_CLASS.error;
+                    if (/^WARN/.test(token)) return LEVEL_CLASS.warn;
+                    if (/^(INFO|INFORMATION|NOTICE)/.test(token)) return LEVEL_CLASS.info;
+                    if (/^DEBUG/.test(token)) return LEVEL_CLASS.debug;
+                    return LEVEL_CLASS.trace;
+                }
+            },
+            {
+                type: 'ip',
+                regex: /\b(?:[0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}\b/g
+            },
+            {
+                type: 'ip',
+                regex: /\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\b/g
+            },
+            {
+                type: 'class',
+                regex: /\b[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_]+)+\b/g
+            },
+            {
+                type: 'class',
+                regex: /\[[A-Za-z][\w.$]+\]/g
+            },
+            {
+                type: 'class',
+                regex: /\b[A-Za-z][\w.$]*\.(?:java|cs|py|js|ts|go|rb):\d+\b/g
+            },
+            {
+                type: 'server',
+                regex: /\b[a-z][a-z0-9]*(?:-[a-z0-9]+)+(?:\.[a-z][\w-]+)?\b/g
+            },
+            {
+                type: 'server',
+                regex: /\b[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(?:\.[a-zA-Z]{2,})+\b/g
+            },
+            {
+                type: 'number',
+                regex: /\b-?(?:0x[0-9a-fA-F]+|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\b/g
+            }
+        ];
+
+        const PRIORITY = Object.fromEntries(CATEGORIES.map(c => [c.id, c.priority]));
+
+        const enabled = Object.fromEntries(CATEGORIES.map(c => [c.id, true]));
+        const counts = Object.fromEntries(CATEGORIES.map(c => [c.id, 0]));
+
+        let parseTimer = null;
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function overlaps(a, b) {
+            return a.start < b.end && b.start < a.end;
+        }
+
+        function highlightLine(line) {
+            const ranges = [];
+
+            for (const pattern of PATTERNS) {
+                if (!enabled[pattern.type]) continue;
+
+                const regex = new RegExp(pattern.regex.source, pattern.regex.flags);
+                let match;
+                while ((match = regex.exec(line)) !== null) {
+                    const text = match[0];
+                    if (pattern.type === 'server' && pattern.regex.source.includes('\\.') && text.split('.').length < 2) continue;
+                    if (pattern.type === 'number' && /^-?\d{1,2}$/.test(text) && line.includes(':')) continue;
+
+                    ranges.push({
+                        start: match.index,
+                        end: match.index + text.length,
+                        type: pattern.type,
+                        text,
+                        cssClass: pattern.mapClass ? pattern.mapClass(text) : `hl-${pattern.type}`
+                    });
+                }
+            }
+
+            ranges.sort((a, b) => {
+                const pa = PRIORITY[a.type];
+                const pb = PRIORITY[b.type];
+                if (pa !== pb) return pa - pb;
+                return (b.end - b.start) - (a.end - a.start);
+            });
+
+            const accepted = [];
+            for (const range of ranges) {
+                if (!accepted.some(r => overlaps(r, range))) {
+                    accepted.push(range);
+                    counts[range.type]++;
+                }
+            }
+
+            accepted.sort((a, b) => a.start - b.start);
+
+            let html = '';
+            let cursor = 0;
+
+            for (const range of accepted) {
+                if (range.start > cursor) {
+                    html += escapeHtml(line.slice(cursor, range.start));
+                }
+                html += `<span class="hl ${range.cssClass}" title="${range.type}">${escapeHtml(range.text)}</span>`;
+                cursor = range.end;
+            }
+
+            html += escapeHtml(line.slice(cursor));
+            return html;
+        }
+
+        function renderLegend() {
+            const legend = document.getElementById('legend');
+            legend.innerHTML = CATEGORIES.map(cat => `
+                <button type="button"
+                        class="legend-chip inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border"
+                        style="border-color: var(--border); background: var(--bg-elevated);"
+                        data-category="${cat.id}"
+                        aria-pressed="${enabled[cat.id]}"
+                        aria-label="${cat.label}, ${counts[cat.id]} matches. Click to toggle.">
+                    <span class="hl ${cat.chipClass} px-1.5 py-0">${cat.label}</span>
+                    <span class="mono" style="color: var(--text-muted);" data-count="${cat.id}">${counts[cat.id]}</span>
+                </button>
+            `).join('');
+
+            legend.querySelectorAll('[data-category]').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const id = btn.dataset.category;
+                    enabled[id] = !enabled[id];
+                    btn.setAttribute('aria-pressed', String(enabled[id]));
+                    analyze();
+                });
+            });
+        }
+
+        function renderStats() {
+            const grid = document.getElementById('stats-grid');
+            grid.innerHTML = CATEGORIES.map(cat => `
+                <div class="rounded-xl p-3 border" style="border-color: var(--border); background: var(--bg-code);">
+                    <p class="text-xs" style="color: var(--text-subtle);">${cat.label}</p>
+                    <p class="mono text-xl font-semibold mt-1" data-stat="${cat.id}">${counts[cat.id]}</p>
+                </div>
+            `).join('');
+        }
+
+        function updateCountsUI() {
+            CATEGORIES.forEach(cat => {
+                const el = document.querySelector(`[data-count="${cat.id}"]`);
+                if (el) el.textContent = counts[cat.id];
+                const stat = document.querySelector(`[data-stat="${cat.id}"]`);
+                if (stat) stat.textContent = counts[cat.id];
+            });
+
+            const errorCount = counts.level;
+            const summary = [
+                counts.datetime ? `${counts.datetime} timestamps` : null,
+                errorCount ? `${errorCount} levels` : null,
+                counts.ip ? `${counts.ip} IPs` : null
+            ].filter(Boolean).join(' · ');
+
+            document.getElementById('feature-summary').textContent = summary || 'No features detected';
+        }
+
+        function analyze() {
+            const text = document.getElementById('log-input').value;
+            const lines = text.length ? text.split(/\r?\n/) : [];
+            const output = document.getElementById('log-output');
+
+            CATEGORIES.forEach(cat => { counts[cat.id] = 0; });
+
+            document.getElementById('stat-lines').textContent = lines.length.toLocaleString();
+            document.getElementById('stat-chars').textContent = text.length.toLocaleString();
+
+            if (!text.trim()) {
+                output.innerHTML = `<p class="p-6 text-sm" style="color: var(--text-muted);">Paste a log on the left to see highlighted output here.</p>`;
+                updateCountsUI();
+                return;
+            }
+
+            const html = lines.map((line, index) => `
+                <div class="log-line">
+                    <div class="log-gutter" aria-hidden="true">${index + 1}</div>
+                    <div class="log-content">${highlightLine(line) || '&#8203;'}</div>
+                </div>
+            `).join('');
+
+            output.innerHTML = html;
+            updateCountsUI();
+        }
+
+        function scheduleAnalyze() {
+            clearTimeout(parseTimer);
+            parseTimer = setTimeout(analyze, 80);
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = message;
+            toast.classList.remove('hidden');
+            clearTimeout(showToast.timer);
+            showToast.timer = setTimeout(() => toast.classList.add('hidden'), 2200);
+        }
+
+        function setTheme(theme) {
+            document.body.setAttribute('data-theme', theme);
+            document.getElementById('theme-label').textContent = theme === 'dark' ? 'Light' : 'Dark';
+            localStorage.setItem('log-analysis-theme', theme);
+        }
+
+        function toggleTheme() {
+            const current = document.body.getAttribute('data-theme');
+            setTheme(current === 'dark' ? 'light' : 'dark');
+        }
+
+        function initTheme() {
+            const saved = localStorage.getItem('log-analysis-theme');
+            if (saved === 'light' || saved === 'dark') {
+                setTheme(saved);
+                return;
+            }
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            setTheme(prefersDark ? 'dark' : 'light');
+        }
+
+        const SAMPLE_LOG = `2026-06-29 14:32:01,482 INFO  [prod-api-03.internal] com.acme.auth.SessionService — User login succeeded uid=10482 from 203.0.113.42
+2026-06-29 14:32:02,119 ERROR [prod-api-03.internal] com.acme.db.ConnectionPool — Connection timeout after 30000ms host=db-primary-01.acme.corp port=5432
+2026-06-29 14:32:02,205 WARN  [prod-api-03.internal] com.acme.cache.RedisClient — Retry attempt 3/5 for key session:8f2a1c latency=142ms
+2026-06-29 14:32:03,004 DEBUG [worker-07.local] com.acme.jobs.EmailDispatcher — Queue depth=0 processed=128
+2026-06-29T14:32:04.881Z TRACE [edge-02.acme.net] com.acme.gateway.RateLimiter — token_bucket level=0.82
+29/Jun/2026:14:32:05 +0000 10.0.0.15 - - "GET /api/v2/orders HTTP/1.1" 200 1842 "-" "curl/8.4.0"
+[2026-06-29 14:32:06] staging-web-12 WARNING org.springframework.web.servlet.DispatcherServlet — Slow request /reports took 4.521s
+2026-06-29 14:32:07,330 FATAL [prod-api-03.internal] com.acme.core.Bootstrap — Unhandled exception in main thread
+2026-06-29 14:32:08,002 INFO  [prod-api-03.internal] com.acme.audit.AuditLogger — event_id=0x7f3a request_id=9b12c4e8 client=2001:0db8:85a3:0000:0000:8a2e:0370:7334
+Jun 29 14:32:09 2026 load-balancer-01 nginx[8821]: 192.168.10.44 - - upstream response 502 in 0.019s`;
+
+        document.getElementById('log-input').addEventListener('input', scheduleAnalyze);
+
+        document.getElementById('btn-sample').addEventListener('click', () => {
+            document.getElementById('log-input').value = SAMPLE_LOG;
+            analyze();
+        });
+
+        document.getElementById('btn-clear').addEventListener('click', () => {
+            document.getElementById('log-input').value = '';
+            analyze();
+        });
+
+        document.getElementById('btn-copy').addEventListener('click', async () => {
+            const text = document.getElementById('log-input').value;
+            if (!text.trim()) {
+                showToast('Nothing to copy');
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('Copied raw log to clipboard');
+            } catch {
+                showToast('Copy failed — check browser permissions');
+            }
+        });
+
+        document.getElementById('btn-theme').addEventListener('click', toggleTheme);
+
+        document.getElementById('btn-reset-filters').addEventListener('click', () => {
+            CATEGORIES.forEach(cat => { enabled[cat.id] = true; });
+            renderLegend();
+            analyze();
+        });
+
+        initTheme();
+        renderLegend();
+        renderStats();
+        analyze();
+    </script>
+</body>
+</html>

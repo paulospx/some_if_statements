@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Analyze a list of numbers against Benford's Law — compare observed first-digit frequencies to the expected distribution.">
+    <title>Benford's Law Analysis — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .benford-table td, .benford-table th {
+            font-family: 'IBM Plex Mono', monospace;
+            font-feature-settings: "tnum";
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 min-h-screen antialiased">
+    <a href="#main" class="skip-link">Skip to analysis</a>
+
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+        <header class="mb-10">
+            <a href="index.html" class="text-sm text-slate-400 hover:text-sky-400 transition-colors">← Tool catalog</a>
+            <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight text-white mt-3">Benford's Law Analysis</h1>
+            <p class="text-slate-400 mt-2 max-w-2xl">
+                Paste a list of positive numbers spanning several orders of magnitude. The tool extracts each value's
+                leading digit and compares the observed distribution to Benford's expected frequencies.
+            </p>
+        </header>
+
+        <main id="main" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <section class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+                <div class="flex justify-between items-baseline mb-6">
+                    <label for="input" class="text-xl font-semibold text-white">Numbers</label>
+                    <button type="button" onclick="loadSample()"
+                            class="px-4 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 rounded-2xl transition-colors">
+                        Load sample
+                    </button>
+                </div>
+
+                <textarea id="input" rows="16"
+                          class="mono w-full bg-slate-950 border border-slate-700 focus:border-sky-400 rounded-2xl p-5 text-sm leading-relaxed resize-y focus:outline-none"
+                          placeholder="One number per line, or comma / space separated&#10;1234.56&#10;89.2&#10;456789&#10;3.14"></textarea>
+
+                <div class="flex items-center justify-between mt-4 text-sm">
+                    <p id="preview" class="text-slate-400">Enter numbers to analyze</p>
+                    <button type="button" onclick="clearInput()"
+                            class="text-slate-400 hover:text-slate-200 text-xs flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Clear
+                    </button>
+                </div>
+            </section>
+
+            <section class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+                <h2 class="text-xl font-semibold text-white mb-2">About Benford's Law</h2>
+                <p class="text-slate-400 text-sm leading-relaxed mb-4">
+                    In many naturally occurring datasets, the leading digit <span class="mono text-slate-300">d</span>
+                    (1–9) appears with probability
+                    <span class="mono text-sky-400">log₁₀(1 + 1/d)</span>.
+                    Smaller digits occur more often — digit 1 leads roughly 30% of the time.
+                </p>
+                <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                    <div class="bg-slate-950 rounded-xl p-3 border border-slate-800">
+                        <p class="text-slate-500 mb-1">Digit 1</p>
+                        <p class="mono text-sky-400 font-medium">30.1%</p>
+                    </div>
+                    <div class="bg-slate-950 rounded-xl p-3 border border-slate-800">
+                        <p class="text-slate-500 mb-1">Digit 2</p>
+                        <p class="mono text-sky-400 font-medium">17.6%</p>
+                    </div>
+                    <div class="bg-slate-950 rounded-xl p-3 border border-slate-800">
+                        <p class="text-slate-500 mb-1">Digit 9</p>
+                        <p class="mono text-sky-400 font-medium">4.6%</p>
+                    </div>
+                </div>
+                <p class="text-slate-500 text-xs mt-4">
+                    Zeros, negatives (absolute value used), and non-numeric tokens are ignored. Works best with
+                    at least ~100 values across multiple magnitudes.
+                </p>
+            </section>
+        </main>
+
+        <section id="results" class="hidden mt-10 space-y-8">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">Valid numbers</p>
+                    <p id="stat-count" class="mono text-2xl font-semibold text-white mt-1">—</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">Ignored</p>
+                    <p id="stat-ignored" class="mono text-2xl font-semibold text-slate-400 mt-1">—</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">Max deviation</p>
+                    <p id="stat-maxdev" class="mono text-2xl font-semibold text-amber-400 mt-1">—</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">χ² p-value</p>
+                    <p id="stat-pvalue" class="mono text-2xl font-semibold text-emerald-400 mt-1">—</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+                <h2 class="text-xl font-semibold text-white mb-6">Distribution comparison</h2>
+                <div class="relative" style="height: 360px;">
+                    <canvas id="benfordChart" aria-label="Benford distribution chart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl overflow-x-auto">
+                <h2 class="text-xl font-semibold text-white mb-6">Digit breakdown</h2>
+                <table class="benford-table w-full text-sm">
+                    <thead>
+                        <tr class="text-left text-slate-500 border-b border-slate-800">
+                            <th class="py-3 pr-4 font-medium">Digit</th>
+                            <th class="py-3 pr-4 font-medium text-right">Count</th>
+                            <th class="py-3 pr-4 font-medium text-right">Observed %</th>
+                            <th class="py-3 pr-4 font-medium text-right">Expected %</th>
+                            <th class="py-3 font-medium text-right">Δ (pp)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="results-table"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const DIGITS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+        const benfordExpected = DIGITS.map(d => Math.log10(1 + 1 / d));
+
+        let chartInstance = null;
+
+        function expectedPercent(digit) {
+            return benfordExpected[digit - 1] * 100;
+        }
+
+        function parseNumbers(text) {
+            const tokens = text
+                .split(/[\s,;]+/)
+                .map(t => t.trim())
+                .filter(Boolean);
+
+            const valid = [];
+            let ignored = 0;
+
+            for (const token of tokens) {
+                const cleaned = token.replace(/[$€£¥%]/g, '').replace(/,/g, '');
+                const value = Number(cleaned);
+
+                if (!Number.isFinite(value) || value === 0) {
+                    ignored++;
+                    continue;
+                }
+
+                valid.push(value);
+            }
+
+            return { valid, ignored };
+        }
+
+        function firstSignificantDigit(n) {
+            n = Math.abs(n);
+            if (n === 0 || !Number.isFinite(n)) return null;
+
+            while (n < 1) n *= 10;
+            while (n >= 10) n /= 10;
+
+            return Math.floor(n + 1e-12);
+        }
+
+        function computeDistribution(numbers) {
+            const counts = Array(10).fill(0);
+
+            for (const n of numbers) {
+                const digit = firstSignificantDigit(n);
+                if (digit >= 1 && digit <= 9) counts[digit]++;
+            }
+
+            const total = numbers.length;
+            const observed = DIGITS.map(d => total > 0 ? counts[d] / total : 0);
+            const observedPct = observed.map(p => p * 100);
+            const expectedPct = DIGITS.map(expectedPercent);
+
+            return { counts, total, observed, observedPct, expectedPct };
+        }
+
+        function chiSquarePValue(observedCounts, total) {
+            if (total === 0) return null;
+
+            let chi2 = 0;
+            for (let i = 0; i < 9; i++) {
+                const expected = benfordExpected[i] * total;
+                const observed = observedCounts[i + 1];
+                if (expected > 0) {
+                    chi2 += Math.pow(observed - expected, 2) / expected;
+                }
+            }
+
+            return 1 - chiSquareCDF(chi2, 8);
+        }
+
+        function chiSquareCDF(x, k) {
+            if (x <= 0) return 0;
+            return regularizedGammaP(k / 2, x / 2);
+        }
+
+        function regularizedGammaP(a, x) {
+            if (x < a + 1) return gammaPSeries(a, x);
+            return 1 - gammaQCF(a, x);
+        }
+
+        function gammaPSeries(a, x) {
+            const ITMAX = 200;
+            const EPS = 1e-10;
+            let ap = a;
+            let sum = 1 / a;
+            let del = sum;
+
+            for (let n = 1; n <= ITMAX; n++) {
+                ap += 1;
+                del *= x / ap;
+                sum += del;
+                if (Math.abs(del) < Math.abs(sum) * EPS) {
+                    return sum * Math.exp(-x + a * Math.log(x) - logGamma(a));
+                }
+            }
+            return sum * Math.exp(-x + a * Math.log(x) - logGamma(a));
+        }
+
+        function gammaQCF(a, x) {
+            const ITMAX = 200;
+            const EPS = 1e-10;
+            const FPMIN = 1e-30;
+            let b = x + 1 - a;
+            let c = 1 / FPMIN;
+            let d = 1 / b;
+            let h = d;
+
+            for (let i = 1; i <= ITMAX; i++) {
+                const an = -i * (i - a);
+                b += 2;
+                d = an * d + b;
+                if (Math.abs(d) < FPMIN) d = FPMIN;
+                c = b + an / c;
+                if (Math.abs(c) < FPMIN) c = FPMIN;
+                d = 1 / d;
+                const del = d * c;
+                h *= del;
+                if (Math.abs(del - 1) < EPS) {
+                    return Math.exp(-x + a * Math.log(x) - logGamma(a)) * h;
+                }
+            }
+            return Math.exp(-x + a * Math.log(x) - logGamma(a)) * h;
+        }
+
+        function logGamma(z) {
+            const g = 7;
+            const c = [
+                0.99999999999980993, 676.5203681218851, -1259.1392167224028,
+                771.32342877765313, -176.61502916214059, 12.507343278686905,
+                -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7
+            ];
+            if (z < 0.5) return Math.log(Math.PI / Math.sin(Math.PI * z)) - logGamma(1 - z);
+            z -= 1;
+            let x = c[0];
+            for (let i = 1; i < g + 2; i++) x += c[i] / (z + i);
+            const t = z + g + 0.5;
+            return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+        }
+
+        function formatPercent(value, digits = 1) {
+            return value.toFixed(digits) + '%';
+        }
+
+        function formatPValue(p) {
+            if (p === null) return '—';
+            if (p < 0.001) return '< 0.001';
+            return p.toFixed(3);
+        }
+
+        function renderTable(dist) {
+            const tbody = document.getElementById('results-table');
+            let html = '';
+
+            for (let i = 0; i < 9; i++) {
+                const digit = DIGITS[i];
+                const count = dist.counts[digit];
+                const obs = dist.observedPct[i];
+                const exp = dist.expectedPct[i];
+                const delta = obs - exp;
+                const deltaClass = Math.abs(delta) > 5 ? 'text-amber-400' : 'text-slate-300';
+                const sign = delta >= 0 ? '+' : '';
+
+                html += `<tr class="border-b border-slate-800/60">
+                    <td class="py-3 pr-4 text-white font-medium">${digit}</td>
+                    <td class="py-3 pr-4 text-right">${count}</td>
+                    <td class="py-3 pr-4 text-right text-sky-400">${formatPercent(obs)}</td>
+                    <td class="py-3 pr-4 text-right text-slate-400">${formatPercent(exp)}</td>
+                    <td class="py-3 text-right ${deltaClass}">${sign}${delta.toFixed(1)}</td>
+                </tr>`;
+            }
+
+            tbody.innerHTML = html;
+        }
+
+        function renderChart(dist) {
+            if (chartInstance) chartInstance.destroy();
+
+            const ctx = document.getElementById('benfordChart');
+            chartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: DIGITS.map(String),
+                    datasets: [
+                        {
+                            label: 'Observed',
+                            data: dist.observedPct,
+                            backgroundColor: 'rgba(14, 165, 233, 0.85)',
+                            borderColor: '#0ea5e9',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Benford expected',
+                            data: dist.expectedPct,
+                            backgroundColor: 'rgba(148, 163, 184, 0.35)',
+                            borderColor: '#94a3b8',
+                            borderWidth: 1,
+                            borderRadius: 4
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: { color: '#e2e8f0', boxWidth: 12, padding: 20, usePointStyle: true }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: ctx => `${ctx.dataset.label}: ${ctx.raw.toFixed(2)}%`
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 35,
+                            grid: { color: '#334155' },
+                            ticks: {
+                                color: '#64748b',
+                                callback: v => v + '%'
+                            },
+                            title: {
+                                display: true,
+                                text: 'Frequency',
+                                color: '#64748b'
+                            }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' },
+                            title: {
+                                display: true,
+                                text: 'Leading digit',
+                                color: '#64748b'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderStats(validCount, ignored, dist) {
+            document.getElementById('stat-count').textContent = validCount.toLocaleString();
+            document.getElementById('stat-ignored').textContent = ignored.toLocaleString();
+
+            let maxDev = 0;
+            for (let i = 0; i < 9; i++) {
+                maxDev = Math.max(maxDev, Math.abs(dist.observedPct[i] - dist.expectedPct[i]));
+            }
+            document.getElementById('stat-maxdev').textContent = maxDev.toFixed(1) + ' pp';
+
+            const pValue = chiSquarePValue(dist.counts, dist.total);
+            const pEl = document.getElementById('stat-pvalue');
+            pEl.textContent = formatPValue(pValue);
+            pEl.className = 'mono text-2xl font-semibold mt-1 ' +
+                (pValue !== null && pValue < 0.05 ? 'text-amber-400' : 'text-emerald-400');
+        }
+
+        function analyze() {
+            const text = document.getElementById('input').value;
+            const { valid, ignored } = parseNumbers(text);
+            const preview = document.getElementById('preview');
+            const results = document.getElementById('results');
+
+            if (valid.length === 0) {
+                preview.textContent = ignored > 0
+                    ? `No valid numbers (${ignored} ignored)`
+                    : 'Enter numbers to analyze';
+                preview.className = 'text-slate-400';
+                results.classList.add('hidden');
+                if (chartInstance) {
+                    chartInstance.destroy();
+                    chartInstance = null;
+                }
+                return;
+            }
+
+            preview.innerHTML = `<span class="text-emerald-400 font-medium">${valid.length.toLocaleString()} valid</span>` +
+                (ignored > 0 ? ` <span class="text-slate-500">· ${ignored} ignored</span>` : '');
+            preview.className = 'text-sm';
+
+            const dist = computeDistribution(valid);
+            renderStats(valid.length, ignored, dist);
+            renderTable(dist);
+            renderChart(dist);
+            results.classList.remove('hidden');
+        }
+
+        function clearInput() {
+            document.getElementById('input').value = '';
+            analyze();
+        }
+
+        function loadSample() {
+            const samples = [];
+
+            for (let i = 0; i < 500; i++) {
+                const logVal = Math.random() * 6;
+                const value = Math.pow(10, logVal) * (0.8 + Math.random() * 0.4);
+                samples.push(Math.round(value * 100) / 100);
+            }
+
+            document.getElementById('input').value = samples.join('\n');
+            analyze();
+        }
+
+        document.getElementById('input').addEventListener('input', analyze);
+        analyze();
+    </script>
+</body>
+</html>
