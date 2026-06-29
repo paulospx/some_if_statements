@@ -161,6 +161,32 @@
             outline-offset: 2px;
         }
 
+        .log-editor {
+            position: relative;
+            overflow: auto;
+            min-height: 28rem;
+            max-height: 70vh;
+            background: var(--bg-code);
+            border-radius: 1rem;
+        }
+
+        .log-editor:focus-within {
+            outline: 2px solid var(--focus-ring);
+            outline-offset: 2px;
+        }
+
+        .log-editor-stack {
+            position: relative;
+            min-height: 28rem;
+        }
+
+        .log-highlight {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
         .log-line {
             display: grid;
             grid-template-columns: 3.5rem 1fr;
@@ -186,12 +212,53 @@
             font-size: 0.8125rem;
         }
 
-        .log-output {
-            background: var(--bg-code);
+        #log-input {
+            display: block;
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            min-height: 28rem;
+            padding: 0 0.75rem 0 calc(3.5rem + 0.75rem);
+            margin: 0;
+            border: none;
+            resize: vertical;
+            overflow: hidden;
+            background: transparent;
+            color: transparent;
+            caret-color: var(--text);
+            -webkit-text-fill-color: transparent;
+            font-size: 0.8125rem;
+            line-height: 1.5rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            tab-size: 2;
+        }
+
+        #log-input::placeholder {
+            color: var(--text-muted);
+            -webkit-text-fill-color: var(--text-muted);
+        }
+
+        #log-input::selection {
+            background: rgba(14, 165, 233, 0.35);
+            color: transparent;
+        }
+
+        [data-theme="dark"] #log-input::selection {
+            background: rgba(56, 189, 248, 0.35);
+        }
+
+        .log-editor-empty .log-highlight {
+            display: none;
         }
 
         .hl {
-            border-radius: 0.2rem;
+            border-radius: 0.15rem;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
+
+        .legend-chip .hl {
             padding: 0.05rem 0.15rem;
             font-weight: 500;
         }
@@ -244,8 +311,8 @@
                     <p class="text-xs font-semibold uppercase tracking-widest mb-1" style="color: var(--accent);">Diagnostics</p>
                     <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight">Log Analysis</h1>
                     <p class="mt-2 leading-relaxed max-w-2xl" style="color: var(--text-muted);">
-                        Paste raw log output and scan it faster. Timestamps, severity levels, hosts, IP addresses,
-                        class names, and numbers are highlighted instantly — toggle categories on or off as you read.
+                        Paste log output into a single editor — timestamps, severity levels, hosts, IP addresses,
+                        class names, and numbers highlight in place as you type or paste. Toggle categories on or off as you read.
                     </p>
                 </div>
                 <div class="flex flex-wrap items-center gap-3 shrink-0">
@@ -291,7 +358,8 @@
                 <div class="flex items-center gap-3">
                     <p class="text-xs" style="color: var(--text-muted);" aria-live="polite" id="status-line">
                         <span id="stat-lines">0</span> lines ·
-                        <span id="stat-chars">0</span> chars
+                        <span id="stat-chars">0</span> chars ·
+                        <span id="feature-summary">—</span>
                     </p>
                     <button type="button" id="btn-theme"
                             class="btn-secondary inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
@@ -324,39 +392,25 @@
             <div id="legend" class="flex flex-wrap gap-2" role="group" aria-label="Highlight categories"></div>
         </section>
 
-        <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
-            <section aria-labelledby="input-heading">
-                <div class="flex items-center justify-between mb-2">
-                    <label for="log-input" id="input-heading" class="text-sm font-medium">Raw log</label>
-                    <span class="text-xs" style="color: var(--text-subtle);">Paste · drop · type</span>
+        <section aria-labelledby="input-heading">
+            <div class="flex items-center justify-between mb-2">
+                <label for="log-input" id="input-heading" class="text-sm font-medium">Log editor</label>
+                <span class="text-xs" style="color: var(--text-subtle);">Paste · drop · type — highlights in place</span>
+            </div>
+            <div id="log-editor" class="log-editor mono surface log-editor-empty">
+                <div class="log-editor-stack">
+                    <div id="log-highlight" class="log-highlight" aria-hidden="true"></div>
+                    <textarea id="log-input"
+                              rows="22"
+                              spellcheck="false"
+                              placeholder="2026-06-29 14:32:01,482 INFO  [prod-api-03.internal] com.acme.auth.SessionService — User login from 203.0.113.42&#10;2026-06-29 14:32:02,119 ERROR [prod-api-03.internal] com.acme.db.ConnectionPool — Connection timeout after 30000ms"
+                              aria-describedby="input-hint"></textarea>
                 </div>
-                <textarea id="log-input"
-                          rows="22"
-                          spellcheck="false"
-                          placeholder="2026-06-29 14:32:01,482 INFO  [prod-api-03.internal] com.acme.auth.SessionService — User login from 203.0.113.42&#10;2026-06-29 14:32:02,119 ERROR [prod-api-03.internal] com.acme.db.ConnectionPool — Connection timeout after 30000ms"
-                          class="mono code-area w-full px-4 py-4 rounded-2xl text-sm leading-relaxed resize-y min-h-[28rem] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 surface"
-                          style="background: var(--bg-code); color: var(--text); --tw-ring-color: var(--focus-ring);"
-                          aria-describedby="input-hint"></textarea>
-                <p id="input-hint" class="mt-2 text-xs" style="color: var(--text-muted);">
-                    Supports common formats: ISO timestamps, Apache/Nginx access logs, Java/Python logger output, IPv4/IPv6.
-                </p>
-            </section>
-
-            <section aria-labelledby="output-heading">
-                <div class="flex items-center justify-between mb-2">
-                    <h2 id="output-heading" class="text-sm font-medium">Highlighted view</h2>
-                    <span class="text-xs" style="color: var(--text-subtle);" id="feature-summary">—</span>
-                </div>
-                <div id="log-output"
-                     class="log-output mono rounded-2xl border overflow-auto min-h-[28rem] max-h-[70vh] surface"
-                     style="border-color: var(--border);"
-                     role="region"
-                     aria-label="Highlighted log output"
-                     tabindex="0">
-                    <p class="p-6 text-sm" style="color: var(--text-muted);">Paste a log on the left to see highlighted output here.</p>
-                </div>
-            </section>
-        </div>
+            </div>
+            <p id="input-hint" class="mt-2 text-xs" style="color: var(--text-muted);">
+                Supports common formats: ISO timestamps, Apache/Nginx access logs, Java/Python logger output, IPv4/IPv6.
+            </p>
+        </section>
 
         <section class="mt-8 surface rounded-2xl p-5" aria-labelledby="stats-heading">
             <h2 id="stats-heading" class="text-sm font-semibold mb-4">Feature summary</h2>
@@ -588,10 +642,21 @@
             document.getElementById('feature-summary').textContent = summary || 'No features detected';
         }
 
+        function syncEditorHeight() {
+            const input = document.getElementById('log-input');
+            const stack = input.parentElement;
+            input.style.height = 'auto';
+            const height = Math.max(input.scrollHeight, stack.parentElement.clientHeight || 0, 448);
+            input.style.height = `${height}px`;
+            stack.style.minHeight = `${height}px`;
+        }
+
         function analyze() {
-            const text = document.getElementById('log-input').value;
+            const input = document.getElementById('log-input');
+            const highlight = document.getElementById('log-highlight');
+            const editor = document.getElementById('log-editor');
+            const text = input.value;
             const lines = text.length ? text.split(/\r?\n/) : [];
-            const output = document.getElementById('log-output');
 
             CATEGORIES.forEach(cat => { counts[cat.id] = 0; });
 
@@ -599,25 +664,35 @@
             document.getElementById('stat-chars').textContent = text.length.toLocaleString();
 
             if (!text.trim()) {
-                output.innerHTML = `<p class="p-6 text-sm" style="color: var(--text-muted);">Paste a log on the left to see highlighted output here.</p>`;
+                highlight.innerHTML = '';
+                editor.classList.add('log-editor-empty');
+                syncEditorHeight();
                 updateCountsUI();
                 return;
             }
 
+            editor.classList.remove('log-editor-empty');
+
             const html = lines.map((line, index) => `
                 <div class="log-line">
-                    <div class="log-gutter" aria-hidden="true">${index + 1}</div>
+                    <div class="log-gutter">${index + 1}</div>
                     <div class="log-content">${highlightLine(line) || '&#8203;'}</div>
                 </div>
             `).join('');
 
-            output.innerHTML = html;
+            highlight.innerHTML = html;
+            syncEditorHeight();
             updateCountsUI();
         }
 
         function scheduleAnalyze() {
             clearTimeout(parseTimer);
             parseTimer = setTimeout(analyze, 80);
+        }
+
+        function analyzeNow() {
+            clearTimeout(parseTimer);
+            analyze();
         }
 
         function showToast(message) {
@@ -660,20 +735,27 @@
 2026-06-29 14:32:08,002 INFO  [prod-api-03.internal] com.acme.audit.AuditLogger — event_id=0x7f3a request_id=9b12c4e8 client=2001:0db8:85a3:0000:0000:8a2e:0370:7334
 Jun 29 14:32:09 2026 load-balancer-01 nginx[8821]: 192.168.10.44 - - upstream response 502 in 0.019s`;
 
-        document.getElementById('log-input').addEventListener('input', scheduleAnalyze);
+        const logInput = document.getElementById('log-input');
+
+        logInput.addEventListener('input', scheduleAnalyze);
+        logInput.addEventListener('paste', () => requestAnimationFrame(analyzeNow));
+
+        window.addEventListener('resize', syncEditorHeight);
 
         document.getElementById('btn-sample').addEventListener('click', () => {
-            document.getElementById('log-input').value = SAMPLE_LOG;
-            analyze();
+            logInput.value = SAMPLE_LOG;
+            analyzeNow();
+            logInput.focus();
         });
 
         document.getElementById('btn-clear').addEventListener('click', () => {
-            document.getElementById('log-input').value = '';
-            analyze();
+            logInput.value = '';
+            analyzeNow();
+            logInput.focus();
         });
 
         document.getElementById('btn-copy').addEventListener('click', async () => {
-            const text = document.getElementById('log-input').value;
+            const text = logInput.value;
             if (!text.trim()) {
                 showToast('Nothing to copy');
                 return;
