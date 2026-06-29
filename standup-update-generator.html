@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Generate daily standup updates packed with corporate jargon — Yesterday, Today, and Blockers ready to paste into Slack.">
+    <title>Standup Update Generator — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .standup-card {
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .standup-card.is-new {
+            animation: standup-in 0.35s ease;
+        }
+
+        @keyframes standup-in {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .toast-enter {
+            animation: toast-in 0.25s ease;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(0.5rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .standup-card.is-new,
+            .toast-enter {
+                animation: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased flex flex-col">
+    <a href="#main" class="skip-link">Skip to generator</a>
+
+    <div
+        id="toast"
+        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+    >
+        <div class="toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500">
+            <svg class="w-5 h-5 shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <div>
+                <p id="toast-title" class="font-medium text-sm">Copied to clipboard</p>
+                <p id="toast-body" class="text-emerald-100 text-xs mt-0.5">Paste it into Slack, Teams, or your standup thread.</p>
+            </div>
+            <button type="button" id="toast-dismiss" class="ml-auto shrink-0 text-emerald-200 hover:text-white" aria-label="Dismiss notification">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <header class="border-b border-slate-200 bg-white">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-6">
+            <nav aria-label="Breadcrumb" class="mb-4">
+                <a href="index.html" class="text-sm text-sky-600 hover:text-sky-700 inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Tool Catalog
+                </a>
+            </nav>
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-sky-600 mb-1">Generator</p>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">Standup Update Generator</h1>
+                    <p class="mt-2 text-slate-600 leading-relaxed max-w-2xl">
+                        Standup starts in two minutes and you have nothing to report? Generate a Yesterday / Today / Blockers update that sounds productive, aligned, and entirely unverifiable.
+                    </p>
+                </div>
+                <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 shrink-0">
+                    Designed with NN/g heuristics
+                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="flex-1 max-w-4xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
+        <figure class="mb-8 text-center">
+            <img
+                src="img/user_man_check-512.png"
+                alt="Illustration of a person with a checklist — prepared for standup, if not for accountability"
+                class="mx-auto w-full max-w-[10rem] sm:max-w-[12rem]"
+                width="512"
+                height="512"
+            >
+            <figcaption class="mt-2 text-xs text-slate-500">Fully checked in. Partially checked out.</figcaption>
+        </figure>
+
+        <section aria-labelledby="standup-heading" class="mb-8">
+            <div class="flex items-center justify-between mb-3 gap-4">
+                <h2 id="standup-heading" class="text-sm font-medium text-slate-700">Your standup update</h2>
+                <p class="text-xs text-slate-500 shrink-0" id="standup-meta" aria-live="polite">
+                    Generation <span id="standup-number">1</span>
+                </p>
+            </div>
+
+            <div
+                id="standup-display"
+                class="standup-card rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden text-left"
+                aria-live="polite"
+            >
+                <dl class="divide-y divide-slate-100">
+                    <div class="px-6 py-5 sm:py-6">
+                        <dt class="text-xs font-semibold uppercase tracking-wider text-violet-600 mb-2">Yesterday</dt>
+                        <dd id="yesterday-text" class="text-base sm:text-lg text-slate-800 leading-relaxed"></dd>
+                    </div>
+                    <div class="px-6 py-5 sm:py-6 bg-slate-50/60">
+                        <dt class="text-xs font-semibold uppercase tracking-wider text-sky-600 mb-2">Today</dt>
+                        <dd id="today-text" class="text-base sm:text-lg text-slate-800 leading-relaxed"></dd>
+                    </div>
+                    <div class="px-6 py-5 sm:py-6">
+                        <dt class="text-xs font-semibold uppercase tracking-wider text-amber-600 mb-2">Blockers</dt>
+                        <dd id="blockers-text" class="text-base sm:text-lg text-slate-800 leading-relaxed"></dd>
+                    </div>
+                </dl>
+            </div>
+        </section>
+
+        <section aria-labelledby="copy-heading" class="mb-6">
+            <label for="standup-input" class="block text-sm font-medium text-slate-700 mb-2" id="copy-heading">
+                Plain text (for copying)
+            </label>
+            <textarea
+                id="standup-input"
+                readonly
+                rows="5"
+                class="mono w-full px-4 py-3 rounded-lg border border-slate-300 bg-slate-50 text-slate-800 text-sm resize-y min-h-[7rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                aria-describedby="copy-hint"
+            ></textarea>
+            <p id="copy-hint" class="mt-2 text-xs text-slate-500">
+                Formatted for Slack threads and standup bots. Select manually if the clipboard button fails.
+            </p>
+        </section>
+
+        <div class="flex flex-col sm:flex-row gap-3" role="group" aria-label="Generator actions">
+            <button
+                type="button"
+                id="btn-copy"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+            >
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                </svg>
+                Copy to clipboard
+            </button>
+            <button
+                type="button"
+                id="btn-generate"
+                class="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors"
+            >
+                <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Generate another
+            </button>
+        </div>
+
+        <p class="mt-6 text-center text-xs text-slate-500">
+            Shortcuts:
+            <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">R</kbd> generate ·
+            <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">C</kbd> copy
+        </p>
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white mt-auto">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 py-5 text-sm text-slate-500">
+            <p><span id="pool-count"></span> updates in the rotation. Each one sounds engaged. None of them mention actual deliverables.</p>
+        </div>
+    </footer>
+
+    <script>
+        const standups = [
+            {
+                yesterday: 'Attended three alignment syncs and contributed to the cross-functional narrative around our Q3 deliverables.',
+                today: 'Will continue driving momentum on the integration layer and socialize the updated dependency map with stakeholders.',
+                blockers: 'Waiting on API contract sign-off from the platform team — pinged twice, heard nothing.'
+            },
+            {
+                yesterday: 'Reviewed PRs, left thoughtful comments, and merged two tickets that were blocking the pipeline.',
+                today: 'Planning to deep-dive the flaky test suite and document root causes in Confluence.',
+                blockers: 'CI is red for reasons unrelated to my changes. Investigating with DevOps.'
+            },
+            {
+                yesterday: 'Pair-programmed on the auth refactor and unblocked the junior dev on environment setup.',
+                today: 'Will finish the migration script and run it against staging before end of day.',
+                blockers: 'Staging credentials expired. Submitted an access request Friday — still pending.'
+            },
+            {
+                yesterday: 'Spent most of the day in refinement. Clarified acceptance criteria for the payment flow epic.',
+                today: 'Starting implementation on the webhook handler and adding unit coverage.',
+                blockers: 'Product owner is OOO until Thursday. Some scope questions remain open.'
+            },
+            {
+                yesterday: 'Investigated the production incident from last night. Wrote a preliminary timeline for the postmortem.',
+                today: 'Will add monitoring alerts and patch the null-reference edge case we identified.',
+                blockers: 'Need production log access to confirm the hypothesis. Ticket with InfoSec is in queue.'
+            },
+            {
+                yesterday: 'Refactored the data access layer per tech-debt grooming. Reduced cyclomatic complexity by 12%.',
+                today: 'Continuing refactor work and opening a PR before standup tomorrow.',
+                blockers: 'None — fully unblocked and making good progress.'
+            },
+            {
+                yesterday: 'Attended the architecture review and took notes. Mostly nodded at diagrams I did not fully understand.',
+                today: 'Will prototype the caching strategy we discussed and share benchmarks in Slack.',
+                blockers: 'Redis cluster not provisioned yet. Following up with infrastructure.'
+            },
+            {
+                yesterday: 'Fixed the bug that only reproduces on Tuesdays. Added a regression test so it stays fixed.',
+                today: 'Picking up the next item on the board — CSV export performance improvements.',
+                blockers: 'Blocked on sample data. Asked analytics for a representative dataset three days ago.'
+            },
+            {
+                yesterday: 'Completed the security training module and updated dependencies in the service mesh.',
+                today: 'Will coordinate the release with QA and prepare rollback instructions.',
+                blockers: 'Release window moved to next week. Adjusting timeline accordingly.'
+            },
+            {
+                yesterday: 'Documented the onboarding runbook and answered questions in the team channel.',
+                today: 'Focusing on the dashboard widgets — wireframes approved, moving to implementation.',
+                blockers: 'Design assets for the mobile breakpoint are still in Figma. Chasing design.'
+            },
+            {
+                yesterday: 'Debugged an issue that turned out to be a timezone bug. Classic. Shipped the fix.',
+                today: 'Will add integration tests around date handling and review open dependabot PRs.',
+                blockers: 'None today, but the build is slow and that is spiritually blocking everyone.'
+            },
+            {
+                yesterday: 'Participated in the sprint demo. Demoed the feature that works on my machine.',
+                today: 'Addressing feedback from demo and tightening error messages for end users.',
+                blockers: 'Waiting for UX copy on the error states. Legal also needs to review one string.'
+            },
+            {
+                yesterday: 'Spent the afternoon rebasing. The branch had 47 commits and zero meaningful messages.',
+                today: 'Will squash, force-push, and beg for a merciful code review.',
+                blockers: 'Reviewer is in a different timezone and has 200 unread notifications.'
+            },
+            {
+                yesterday: 'Attended standup, daily sync, weekly sync, and a sync about syncing our syncs.',
+                today: 'Blocking calendar time for actual coding between meetings.',
+                blockers: 'Calendar. The calendar is the blocker.'
+            },
+            {
+                yesterday: 'Investigated why the build works locally but not in CI. It was environment variables. Again.',
+                today: 'Centralizing config and adding validation so this stops happening every sprint.',
+                blockers: 'Secrets management migration is scheduled for next quarter. Living with duct tape until then.'
+            },
+            {
+                yesterday: 'Merged the feature flag cleanup and removed 200 lines of dead code. Felt briefly heroic.',
+                today: 'Will tackle the pagination bug users have been complaining about since March.',
+                blockers: 'Bug is intermittent. Reproduced it once, then it vanished like a shy ghost.'
+            },
+            {
+                yesterday: 'Helped QA set up test accounts and walked through the happy path twice.',
+                today: 'Fixing the sad paths QA found. There are eleven sad paths.',
+                blockers: 'Third-party sandbox is down. Their status page says "operational." It is not.'
+            },
+            {
+                yesterday: 'Read forty pages of internal wiki documentation. Understood twelve of them.',
+                today: 'Will schedule a knowledge-transfer session with the engineer who wrote the other twenty-eight pages.',
+                blockers: 'That engineer left the company in 2019. Documentation is aspirational.'
+            },
+            {
+                yesterday: 'Optimized a query that was taking 30 seconds. It now takes 200 milliseconds.',
+                today: 'Writing a short ADR on indexing strategy and sharing with the data team.',
+                blockers: 'DBA approval required for index changes. Change advisory board meets monthly.'
+            },
+            {
+                yesterday: 'Updated Jira tickets, moved cards on the board, and achieved the illusion of velocity.',
+                today: 'Will implement the actual feature behind ticket PROJ-4821.',
+                blockers: 'Ticket requirements changed twice since yesterday. Re-reading spec.'
+            },
+            {
+                yesterday: 'Fixed a typo in the README. Someone left a comment calling it a "critical documentation improvement."',
+                today: 'Will address the actual critical items in the backlog when inspiration strikes.',
+                blockers: 'Motivation is low. Coffee machine is broken. These are related.'
+            },
+            {
+                yesterday: 'Attended incident bridge call. Muted myself and made coffee. Contributed zero words.',
+                today: 'Will follow up on action items assigned to me during the part I was not listening to.',
+                blockers: 'Action items were in a Google Doc I do not have permission to view.'
+            },
+            {
+                yesterday: 'Spun up three VMs to reproduce a bug. Found the bug. Forgot to terminate the VMs.',
+                today: 'Terminating VMs and apologizing to finance in advance.',
+                blockers: 'Cloud console login requires MFA. Phone is in another room. Classic.'
+            },
+            {
+                yesterday: 'Participated in hiring loop debrief. Strong opinions were shared. Consensus was not.',
+                today: 'Back to feature work — implementing the export endpoint for the reporting module.',
+                blockers: 'Reporting requirements are "flexible." Flexible means undefined.'
+            },
+            {
+                yesterday: 'Chased down a memory leak. Turned out to be a Chrome tab with 47 Stack Overflow pages.',
+                today: 'Will profile the service properly and file a ticket if it is actually us.',
+                blockers: 'Profiling tool needs admin rights on the server. Request submitted.'
+            },
+            {
+                yesterday: 'Completed code review for the authentication PR. Requested changes. Received passive-aggressive emoji.',
+                today: 'Re-reviewing updated PR and trying to keep feedback constructive.',
+                blockers: 'Emotional blocker: the emoji was a thumbs-up that felt like a thumbs-down.'
+            },
+            {
+                yesterday: 'Synced with the offshore team at 7am. Presented slides. They presented different slides.',
+                today: 'Scheduling a follow-up to align on which deck is canonical.',
+                blockers: 'Time zones. Language. And two different versions of the truth.'
+            },
+            {
+                yesterday: 'Worked on the tech spike for event sourcing. Concluded we might not need event sourcing.',
+                today: 'Will write up findings and recommend the boring solution that ships on time.',
+                blockers: 'Architect wants the interesting solution that ships in Q4 next year.'
+            },
+            {
+                yesterday: 'Resolved merge conflicts from hell. Lost a function. Found it in git reflog. Regained faith.',
+                today: 'Adding pre-commit hooks so nobody force-pushes to main again.',
+                blockers: 'Team voted against hooks. Democracy is a blocker.'
+            },
+            {
+                yesterday: 'Attended training on the new agile framework. We are now doing Scrumbanlean.',
+                today: 'Will figure out what Scrumbanlean means and update my standup format accordingly.',
+                blockers: 'The training slides are password-protected. Password was emailed to someone who left.'
+            },
+            {
+                yesterday: 'Implemented the happy path for user registration. Tested with my own email fourteen times.',
+                today: 'Handling edge cases: duplicate emails, expired tokens, and users named "null."',
+                blockers: 'Email service rate-limited us because of yesterday\'s testing. Sorry, SendGrid.'
+            },
+            {
+                yesterday: 'Shadowed customer support on three tickets. Discovered users use our app in ways we never intended.',
+                today: 'Will add guardrails and better validation messages so support hears fewer screams.',
+                blockers: 'Product says guardrails add friction. Support says friction reduces screams. Standoff.'
+            },
+            {
+                yesterday: 'Updated the dependency tree. Broke the build. Reverted. Updated more carefully. Build green.',
+                today: 'Monitoring renovate bot PRs and testing each one like it might be a landmine.',
+                blockers: 'One major version bump requires Java 21. We are on Java 17 until "the roadmap allows."'
+            },
+            {
+                yesterday: 'Prepared slides for the steering committee. Used the word "synergy" exactly once, as a joke.',
+                today: 'Incorporating feedback that synergy should appear at least four more times.',
+                blockers: 'Steering committee meets in two weeks. This work is somehow urgent today.'
+            },
+            {
+                yesterday: 'Fixed flaky E2E tests by adding sleeps. I know. I am not proud.',
+                today: 'Replacing sleeps with proper waits before someone from QA finds this commit.',
+                blockers: 'E2E environment is shared and someone keeps deploying over my test run.'
+            },
+            {
+                yesterday: 'Participated in blameless postmortem. Successfully blamed the deployment script in a blameless tone.',
+                today: 'Automating the deployment script so humans cannot click the wrong button again.',
+                blockers: 'Automation requires budget for a proper CD tool. Budget review is in Q3.'
+            },
+            {
+                yesterday: 'Migrated local database to match production schema. Lost Friday afternoon. Gained parity.',
+                today: 'Will seed test data and verify migrations run cleanly on a fresh install.',
+                blockers: 'Production schema documentation is a screenshot from 2022. It is incomplete.'
+            },
+            {
+                yesterday: 'Answered fourteen Slack messages marked urgent. Three were actually urgent. One was a meme.',
+                today: 'Blocking focus time on calendar. Will ignore Slack unless the building is on fire.',
+                blockers: 'Slack does not distinguish between fire and meme. Notification parity is the enemy.'
+            },
+            {
+                yesterday: 'Investigated slow API response times. Found N+1 queries. Fixed N+1 queries. API still slow.',
+                today: 'Profiling the remaining latency — suspect it is the third-party geolocation service.',
+                blockers: 'Third-party vendor says latency is "within SLA." SLA is 3 seconds. Users disagree.'
+            },
+            {
+                yesterday: 'Set up feature flags for the rollout. Flag naming convention was debated for forty minutes.',
+                today: 'Implementing behind flags and preparing the gradual rollout checklist.',
+                blockers: 'Rollout checklist template lives in SharePoint. SharePoint is having a day.'
+            },
+            {
+                yesterday: 'Completed accessibility audit fixes for the settings page. Tab order now makes sense.',
+                today: 'Continuing a11y pass on the checkout flow — high visibility, high scrutiny.',
+                blockers: 'Need screen-reader testing environment. IT ticket open since last sprint.'
+            },
+            {
+                yesterday: 'Paired with data science on the recommendation endpoint. Learned what a tensor is. Vaguely.',
+                today: 'Integrating the model output into the API response with sensible fallbacks.',
+                blockers: 'Model inference latency is 800ms. Product wants it under 100ms. Physics is a blocker.'
+            },
+            {
+                yesterday: 'Cleaned up technical debt ticket TECH-99. Closed six subtasks. Created four new ones.',
+                today: 'Tackling TECH-104 through TECH-107 before they reproduce.',
+                blockers: 'Technical debt is a hydra. Every fix grows two new tickets.'
+            },
+            {
+                yesterday: 'Attended vendor demo for a tool that solves a problem we do not have yet.',
+                today: 'Will write an objective comparison doc so we can say no with evidence.',
+                blockers: 'Procurement already started the pilot. Comparison doc may be ceremonial.'
+            },
+            {
+                yesterday: 'Refined error handling in the batch job. Failures now send actionable alerts instead of screaming into void.',
+                today: 'Monitoring overnight batch run and tuning retry policy.',
+                blockers: 'On-call rotation is unclear this week. Might be me. Might be Steve. Asking manager.'
+            },
+            {
+                yesterday: 'Supported release cutover. Stayed until 9pm. Issue was a missing semicolon in config.',
+                today: 'Recovering. Light day — documentation and small bug fixes only.',
+                blockers: 'Fatigue. Also the semicolon was in YAML where semicolons should not exist.'
+            },
+            {
+                yesterday: 'Built a proof of concept for the mobile push notification flow. POC worked in demo.',
+                today: 'Hardening POC for production: auth, rate limits, and delivery receipts.',
+                blockers: 'Apple push certificate expires Friday. Certificate renewal is a ritual I do not understand.'
+            },
+            {
+                yesterday: 'Triaged the backlog with the PM. Deprioritized my favorite feature. Democracy hurts.',
+                today: 'Working top-priority item: invoice PDF generation that legal insists must look identical to 1997.',
+                blockers: 'Legal provided a PDF from 1997 as the spec. It is 40KB and spiritually uneditable.'
+            },
+            {
+                yesterday: 'Investigated intermittent 502 errors. Load balancer health checks were too aggressive.',
+                today: 'Tuning health check intervals and adding circuit breaker around the downstream service.',
+                blockers: 'Downstream team says their service is fine. Their service is not fine.'
+            },
+            {
+                yesterday: 'Wrote unit tests for legacy code. Discovered the legacy code was never supposed to work.',
+                today: 'Fixing the legacy code so the tests pass and pretending we always intended this behavior.',
+                blockers: 'Original author unavailable. Original intent unavailable. Intent is a social construct.'
+            },
+            {
+                yesterday: 'Participated in knowledge-sharing session. Presented "Intro to Kubernetes." Audience was silent.',
+                today: 'Will upload slides and recording for anyone who missed it or chose to miss it.',
+                blockers: 'Recording failed because someone forgot to hit record. Slides are the only artifact.'
+            },
+            {
+                yesterday: 'Configured observability dashboards for the new microservice. Charts are green. Trust is low.',
+                today: 'Adding SLOs and error budgets so we know when green is lying.',
+                blockers: 'Metrics cardinality explosion crashed the monitoring backend. Working with SRE.'
+            },
+            {
+                yesterday: 'Handled hotfix for payment regression. Root cause was a config change from six months ago.',
+                today: 'Adding config change audit trail and alerting on drift.',
+                blockers: 'Audit trail feature is in backlog behind seventeen higher-priority items.'
+            },
+            {
+                yesterday: 'Onboarded new team member. Walked through repo, CI, and where the good coffee is.',
+                today: 'Pairing on first ticket — small UI fix to build confidence and repo familiarity.',
+                blockers: 'New member\'s laptop arrived without admin rights. IT backlog is legendary.'
+            },
+            {
+                yesterday: 'Attended retro. Committed to "improve communication." Immediately scheduled another meeting.',
+                today: 'Will work on the one action item that survived retro without being marked "ongoing."',
+                blockers: 'Action item owner is me. I am also the blocker.'
+            },
+            {
+                yesterday: 'Researched GraphQL vs REST for the new BFF layer. Made a comparison table with many checkmarks.',
+                today: 'Presenting recommendation to architecture guild and preparing for healthy debate.',
+                blockers: 'Guild meets biweekly. Decision needed this week. Will use Slack poll as interim democracy.'
+            },
+            {
+                yesterday: 'Fixed CSS that only broke in Safari. Used -webkit- prefixes and questioned career choices.',
+                today: 'Cross-browser testing on the modal component before we ship the redesign.',
+                blockers: 'No Safari device in office. BrowserStack license expired. Using cousin\'s MacBook.'
+            },
+            {
+                yesterday: 'Implemented audit logging for admin actions. Compliance team sent a thank-you email. Rare.',
+                today: 'Extending audit log retention and export for the upcoming SOC review.',
+                blockers: 'Log storage quota is 80% full. Finance and engineering negotiating who pays for more.'
+            },
+            {
+                yesterday: 'Chased a bug through five services. Found it in service three. Fixed it in service three.',
+                today: 'Adding correlation IDs so the next hunt takes four services instead of five.',
+                blockers: 'Service two team owns correlation ID middleware. Their sprint is full until August.'
+            },
+            {
+                yesterday: 'Updated API documentation. Swagger now matches reality within acceptable tolerance.',
+                today: 'Publishing docs and notifying integrators of breaking changes in v2.',
+                blockers: 'Largest integrator has not responded to emails since January. Breaking change may break silently.'
+            },
+            {
+                yesterday: 'Spent day on performance tuning. Shaved 50ms off p99. Nobody noticed. I noticed.',
+                today: 'Will move on to user-visible improvements unless someone asks about p99.',
+                blockers: 'Product prioritizes features over milliseconds. Milliseconds and I are alone.'
+            }
+        ];
+
+        const standupDisplay = document.getElementById('standup-display');
+        const yesterdayText = document.getElementById('yesterday-text');
+        const todayText = document.getElementById('today-text');
+        const blockersText = document.getElementById('blockers-text');
+        const standupInput = document.getElementById('standup-input');
+        const standupNumber = document.getElementById('standup-number');
+        const poolCount = document.getElementById('pool-count');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnGenerate = document.getElementById('btn-generate');
+        const toast = document.getElementById('toast');
+        const toastDismiss = document.getElementById('toast-dismiss');
+        const toastInner = toast.querySelector('div');
+        const toastTitle = document.getElementById('toast-title');
+        const toastBody = document.getElementById('toast-body');
+
+        let lastIndex = -1;
+        let generationCount = 0;
+        let toastTimer = null;
+
+        poolCount.textContent = standups.length;
+
+        function pickRandomIndex() {
+            if (standups.length <= 1) return 0;
+
+            let index;
+            do {
+                index = Math.floor(Math.random() * standups.length);
+            } while (index === lastIndex);
+
+            return index;
+        }
+
+        function formatPlainText(standup) {
+            return [
+                `Yesterday: ${standup.yesterday}`,
+                `Today: ${standup.today}`,
+                `Blockers: ${standup.blockers}`
+            ].join('\n');
+        }
+
+        function resizeTextarea() {
+            standupInput.style.height = 'auto';
+            standupInput.style.height = `${standupInput.scrollHeight}px`;
+        }
+
+        function displayStandup(index) {
+            const standup = standups[index];
+            lastIndex = index;
+            generationCount += 1;
+
+            yesterdayText.textContent = standup.yesterday;
+            todayText.textContent = standup.today;
+            blockersText.textContent = standup.blockers;
+            standupInput.value = formatPlainText(standup);
+            standupNumber.textContent = generationCount;
+            resizeTextarea();
+
+            standupDisplay.classList.remove('is-new');
+            void standupDisplay.offsetWidth;
+            standupDisplay.classList.add('is-new');
+        }
+
+        function generateStandup() {
+            displayStandup(pickRandomIndex());
+        }
+
+        function showToast(message, isError = false) {
+            clearTimeout(toastTimer);
+
+            if (isError) {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-rose-600 text-white shadow-lg border border-rose-500';
+                toastTitle.textContent = message;
+                toastBody.className = 'text-rose-100 text-xs mt-0.5';
+                toastBody.textContent = 'Select the text area and copy manually.';
+            } else {
+                toastInner.className = 'toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500';
+                toastTitle.textContent = 'Copied to clipboard';
+                toastBody.className = 'text-emerald-100 text-xs mt-0.5';
+                toastBody.textContent = 'Paste it into Slack, Teams, or your standup thread.';
+            }
+
+            toast.classList.remove('hidden');
+            toastTimer = setTimeout(hideToast, 4000);
+        }
+
+        function hideToast() {
+            toast.classList.add('hidden');
+        }
+
+        async function copyStandup() {
+            const text = standupInput.value;
+
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                } else {
+                    standupInput.removeAttribute('readonly');
+                    standupInput.select();
+                    standupInput.setSelectionRange(0, text.length);
+                    const ok = document.execCommand('copy');
+                    standupInput.setAttribute('readonly', '');
+                    if (!ok) throw new Error('execCommand failed');
+                }
+                showToast();
+            } catch {
+                showToast('Copy failed', true);
+                standupInput.focus();
+                standupInput.select();
+            }
+        }
+
+        btnGenerate.addEventListener('click', generateStandup);
+        btnCopy.addEventListener('click', copyStandup);
+        toastDismiss.addEventListener('click', hideToast);
+
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+            if (e.key === 'r' || e.key === 'R') {
+                e.preventDefault();
+                generateStandup();
+            }
+            if (e.key === 'c' || e.key === 'C') {
+                e.preventDefault();
+                copyStandup();
+            }
+        });
+
+        displayStandup(pickRandomIndex());
+    </script>
+</body>
+</html>
