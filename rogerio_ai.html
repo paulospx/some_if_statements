@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="pt">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Rogério AI</title>
+    <meta name="description"
+        content="Gerador de previsões de jogos com o toque único do Rogério AI.">
+
+    <script src="./random_execuse_files/jquery.min.js"></script>
+    <script>
+        /*
+         * jQuery jSlots Plugin
+         * http://matthewlein.com/jslot/
+         * Version: 1.0.2 (7/26/2012)
+         */
+        (function (a) { a.jSlots = function (c, b) { var d = this; d.$el = a(c); d.el = c; d.$el.data("jSlots", d); d.init = function () { d.options = a.extend({}, a.jSlots.defaultOptions, b); d.setup(); d.bindEvents(); }; a.jSlots.defaultOptions = { number: 3, winnerNumber: 1, spinner: "", spinEvent: "click", onStart: a.noop, onEnd: a.noop, onWin: a.noop, easing: "swing", time: 7000, loops: 6 }; d.randomRange = function (e, f) { return Math.floor(Math.random() * (1 + f - e)) + e; }; d.isSpinning = false; d.spinSpeed = 0; d.winCount = 0; d.doneCount = 0; d.$liHeight = 0; d.$liWidth = 0; d.winners = []; d.allSlots = []; d.setup = function () { var e = d.$el; var g = e.find("li").first(); d.$liHeight = g.outerHeight(); d.$liWidth = g.outerWidth(); d.liCount = d.$el.children().length; d.listHeight = d.$liHeight * d.liCount; d.increment = (d.options.time / d.options.loops) / d.options.loops; e.css("position", "relative"); g.clone().appendTo(e); d.$wrapper = e.wrap('<div class="jSlots-wrapper"></div>').parent(); d.$el.remove(); for (var f = d.options.number - 1; f >= 0; f--) { d.allSlots.push(new d.Slot()); } }; d.bindEvents = function () { a(d.options.spinner).bind(d.options.spinEvent, function (e) { if (!d.isSpinning) { d.playSlots(); } }); }; d.Slot = function () { this.spinSpeed = 0; this.el = d.$el.clone().appendTo(d.$wrapper)[0]; this.$el = a(this.el); this.loopCount = 0; this.number = 0; }; d.Slot.prototype = { spinEm: function () { var e = this; e.$el.css("top", -d.listHeight).animate({ top: "0px" }, e.spinSpeed, "linear", function () { e.lowerSpeed(); }); }, lowerSpeed: function () { this.spinSpeed += d.increment; this.loopCount++; if (this.loopCount < d.options.loops) { this.spinEm(); } else { this.finish(); } }, finish: function () { var e = this; var g = d.randomRange(1, d.liCount); var f = -((d.$liHeight * g) - d.$liHeight); var h = ((this.spinSpeed * 0.5) * (d.liCount)) / g; e.$el.css("top", -d.listHeight).animate({ top: f }, h, d.options.easing, function () { d.checkWinner(g, e); }); } }; d.checkWinner = function (f, g) { d.doneCount++; g.number = f; if ((a.isArray(d.options.winnerNumber) && d.options.winnerNumber.indexOf(f) > -1) || f === d.options.winnerNumber) { d.winCount++; d.winners.push(g.$el); } if (d.doneCount === d.options.number) { var e = []; a.each(d.allSlots, function (h, i) { e[h] = i.number; }); if (a.isFunction(d.options.onEnd)) { d.options.onEnd(e); } if (d.winCount && a.isFunction(d.options.onWin)) { d.options.onWin(d.winCount, d.winners, e); } d.isSpinning = false; } }; d.playSlots = function () { d.isSpinning = true; d.winCount = 0; d.doneCount = 0; d.winners = []; if (a.isFunction(d.options.onStart)) { d.options.onStart(); } a.each(d.allSlots, function (e, f) { this.spinSpeed = 0; this.loopCount = 0; this.spinEm(); }); }; d.onWin = function () { if (a.isFunction(d.options.onWin)) { d.options.onWin(); } }; d.init(); }; a.fn.jSlots = function (b) { if (this.length) { return this.each(function () { (new a.jSlots(this, b)); }); } }; })(jQuery);
+    </script>
+    <script>
+        jQuery.easing['jswing'] = jQuery.easing['swing'];
+        jQuery.extend(jQuery.easing, {
+            def: 'easeOutQuad',
+            swing: function (x, t, b, c, d) {
+                return jQuery.easing[jQuery.easing.def](x, t, b, c, d);
+            },
+            easeOutQuad: function (x, t, b, c, d) {
+                return -c * (t /= d) * (t - 2) + b;
+            },
+            easeOutSine: function (x, t, b, c, d) {
+                return c * Math.sin(t / d * (Math.PI / 2)) + b;
+            }
+        });
+    </script>
+
+    <link rel="stylesheet" href="./random_execuse_files/bootstrap.min.css">
+    <link href="./random_execuse_files/css" rel="stylesheet" type="text/css">
+
+    <style>
+        body {
+            background: #f5f5f5;
+        }
+
+        .jSlots-wrapper {
+            overflow: hidden;
+            height: 80px;
+            margin-bottom: 4px;
+        }
+
+        h1 {
+            font-family: 'Corben', cursive;
+            font-weight: 700;
+            text-align: center;
+            font-size: 80px;
+        }
+
+        .bubble {
+            position: relative;
+            padding: 10px 40px;
+            background: #FFFFFF;
+            border-radius: 5px;
+            border: #7F7F7F solid 1px;
+            text-align: left;
+            font-size: 18px;
+            font-family: 'Corben', cursive;
+            font-weight: 700;
+            line-height: 1.5;
+        }
+
+        .bubble:after {
+            content: '';
+            position: absolute;
+            border-style: solid;
+            border-width: 15px 40px 15px 0;
+            border-color: transparent #FFFFFF;
+            display: block;
+            width: 0;
+            z-index: 1;
+            margin-top: -15px;
+            left: -40px;
+            top: 72%;
+        }
+
+        .bubble:before {
+            content: '';
+            position: absolute;
+            border-style: solid;
+            border-width: 15px 40px 15px 0;
+            border-color: transparent #7F7F7F;
+            display: block;
+            width: 0;
+            z-index: 0;
+            margin-top: -15px;
+            left: -41px;
+            top: 72%;
+        }
+
+        ul.slot li {
+            display: block;
+            font-family: 'Corben', cursive;
+            font-weight: 700;
+            font-size: 22px;
+            height: 80px;
+            line-height: 1.35;
+            padding: 10px 0;
+            box-sizing: border-box;
+        }
+
+        ul.slot li .pundit {
+            display: block;
+            font-size: 18px;
+            margin-top: 2px;
+        }
+
+        img.avatar {
+            position: relative;
+            top: -80px;
+            width: 480px;
+            max-width: 100%;
+            padding: 8px;
+            border: #E6E6E6 solid 3px;
+        }
+
+        img.avatar:hover {
+            cursor: pointer;
+        }
+
+        h4 {
+            display: block;
+            font-family: 'Corben', cursive;
+            font-weight: 700;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .signature {
+            margin-top: 1.5em;
+            font-size: 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Rogério AI</h1>
+
+        <div class="row" style="margin-top:100px;">
+            <div class="col-md-4">
+                <div class="pards">
+                    <img src="./img/reclamao.png" class="img-circle avatar pardsSpinner" alt="Rogério AI">
+                    <h4>Clica na imagem para gerar uma nova previsão!</h4>
+                </div>
+            </div>
+
+            <div class="col-md-8">
+                <div class="bubble">
+                    Caros Amigos,<br>
+                    Aqui está a previsão dos jogos para hoje:
+                    <div id="predictions"></div>
+                    <p class="signature">
+                        Cumprimentos,<br>
+                        Rogério
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Each game has one slot; list items are predictions from different pundits.
+        var GAMES = [
+            {
+                match: 'Portugal vs Croatia',
+                predictions: [
+                    { score: '2 - 1', pundit: 'Jimmy' },
+                    { score: '2 - 1', pundit: 'Juan' },
+                    { score: '3 - 1', pundit: 'Paulo' },
+                    { score: '4 - 1', pundit: 'Sandro' }
+                ]
+            },
+            {
+                match: 'Switzerland vs Algeria',
+                predictions: [
+                    { score: '2 - 1', pundit: 'Jimmy' },
+                    { score: '2 - 0', pundit: 'Juan' },
+                    { score: '2 - 1', pundit: 'Paulo' },
+                    { score: '3 - 1', pundit: 'Sandro' }
+                ]
+            },
+            {
+                match: 'Australia vs Egypt',
+                predictions: [
+                    { score: '1 - 2', pundit: 'Jimmy' },
+                    { score: '1 - 2', pundit: 'Juan' },
+                    { score: '1 - 2', pundit: 'Paulo' },
+                    { score: '1 - 2', pundit: 'Sandro' }
+                ]
+            },
+            {
+                match: 'Argentina vs Cabo Verde',
+                predictions: [
+                    { score: '7 - 0', pundit: 'Jimmy' },
+                    { score: '3 - 0', pundit: 'Juan' },
+                    { score: '4 - 0', pundit: 'Paulo' },
+                    { score: '4 - 1', pundit: 'Sandro' }
+                ]
+            }
+        ];
+
+        function formatPrediction(game, prediction) {
+            var teams = game.match.split(' vs ');
+            var scoreline = teams[0] + ' ' + prediction.score + ' ' + teams[1];
+            return '<span class="scoreline">' + scoreline + '</span>' +
+                '<span class="pundit">(' + prediction.pundit + ')</span>';
+        }
+
+        function buildPredictionSlots() {
+            var container = $('#predictions');
+
+            GAMES.forEach(function (game) {
+                var list = $('<ul class="slot"></ul>');
+
+                game.predictions.forEach(function (prediction) {
+                    list.append($('<li></li>').html(formatPrediction(game, prediction)));
+                });
+
+                container.append(list);
+            });
+        }
+
+        $(window).on('load', function () {
+            buildPredictionSlots();
+
+            $('.slot').jSlots({
+                spinner: '.pardsSpinner',
+                number: 1,
+                time: 800,
+                loops: 2,
+                easing: 'easeOutSine'
+            });
+
+            // Spin once on load so predictions appear immediately.
+            $('.pardsSpinner').trigger('click');
+        });
+    </script>
+</body>
+
+</html>
