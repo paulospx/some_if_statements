@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Type anything — watch convincing terminal output unfold keystroke by keystroke.">
+    <title>Hacker Typer</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+        :root {
+            --bg: #0a0e0a;
+            --surface: #111611;
+            --border: #1e2e1e;
+            --text: #33ff66;
+            --text-dim: #1a9933;
+            --cursor: #33ff66;
+            --glow: rgba(51, 255, 102, 0.15);
+            --accent: #00ff88;
+            --warn: #ffaa00;
+            --error: #ff4444;
+            --titlebar: #1a1f1a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'IBM Plex Mono', 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
+            gap: 0;
+        }
+
+        /* CRT overlay */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 100;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 0, 0, 0.08) 2px,
+                rgba(0, 0, 0, 0.08) 4px
+            );
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 99;
+            background: radial-gradient(ellipse at center, transparent 60%, rgba(0, 0, 0, 0.45) 100%);
+        }
+
+        .terminal-window {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 0 40px var(--glow), 0 20px 60px rgba(0, 0, 0, 0.6);
+            min-height: 0;
+        }
+
+        .titlebar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            background: var(--titlebar);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            user-select: none;
+        }
+
+        .titlebar-dots {
+            display: flex;
+            gap: 7px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-red { background: #ff5f57; }
+        .dot-yellow { background: #febc2e; }
+        .dot-green { background: #28c840; }
+
+        .titlebar-title {
+            flex: 1;
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-dim);
+            letter-spacing: 0.02em;
+        }
+
+        .titlebar-status {
+            font-size: 11px;
+            color: var(--text-dim);
+        }
+
+        .terminal-body {
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 16px 18px 24px;
+            background: var(--surface);
+            position: relative;
+            scroll-behavior: smooth;
+        }
+
+        .terminal-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .terminal-body::-webkit-scrollbar-track {
+            background: var(--bg);
+        }
+
+        .terminal-body::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        #output {
+            white-space: pre-wrap;
+            word-break: break-all;
+            tab-size: 4;
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 0.6em;
+            height: 1.1em;
+            background: var(--cursor);
+            vertical-align: text-bottom;
+            animation: blink 1s step-end infinite;
+            box-shadow: 0 0 8px var(--cursor);
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+
+        .statusbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 14px;
+            background: var(--titlebar);
+            border-top: 1px solid var(--border);
+            font-size: 11px;
+            color: var(--text-dim);
+            flex-shrink: 0;
+            gap: 16px;
+        }
+
+        .statusbar-left,
+        .statusbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .status-pill::before {
+            content: '';
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 6px var(--accent);
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .hint-overlay {
+            position: fixed;
+            bottom: 48px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 14, 10, 0.92);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 18px;
+            font-size: 12px;
+            color: var(--text-dim);
+            z-index: 50;
+            transition: opacity 0.6s ease, transform 0.6s ease;
+            pointer-events: none;
+            text-align: center;
+            max-width: 90vw;
+        }
+
+        .hint-overlay.hidden {
+            opacity: 0;
+            transform: translateX(-50%) translateY(8px);
+        }
+
+        .hint-overlay kbd {
+            display: inline-block;
+            padding: 1px 6px;
+            border: 1px solid var(--border);
+            border-radius: 3px;
+            background: var(--bg);
+            color: var(--text);
+            font-family: inherit;
+            font-size: 11px;
+        }
+
+        /* Syntax coloring via spans injected in script */
+        .c-comment { color: var(--text-dim); }
+        .c-keyword { color: var(--accent); font-weight: 500; }
+        .c-string { color: #88ffaa; }
+        .c-warn { color: var(--warn); }
+        .c-error { color: var(--error); }
+        .c-dim { color: #2a6e3a; }
+        .c-bright { color: #66ff99; font-weight: 500; }
+
+        /* Access granted popup */
+        .access-popup {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 200;
+            background: rgba(0, 0, 0, 0.7);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .access-popup.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .access-box {
+            border: 2px solid var(--accent);
+            padding: 32px 48px;
+            text-align: center;
+            background: var(--bg);
+            box-shadow: 0 0 60px var(--glow);
+            animation: accessIn 0.4s ease;
+        }
+
+        @keyframes accessIn {
+            from { transform: scale(0.85); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .access-box h2 {
+            font-size: 28px;
+            letter-spacing: 0.15em;
+            color: var(--accent);
+            text-shadow: 0 0 20px var(--glow);
+            margin-bottom: 8px;
+        }
+
+        .access-box p {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .cursor { animation: none; }
+            .status-pill::before { animation: none; }
+            body::before, body::after { display: none; }
+        }
+
+        @media (max-width: 600px) {
+            body { padding: 6px; }
+            html, body { font-size: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="terminal-window" role="application" aria-label="Hacker Typer terminal">
+        <div class="titlebar">
+            <div class="titlebar-dots" aria-hidden="true">
+                <span class="dot dot-red"></span>
+                <span class="dot dot-yellow"></span>
+                <span class="dot dot-green"></span>
+            </div>
+            <span class="titlebar-title">root@nexus-core — bash — 120×40</span>
+            <span class="titlebar-status" id="clock">--:--:--</span>
+        </div>
+
+        <div class="terminal-body" id="terminal" tabindex="0" aria-live="polite">
+            <div id="output"></div><span class="cursor" id="cursor" aria-hidden="true"></span>
+        </div>
+
+        <div class="statusbar">
+            <div class="statusbar-left">
+                <span class="status-pill">CONNECTED</span>
+                <span id="progress">0%</span>
+                <span id="wpm">0 WPM</span>
+            </div>
+            <div class="statusbar-right">
+                <span>TOR: ON</span>
+                <span>VPN: SECURE</span>
+                <span>PID <span id="pid">----</span></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="hint-overlay" id="hint">
+        Start typing anywhere — <kbd>any key</kbd> reveals the script &nbsp;·&nbsp;
+        <kbd>Tab</kbd> burst &nbsp;·&nbsp;
+        <kbd>Esc</kbd> reset &nbsp;·&nbsp;
+        <kbd>F11</kbd> fullscreen
+    </div>
+
+    <div class="access-popup" id="access-popup" role="alert" aria-hidden="true">
+        <div class="access-box">
+            <h2>ACCESS GRANTED</h2>
+            <p>root privileges obtained · session token issued</p>
+        </div>
+    </div>
+
+    <script>
+        const SCRIPT = `
+# Nexus Core Intrusion Framework v3.7.1
+# Initializing secure tunnel...
+
+$ ./nexus-scan --target 10.0.0.0/8 --stealth --tor
+[*] Resolving onion routes... OK
+[*] Spoofing MAC: aa:bb:cc:dd:ee:ff
+[*] Probing 65536 hosts (parallel workers: 128)
+
+  HOST              PORT    STATE    SERVICE
+  10.0.14.22        22      open     ssh
+  10.0.14.22        80      open     http
+  10.0.14.22        443     open     https
+  10.0.14.22        3306    open     mysql
+  10.0.31.7         8080    open     http-proxy
+  10.0.31.7         9200    open     elasticsearch
+
+$ python3 exploit_chain.py --host 10.0.14.22 --cve CVE-2024-3094
+[INFO] Loading payload modules...
+[INFO] Fingerprint: OpenSSH_8.9p1 Ubuntu-3ubuntu0.6
+[INFO] Attempting timing attack on auth daemon...
+[WARN] Rate limit detected — rotating exit node
+[INFO] Retry 2/5 — new identity: 185.220.101.47
+[OK] Shell obtained via reverse_tcp (pid 44821)
+
+$ whoami && id && uname -a
+root
+uid=0(root) gid=0(root) groups=0(root)
+Linux nexus-core 6.5.0-14-generic #14-Ubuntu SMP x86_64 GNU/Linux
+
+$ cat /etc/shadow | head -3
+root:$6$rounds=656000$...truncated...:19000:0:99999:7:::
+daemon:*:19000:0:99999:7:::
+bin:*:19000:0:99999:7:::
+
+$ find / -name "*.key" -o -name "id_rsa" 2>/dev/null | head -8
+/home/deploy/.ssh/id_rsa
+/var/ssl/private/api-gateway.pem
+/opt/vault/master.key
+/etc/kubernetes/pki/ca.crt
+/srv/backups/db-dump-2026-03.enc
+
+$ ./exfiltrate.sh --encrypt aes-256-gcm --chunk 4MB
+[*] Compressing 2.4 GB → 890 MB
+[*] Encrypting with ephemeral key...
+[*] Uploading to dead drop: s3://nx-drop-7f3a/
+  ████████████████████████████████ 100%  890 MB / 890 MB  ETA 0s
+
+[SUCCESS] Exfiltration complete. Wiping traces...
+
+$ history -c && shred -u ~/.bash_history
+$ rm -rf /tmp/.nexus_* /var/log/auth.log
+$ echo "Connection closed by remote host."
+
+# --- secondary target: internal API gateway ---
+
+$ curl -s -X POST https://api.internal/v2/auth/token \\
+    -H "X-Forwarded-For: 127.0.0.1" \\
+    -d '{"grant_type":"client_credentials","scope":"admin:*"}' | jq .
+
+{
+  "access_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "Bearer",
+  "expires_in": 3600,
+  "scope": "admin:*"
+}
+
+$ psql -h 10.0.14.22 -U postgres -c "SELECT email, role FROM users WHERE role='admin';"
+       email              | role
+-------------------------+-------
+ admin@nexus-corp.io     | admin
+ ops@nexus-corp.io       | admin
+ security@nexus-corp.io  | admin
+(3 rows)
+
+$ # pivoting to lateral movement module
+$ ./lateral.py --subnet 10.0.0.0/16 --pass-the-hash
+
+[SCAN] 10.0.14.22  → COMPROMISED
+[SCAN] 10.0.31.7   → COMPROMISED
+[SCAN] 10.0.44.12  → FIREWALL BLOCK
+[SCAN] 10.0.44.12  → retry via SOCKS5... BYPASSED
+[SCAN] 10.0.44.12  → COMPROMISED
+[SCAN] 10.0.88.3   → COMPROMISED
+
+[ROOT] Domain controller access confirmed.
+[ROOT] Dumping NTDS.dit... 12.4 GB
+[ROOT] Cracking hashes (GPU cluster eta: 4m 22s)
+
+$ echo "Mission status: ALL SYSTEMS COMPROMISED"
+Mission status: ALL SYSTEMS COMPROMISED
+
+$ # session complete — press Esc to reset
+$ _
+`.trim();
+
+        const ACCESS_TRIGGER = 0.42;
+        const BURST_SIZE = 12;
+
+        let position = 0;
+        let startTime = null;
+        let keyCount = 0;
+        let accessShown = false;
+        let hintHidden = false;
+
+        const output = document.getElementById('output');
+        const terminal = document.getElementById('terminal');
+        const hint = document.getElementById('hint');
+        const accessPopup = document.getElementById('access-popup');
+        const progressEl = document.getElementById('progress');
+        const wpmEl = document.getElementById('wpm');
+        const clockEl = document.getElementById('clock');
+        const pidEl = document.getElementById('pid');
+
+        pidEl.textContent = String(Math.floor(1000 + Math.random() * 80000));
+
+        function updateClock() {
+            const now = new Date();
+            clockEl.textContent = now.toLocaleTimeString('en-GB', { hour12: false });
+        }
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+        }
+
+        function colorize(text) {
+            return escapeHtml(text)
+                .replace(/^(\$.*)$/gm, '<span class="c-keyword">$1</span>')
+                .replace(/^(#.*)$/gm, '<span class="c-comment">$1</span>')
+                .replace(/\[INFO\]/g, '<span class="c-dim">[INFO]</span>')
+                .replace(/\[WARN\]/g, '<span class="c-warn">[WARN]</span>')
+                .replace(/\[OK\]/g, '<span class="c-bright">[OK]</span>')
+                .replace(/\[SUCCESS\]/g, '<span class="c-bright">[SUCCESS]</span>')
+                .replace(/\[ROOT\]/g, '<span class="c-bright">[ROOT]</span>')
+                .replace(/\[SCAN\]/g, '<span class="c-dim">[SCAN]</span>')
+                .replace(/\[\*\]/g, '<span class="c-dim">[</span><span class="c-warn">*</span><span class="c-dim">]</span>')
+                .replace(/\b(COMPROMISED|BYPASSED)\b/g, '<span class="c-bright">$1</span>')
+                .replace(/(?<=\.\.\. )OK\b/g, '<span class="c-bright">OK</span>')
+                .replace(/\b(FIREWALL BLOCK)\b/g, '<span class="c-error">$1</span>')
+                .replace(/"[^"]*"/g, (m) => `<span class="c-string">${m}</span>`)
+                .replace(/\b(10\.\d+\.\d+\.\d+)\b/g, '<span class="c-dim">$1</span>');
+        }
+
+        function updateStats() {
+            const pct = Math.min(100, Math.round((position / SCRIPT.length) * 100));
+            progressEl.textContent = pct + '%';
+
+            if (startTime && keyCount > 0) {
+                const mins = (Date.now() - startTime) / 60000;
+                const words = position / 5;
+                const wpm = mins > 0 ? Math.round(words / mins) : 0;
+                wpmEl.textContent = wpm + ' WPM';
+            }
+
+            if (!accessShown && position / SCRIPT.length >= ACCESS_TRIGGER) {
+                showAccessGranted();
+            }
+        }
+
+        function showAccessGranted() {
+            accessShown = true;
+            accessPopup.classList.add('visible');
+            accessPopup.setAttribute('aria-hidden', 'false');
+            setTimeout(() => {
+                accessPopup.classList.remove('visible');
+                accessPopup.setAttribute('aria-hidden', 'true');
+            }, 2200);
+        }
+
+        function render() {
+            output.innerHTML = colorize(SCRIPT.slice(0, position));
+            terminal.scrollTop = terminal.scrollHeight;
+            updateStats();
+        }
+
+        function advance(chars) {
+            if (position >= SCRIPT.length) return;
+
+            if (!startTime) startTime = Date.now();
+            keyCount++;
+
+            position = Math.min(position + chars, SCRIPT.length);
+            render();
+
+            if (!hintHidden && position > 20) {
+                hintHidden = true;
+                hint.classList.add('hidden');
+            }
+        }
+
+        function reset() {
+            position = 0;
+            startTime = null;
+            keyCount = 0;
+            accessShown = false;
+            hintHidden = false;
+            hint.classList.remove('hidden');
+            render();
+            terminal.focus();
+        }
+
+        function isModifierOnly(e) {
+            return e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt'
+                || e.key === 'Meta' || e.key === 'CapsLock' || e.key === 'Tab'
+                || e.key === 'Escape' || e.key === 'F11';
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                reset();
+                return;
+            }
+
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                advance(BURST_SIZE);
+                return;
+            }
+
+            if (e.key === 'F11') return;
+
+            if (isModifierOnly(e)) return;
+
+            e.preventDefault();
+            advance(1);
+        });
+
+        terminal.addEventListener('click', () => terminal.focus());
+
+        window.addEventListener('load', () => {
+            render();
+            terminal.focus();
+        });
+    </script>
+</body>
+</html>
