@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Paste any block of text and instantly extract every integer and floating-point number into a clean list.">
+    <title>Number Extractor — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+            font-feature-settings: "tnum";
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .option-pill input:focus-visible + span {
+            outline: 2px solid #0ea5e9;
+            outline-offset: 2px;
+        }
+
+        .toast {
+            transform: translateY(1rem);
+            opacity: 0;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .toast {
+                transition: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-200 min-h-screen antialiased">
+    <a href="#main" class="skip-link">Skip to extractor</a>
+
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
+        <header class="mb-10">
+            <a href="index.html" class="text-sm text-slate-400 hover:text-sky-400 transition-colors">← Tool catalog</a>
+            <h1 class="text-3xl sm:text-4xl font-semibold tracking-tight text-white mt-3">Number Extractor</h1>
+            <p class="text-slate-400 mt-2 max-w-2xl">
+                Paste prose, logs, tables, or reports. Every integer and decimal is found in reading order and
+                copied into a plain list you can export — no manual scanning.
+            </p>
+        </header>
+
+        <main id="main" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <section class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+                <div class="flex justify-between items-baseline mb-6">
+                    <label for="input" class="text-xl font-semibold text-white">Source text</label>
+                    <button type="button" onclick="loadSample()"
+                            class="px-4 py-2 text-xs font-medium bg-slate-800 hover:bg-slate-700 rounded-2xl transition-colors">
+                        Load sample
+                    </button>
+                </div>
+
+                <textarea id="input" rows="16"
+                          class="mono w-full bg-slate-950 border border-slate-700 focus:border-sky-400 rounded-2xl p-5 text-sm leading-relaxed resize-y focus:outline-none"
+                          placeholder="Paste any text here…&#10;&#10;Revenue rose 23.5% to $4,512,000 in Q3.&#10;Version 2.1.3 fixed 42 bugs.&#10;Temperature -3.14°C at 1.2e4 m."></textarea>
+
+                <fieldset class="mt-5 space-y-3">
+                    <legend class="text-sm font-medium text-slate-300 mb-2">Extraction options</legend>
+                    <div class="flex flex-wrap gap-2">
+                        <label class="option-pill cursor-pointer">
+                            <input type="checkbox" id="opt-negatives" checked class="sr-only peer" onchange="extract()">
+                            <span class="inline-block px-3 py-1.5 text-xs rounded-xl border border-slate-700 bg-slate-950 text-slate-400 peer-checked:border-sky-500/60 peer-checked:bg-sky-500/10 peer-checked:text-sky-300 transition-colors">
+                                Include negatives
+                            </span>
+                        </label>
+                        <label class="option-pill cursor-pointer">
+                            <input type="checkbox" id="opt-scientific" checked class="sr-only peer" onchange="extract()">
+                            <span class="inline-block px-3 py-1.5 text-xs rounded-xl border border-slate-700 bg-slate-950 text-slate-400 peer-checked:border-sky-500/60 peer-checked:bg-sky-500/10 peer-checked:text-sky-300 transition-colors">
+                                Scientific notation
+                            </span>
+                        </label>
+                        <label class="option-pill cursor-pointer">
+                            <input type="checkbox" id="opt-dedupe" class="sr-only peer" onchange="extract()">
+                            <span class="inline-block px-3 py-1.5 text-xs rounded-xl border border-slate-700 bg-slate-950 text-slate-400 peer-checked:border-sky-500/60 peer-checked:bg-sky-500/10 peer-checked:text-sky-300 transition-colors">
+                                Remove duplicates
+                            </span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <div class="flex items-center justify-between mt-4 text-sm">
+                    <p id="preview" class="text-slate-400" aria-live="polite">Paste text to extract numbers</p>
+                    <button type="button" onclick="clearAll()"
+                            class="text-slate-400 hover:text-slate-200 text-xs flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Clear
+                    </button>
+                </div>
+            </section>
+
+            <section class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+                <h2 class="text-xl font-semibold text-white mb-2">How it works</h2>
+                <p class="text-slate-400 text-sm leading-relaxed mb-4">
+                    The extractor scans left-to-right and pulls every numeric token — integers, decimals,
+                    comma-separated thousands, currency amounts, percentages, and scientific notation.
+                    Results appear instantly as you type.
+                </p>
+                <div class="space-y-3 text-sm">
+                    <div class="bg-slate-950 rounded-xl p-4 border border-slate-800">
+                        <p class="text-slate-500 text-xs uppercase tracking-wide mb-2">Recognized</p>
+                        <ul class="mono text-sky-400 space-y-1 text-xs leading-relaxed">
+                            <li>42 · 3.14 · -7 · +0.5 · .75</li>
+                            <li>1,234.56 · $4,512,000 · 23.5%</li>
+                            <li>1.2e10 · 3E-4</li>
+                        </ul>
+                    </div>
+                    <div class="bg-slate-950 rounded-xl p-4 border border-slate-800">
+                        <p class="text-slate-500 text-xs uppercase tracking-wide mb-2">Typically skipped</p>
+                        <ul class="mono text-slate-400 space-y-1 text-xs leading-relaxed">
+                            <li>Phone-style groups (555-1234 → 555, 1234)</li>
+                            <li>Version strings (v2.1.3 → 2.1, 3)</li>
+                            <li>Hex colors (#A1B2C3) and bare IDs</li>
+                        </ul>
+                    </div>
+                </div>
+                <p class="text-slate-500 text-xs mt-4">
+                    All processing happens in your browser. Nothing is sent to a server.
+                </p>
+            </section>
+        </main>
+
+        <section id="results" class="hidden mt-10 space-y-8">
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">Extracted</p>
+                    <p id="stat-count" class="mono text-2xl font-semibold text-white mt-1">—</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">Integers</p>
+                    <p id="stat-integers" class="mono text-2xl font-semibold text-sky-400 mt-1">—</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">Floats</p>
+                    <p id="stat-floats" class="mono text-2xl font-semibold text-emerald-400 mt-1">—</p>
+                </div>
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5">
+                    <p class="text-xs text-slate-500 uppercase tracking-wide">Unique</p>
+                    <p id="stat-unique" class="mono text-2xl font-semibold text-amber-400 mt-1">—</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-xl font-semibold text-white">Extracted numbers</h2>
+                        <p class="text-slate-500 text-sm mt-1">Reading order · one value per line</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <label for="output-format" class="text-xs text-slate-500">Format</label>
+                        <select id="output-format" onchange="renderOutput()"
+                                class="mono text-xs bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-300 focus:border-sky-400 focus:outline-none">
+                            <option value="lines">One per line</option>
+                            <option value="comma">Comma-separated</option>
+                            <option value="json">JSON array</option>
+                        </select>
+                        <button type="button" onclick="copyOutput()"
+                                class="px-4 py-2 text-xs font-medium bg-sky-600 hover:bg-sky-500 text-white rounded-2xl transition-colors">
+                            Copy list
+                        </button>
+                    </div>
+                </div>
+
+                <textarea id="output" rows="12" readonly
+                          class="mono w-full bg-slate-950 border border-slate-700 rounded-2xl p-5 text-sm leading-relaxed resize-y text-sky-300 focus:outline-none focus:border-slate-600"
+                          aria-label="Extracted numbers output"></textarea>
+            </div>
+        </section>
+    </div>
+
+    <div id="toast" role="status" aria-live="polite"
+         class="toast fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-xl shadow-lg pointer-events-none">
+        Copied to clipboard
+    </div>
+
+    <script>
+        const CURRENCY_SYMBOLS = /[$€£¥₹]/g;
+        let extractedNumbers = [];
+
+        function buildPattern(options) {
+            const sign = options.negatives ? '[-+]?' : '(?:\\+)?';
+            const scientific = options.scientific ? '(?:[eE][-+]?\\d+)?' : '';
+            const grouped = `${sign}(?:\\d{1,3}(?:,\\d{3})+|\\d+)(?:\\.\\d+)?`;
+            const leadingDot = options.negatives ? `${sign}?\\.\\d+` : `\\.\\d+`;
+            const currency = `(?:${CURRENCY_SYMBOLS.source}\\s*)?`;
+
+            return new RegExp(
+                `(?<![\\w.#])${currency}(?:${grouped}|${leadingDot})${scientific}%?(?![\\w])`,
+                'g'
+            );
+        }
+
+        function normalizeToken(token) {
+            return token
+                .replace(CURRENCY_SYMBOLS, '')
+                .replace(/,/g, '')
+                .replace(/%$/, '')
+                .trim();
+        }
+
+        function parseToken(token) {
+            const cleaned = normalizeToken(token);
+            const value = Number(cleaned);
+            return Number.isFinite(value) ? value : null;
+        }
+
+        function isInteger(value) {
+            return Number.isInteger(value);
+        }
+
+        function formatNumber(value) {
+            if (isInteger(value)) return String(value);
+            return String(value);
+        }
+
+        function extractNumbers(text, options) {
+            const pattern = buildPattern(options);
+            const matches = text.match(pattern) || [];
+            const numbers = [];
+
+            for (const token of matches) {
+                const value = parseToken(token);
+                if (value !== null) numbers.push(value);
+            }
+
+            if (options.dedupe) {
+                const seen = new Set();
+                return numbers.filter(n => {
+                    const key = Object.is(n, -0) ? '0' : String(n);
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+            }
+
+            return numbers;
+        }
+
+        function getOptions() {
+            return {
+                negatives: document.getElementById('opt-negatives').checked,
+                scientific: document.getElementById('opt-scientific').checked,
+                dedupe: document.getElementById('opt-dedupe').checked
+            };
+        }
+
+        function formatOutputList(numbers, format) {
+            if (format === 'comma') return numbers.map(formatNumber).join(', ');
+            if (format === 'json') return JSON.stringify(numbers);
+            return numbers.map(formatNumber).join('\n');
+        }
+
+        function renderStats(numbers) {
+            const integers = numbers.filter(isInteger).length;
+            const floats = numbers.length - integers;
+            const unique = new Set(numbers.map(n => Object.is(n, -0) ? 0 : n)).size;
+
+            document.getElementById('stat-count').textContent = numbers.length.toLocaleString();
+            document.getElementById('stat-integers').textContent = integers.toLocaleString();
+            document.getElementById('stat-floats').textContent = floats.toLocaleString();
+            document.getElementById('stat-unique').textContent = unique.toLocaleString();
+        }
+
+        function renderOutput() {
+            const format = document.getElementById('output-format').value;
+            document.getElementById('output').value = formatOutputList(extractedNumbers, format);
+        }
+
+        function extract() {
+            const text = document.getElementById('input').value;
+            const preview = document.getElementById('preview');
+            const results = document.getElementById('results');
+
+            extractedNumbers = extractNumbers(text, getOptions());
+
+            if (extractedNumbers.length === 0) {
+                preview.textContent = text.trim()
+                    ? 'No numbers found in this text'
+                    : 'Paste text to extract numbers';
+                preview.className = text.trim() ? 'text-amber-400' : 'text-slate-400';
+                results.classList.add('hidden');
+                return;
+            }
+
+            preview.innerHTML = `<span class="text-emerald-400 font-medium">${extractedNumbers.length.toLocaleString()} number${extractedNumbers.length === 1 ? '' : 's'} found</span>`;
+            preview.className = 'text-sm';
+
+            renderStats(extractedNumbers);
+            renderOutput();
+            results.classList.remove('hidden');
+        }
+
+        function clearAll() {
+            document.getElementById('input').value = '';
+            extract();
+        }
+
+        function loadSample() {
+            document.getElementById('input').value = `Q3 earnings report — Acme Corp
+
+Revenue grew 23.5% year-over-year to $4,512,000. Operating margin improved to 18.2%.
+We shipped version 2.1.3 with 42 bug fixes and 7 feature requests closed.
+
+Lab readings (2024-09-15):
+  Temperature: -3.14 °C
+  Pressure: 1.01325 bar
+  Altitude sample: 1.2e4 meters
+
+Inventory counts: 150 units in warehouse A, 0 in warehouse B.
+Discount applied: 15% on orders above $500.
+
+Contact: +1-555-867-5309 (reference only — not extracted as a single value).`;
+            extract();
+        }
+
+        let toastTimer = null;
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+
+        async function copyOutput() {
+            const output = document.getElementById('output').value;
+            if (!output) return;
+
+            try {
+                await navigator.clipboard.writeText(output);
+                showToast('Copied to clipboard');
+            } catch {
+                document.getElementById('output').select();
+                document.execCommand('copy');
+                showToast('Copied to clipboard');
+            }
+        }
+
+        document.getElementById('input').addEventListener('input', extract);
+        extract();
+    </script>
+</body>
+</html>
