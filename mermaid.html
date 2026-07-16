@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Write Mermaid diagram code on the left, see a live preview on the right. Copy or download source, export as PNG, JPG, or SVG.">
+    <title>Mermaid Diagram Editor — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        :root {
+            --panel-gap: 0;
+            --editor-min: 280px;
+            --preview-min: 280px;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            margin: 0;
+            min-height: 100vh;
+            height: 100vh;
+            overflow: hidden;
+            background: #f8fafc;
+            color: #0f172a;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        /* App shell: header + workspace + status */
+        .app {
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            height: 100vh;
+            height: 100dvh;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: minmax(var(--editor-min), 1fr) 6px minmax(var(--preview-min), 1fr);
+            min-height: 0;
+            overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .workspace {
+                grid-template-columns: 1fr;
+                grid-template-rows: minmax(40vh, 1fr) 6px minmax(40vh, 1fr);
+            }
+            .resizer {
+                cursor: row-resize !important;
+            }
+        }
+
+        .panel {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0;
+            background: #fff;
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+            padding: 0.625rem 1rem;
+            border-bottom: 1px solid #e2e8f0;
+            background: #f8fafc;
+            flex-shrink: 0;
+        }
+
+        .panel-title {
+            font-size: 0.8125rem;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .panel-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.375rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            padding: 0.375rem 0.75rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            border-radius: 0.5rem;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+            white-space: nowrap;
+            line-height: 1.25;
+            background: #fff;
+            color: #334155;
+            border-color: #cbd5e1;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #f1f5f9;
+            border-color: #94a3b8;
+        }
+
+        .btn:focus-visible {
+            outline: 2px solid #0ea5e9;
+            outline-offset: 2px;
+        }
+
+        .btn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #0284c7;
+            color: #fff;
+            border-color: #0284c7;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #0369a1;
+            border-color: #0369a1;
+            color: #fff;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border-color: transparent;
+            color: #475569;
+        }
+
+        .btn-ghost:hover:not(:disabled) {
+            background: #e2e8f0;
+            border-color: transparent;
+        }
+
+        .btn-icon {
+            padding: 0.375rem;
+        }
+
+        .btn svg {
+            width: 1rem;
+            height: 1rem;
+            flex-shrink: 0;
+        }
+
+        /* Export dropdown */
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 4px);
+            right: 0;
+            min-width: 11rem;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.625rem;
+            box-shadow: 0 10px 25px -5px rgb(15 23 42 / 0.12), 0 4px 6px -2px rgb(15 23 42 / 0.06);
+            padding: 0.375rem;
+            z-index: 40;
+            display: none;
+        }
+
+        .dropdown-menu.open {
+            display: block;
+            animation: menu-in 0.12s ease;
+        }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            width: 100%;
+            text-align: left;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: #334155;
+            border: none;
+            background: transparent;
+            border-radius: 0.375rem;
+            cursor: pointer;
+        }
+
+        .dropdown-item:hover,
+        .dropdown-item:focus-visible {
+            background: #f1f5f9;
+            outline: none;
+        }
+
+        .dropdown-item .ext {
+            margin-left: auto;
+            font-size: 0.6875rem;
+            font-weight: 600;
+            color: #94a3b8;
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        /* Editor */
+        #editor-wrap {
+            flex: 1;
+            min-height: 0;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #code-input {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            resize: none;
+            border: none;
+            outline: none;
+            padding: 1rem 1.125rem;
+            font-size: 0.875rem;
+            line-height: 1.55;
+            tab-size: 2;
+            color: #0f172a;
+            background: #fff;
+        }
+
+        #code-input::placeholder {
+            color: #94a3b8;
+        }
+
+        #code-input:focus {
+            box-shadow: inset 0 0 0 2px #bae6fd;
+        }
+
+        /* Line count badge */
+        .meta-badge {
+            font-size: 0.6875rem;
+            font-weight: 500;
+            color: #64748b;
+            background: #f1f5f9;
+            padding: 0.2rem 0.5rem;
+            border-radius: 999px;
+        }
+
+        /* Resizer */
+        .resizer {
+            background: #e2e8f0;
+            cursor: col-resize;
+            position: relative;
+            z-index: 10;
+            transition: background 0.15s ease;
+            touch-action: none;
+        }
+
+        .resizer:hover,
+        .resizer.active {
+            background: #0ea5e9;
+        }
+
+        .resizer::after {
+            content: '';
+            position: absolute;
+            inset: 0 -4px;
+        }
+
+        /* Preview */
+        #preview-wrap {
+            flex: 1;
+            min-height: 0;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background:
+                linear-gradient(90deg, #f1f5f9 1px, transparent 1px),
+                linear-gradient(#f1f5f9 1px, transparent 1px);
+            background-size: 20px 20px;
+            background-color: #fafbfc;
+        }
+
+        #diagram-viewport {
+            flex: 1;
+            min-height: 0;
+            overflow: auto;
+            position: relative;
+        }
+
+        #diagram-container {
+            min-height: 100%;
+            min-width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            box-sizing: border-box;
+        }
+
+        #diagram-stage {
+            transform-origin: center center;
+            transition: transform 0.12s ease;
+            will-change: transform;
+            /* Layout box expands with zoom so the viewport can scroll */
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            #diagram-stage { transition: none; }
+        }
+
+        #diagram-container .mermaid,
+        #diagram-container svg {
+            max-width: none;
+            height: auto;
+        }
+
+        #diagram-container svg {
+            background: transparent;
+            display: block;
+        }
+
+        /* Zoom controls */
+        .zoom-controls {
+            position: absolute;
+            right: 0.75rem;
+            bottom: 0.75rem;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            gap: 0.125rem;
+            padding: 0.25rem;
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 0.625rem;
+            box-shadow: 0 4px 12px -2px rgb(15 23 42 / 0.1), 0 2px 4px -2px rgb(15 23 42 / 0.06);
+        }
+
+        .zoom-controls .btn {
+            padding: 0.375rem;
+            min-width: 2rem;
+            min-height: 2rem;
+            justify-content: center;
+            border-color: transparent;
+            background: transparent;
+        }
+
+        .zoom-controls .btn:hover:not(:disabled) {
+            background: #f1f5f9;
+            border-color: transparent;
+        }
+
+        .zoom-level {
+            min-width: 3.25rem;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            font-family: 'IBM Plex Mono', monospace;
+            color: #475569;
+            user-select: none;
+            padding: 0 0.15rem;
+        }
+
+        .zoom-divider {
+            width: 1px;
+            height: 1.25rem;
+            background: #e2e8f0;
+            margin: 0 0.125rem;
+            flex-shrink: 0;
+        }
+
+        /* Empty / error states */
+        .state-panel {
+            text-align: center;
+            max-width: 22rem;
+            padding: 2rem 1.25rem;
+            color: #64748b;
+        }
+
+        .state-panel h3 {
+            font-size: 0.9375rem;
+            font-weight: 600;
+            color: #334155;
+            margin: 0 0 0.5rem;
+        }
+
+        .state-panel p {
+            font-size: 0.8125rem;
+            line-height: 1.5;
+            margin: 0;
+        }
+
+        .state-icon {
+            width: 2.75rem;
+            height: 2.75rem;
+            margin: 0 auto 0.875rem;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #e0f2fe;
+            color: #0284c7;
+        }
+
+        .state-icon.error {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .error-box {
+            margin-top: 1rem;
+            text-align: left;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 0.5rem;
+            padding: 0.75rem 0.875rem;
+            font-size: 0.75rem;
+            color: #991b1b;
+            font-family: 'IBM Plex Mono', monospace;
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 10rem;
+            overflow: auto;
+        }
+
+        /* Status bar */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex-wrap: wrap;
+            padding: 0.375rem 1rem;
+            border-top: 1px solid #e2e8f0;
+            background: #f8fafc;
+            font-size: 0.75rem;
+            color: #64748b;
+        }
+
+        .status-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .status-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background: #94a3b8;
+            flex-shrink: 0;
+        }
+
+        .status-dot.ok { background: #22c55e; }
+        .status-dot.err { background: #ef4444; }
+        .status-dot.busy { background: #f59e0b; animation: pulse-dot 1s ease infinite; }
+
+        .kbd {
+            display: inline-block;
+            padding: 0.1rem 0.35rem;
+            font-size: 0.6875rem;
+            font-family: 'IBM Plex Mono', monospace;
+            background: #e2e8f0;
+            border-radius: 0.25rem;
+            color: #475569;
+        }
+
+        /* Toast */
+        .toast-enter {
+            animation: toast-in 0.25s ease;
+        }
+
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(0.5rem); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes menu-in {
+            from { opacity: 0; transform: translateY(-4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .toast-enter,
+            .dropdown-menu.open,
+            .status-dot.busy { animation: none; }
+            .btn { transition: none; }
+        }
+
+        /* Header brand */
+        .brand-mark {
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 0.5rem;
+            background: linear-gradient(135deg, #0ea5e9, #6366f1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .brand-mark svg {
+            width: 1rem;
+            height: 1rem;
+        }
+
+        /* Template select */
+        select.template-select {
+            appearance: none;
+            background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") right 0.4rem center / 1rem no-repeat;
+            padding: 0.375rem 1.75rem 0.375rem 0.625rem;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            max-width: 11rem;
+        }
+
+        select.template-select:focus-visible {
+            outline: 2px solid #0ea5e9;
+            outline-offset: 2px;
+        }
+    </style>
+</head>
+<body>
+    <a href="#code-input" class="skip-link">Skip to Mermaid editor</a>
+
+    <!-- Toast notification (visibility of system status) -->
+    <div
+        id="toast"
+        class="hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 max-w-sm w-[calc(100%-2rem)]"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+    >
+        <div id="toast-inner" class="toast-enter flex items-start gap-3 px-4 py-3 rounded-xl bg-emerald-600 text-white shadow-lg border border-emerald-500">
+            <svg id="toast-icon-ok" class="w-5 h-5 shrink-0 mt-0.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            <svg id="toast-icon-err" class="w-5 h-5 shrink-0 mt-0.5 hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <div>
+                <p id="toast-title" class="font-medium text-sm">Copied to clipboard</p>
+                <p id="toast-body" class="text-emerald-100 text-xs mt-0.5">Ready to paste elsewhere.</p>
+            </div>
+            <button type="button" id="toast-dismiss" class="ml-auto shrink-0 text-white/70 hover:text-white" aria-label="Dismiss notification">
+                <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="app">
+        <!-- Top bar: identity, recognition over recall (templates), primary actions -->
+        <header class="flex items-center justify-between gap-3 flex-wrap px-4 py-2.5 border-b border-slate-200 bg-white shrink-0">
+            <div class="flex items-center gap-3 min-w-0">
+                <div class="brand-mark" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M7 8h10M7 12h6m-9 8l4-4h10a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12z" />
+                    </svg>
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-base font-semibold text-slate-900 leading-tight truncate">Mermaid Diagram Editor</h1>
+                    <p class="text-xs text-slate-500 truncate">Edit source · Live preview · Export</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 flex-wrap">
+                <label for="template-select" class="sr-only">Load example diagram</label>
+                <select id="template-select" class="template-select" title="Load a starter template">
+                    <option value="">Examples…</option>
+                    <option value="flowchart">Flowchart</option>
+                    <option value="sequence">Sequence</option>
+                    <option value="class">Class diagram</option>
+                    <option value="er">ER diagram</option>
+                    <option value="gantt">Gantt</option>
+                    <option value="pie">Pie chart</option>
+                    <option value="state">State diagram</option>
+                    <option value="mindmap">Mindmap</option>
+                </select>
+
+                <button type="button" id="btn-clear" class="btn btn-ghost" title="Clear editor (keeps history via undo)">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Clear
+                </button>
+
+                <a
+                    href="https://mermaid.js.org/intro/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="btn btn-ghost"
+                    title="Open Mermaid syntax documentation"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Docs
+                </a>
+            </div>
+        </header>
+
+        <main id="main" class="workspace" aria-label="Mermaid editor workspace">
+            <!-- LEFT: Code editor -->
+            <section class="panel" aria-labelledby="editor-heading">
+                <div class="panel-header">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <h2 id="editor-heading" class="panel-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4 text-sky-600" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                            </svg>
+                            Source
+                        </h2>
+                        <span id="line-count" class="meta-badge mono" aria-live="polite">1 line</span>
+                    </div>
+                    <div class="panel-actions">
+                        <button type="button" id="btn-copy" class="btn" title="Copy Mermaid code to clipboard (Ctrl+Shift+C)">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            Copy
+                        </button>
+                        <button type="button" id="btn-download-code" class="btn" title="Download Mermaid source as .mmd">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download
+                        </button>
+                    </div>
+                </div>
+                <div id="editor-wrap">
+                    <label for="code-input" class="sr-only">Mermaid diagram source code</label>
+                    <textarea
+                        id="code-input"
+                        class="mono"
+                        spellcheck="false"
+                        autocomplete="off"
+                        autocapitalize="off"
+                        placeholder="Write Mermaid syntax here…&#10;&#10;flowchart TD&#10;    A[Start] --> B{Decision}&#10;    B -->|Yes| C[OK]&#10;    B -->|No| D[Retry]"
+                        aria-describedby="status-text"
+                    ></textarea>
+                </div>
+            </section>
+
+            <!-- Draggable split (user control & freedom) -->
+            <div
+                id="resizer"
+                class="resizer"
+                role="separator"
+                aria-orientation="vertical"
+                aria-label="Resize editor and preview panels"
+                aria-valuenow="50"
+                aria-valuemin="20"
+                aria-valuemax="80"
+                tabindex="0"
+            ></div>
+
+            <!-- RIGHT: Live diagram -->
+            <section class="panel" aria-labelledby="preview-heading">
+                <div class="panel-header">
+                    <div class="flex items-center gap-2 min-w-0">
+                        <h2 id="preview-heading" class="panel-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-4 h-4 text-indigo-600" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                            </svg>
+                            Preview
+                        </h2>
+                        <span id="render-badge" class="meta-badge">Live</span>
+                    </div>
+                    <div class="panel-actions">
+                        <div class="dropdown" id="export-dropdown">
+                            <button type="button" id="btn-export" class="btn btn-primary" aria-haspopup="menu" aria-expanded="false" title="Export diagram as image">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                Export image
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" class="w-3.5 h-3.5 opacity-80" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                </svg>
+                            </button>
+                            <div id="export-menu" class="dropdown-menu" role="menu" aria-label="Export format">
+                                <button type="button" class="dropdown-item" role="menuitem" data-format="png">
+                                    PNG image
+                                    <span class="ext">.png</span>
+                                </button>
+                                <button type="button" class="dropdown-item" role="menuitem" data-format="jpg">
+                                    JPEG image
+                                    <span class="ext">.jpg</span>
+                                </button>
+                                <button type="button" class="dropdown-item" role="menuitem" data-format="svg">
+                                    Vector SVG
+                                    <span class="ext">.svg</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="preview-wrap">
+                    <div id="diagram-viewport">
+                        <div id="diagram-container" aria-live="polite" aria-busy="false">
+                            <div id="diagram-stage">
+                                <!-- Filled by renderer -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="zoom-controls" role="toolbar" aria-label="Diagram zoom">
+                        <button type="button" id="btn-zoom-out" class="btn" title="Zoom out (Ctrl+-)" aria-label="Zoom out">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                            </svg>
+                        </button>
+                        <span id="zoom-level" class="zoom-level" aria-live="polite">100%</span>
+                        <button type="button" id="btn-zoom-in" class="btn" title="Zoom in (Ctrl+=)" aria-label="Zoom in">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                        </button>
+                        <div class="zoom-divider" aria-hidden="true"></div>
+                        <button type="button" id="btn-zoom-reset" class="btn" title="Reset zoom to 100% (Ctrl+0)" aria-label="Reset zoom">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />
+                            </svg>
+                        </button>
+                        <button type="button" id="btn-zoom-fit" class="btn" title="Fit diagram to view" aria-label="Fit to view">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Status: always show system state -->
+        <footer class="status-bar" role="status">
+            <div class="status-left">
+                <span class="status-dot" id="status-dot" aria-hidden="true"></span>
+                <span id="status-text">Ready — edit Mermaid code to update the diagram</span>
+            </div>
+            <div class="hidden sm:flex items-center gap-3 text-slate-400">
+                <span><span class="kbd">Tab</span> indent</span>
+                <span><span class="kbd">Ctrl</span>+scroll zoom</span>
+                <span><span class="kbd">Ctrl</span>+<span class="kbd">S</span> download code</span>
+                <span><span class="kbd">Ctrl</span>+<span class="kbd">Shift</span>+<span class="kbd">C</span> copy</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+    (function () {
+        'use strict';
+
+        // ——— Templates (recognition over recall) ———
+        const TEMPLATES = {
+            flowchart: `flowchart TD
+    A[Start] --> B{Is it working?}
+    B -->|Yes| C[Ship it]
+    B -->|No| D[Debug]
+    D --> B
+    C --> E[Celebrate]`,
+
+            sequence: `sequenceDiagram
+    actor User
+    participant UI as Mermaid Editor
+    participant Engine as Mermaid.js
+
+    User->>UI: Edit source
+    UI->>Engine: Render diagram
+    Engine-->>UI: SVG preview
+    UI-->>User: Show result`,
+
+            class: `classDiagram
+    class Animal {
+        +String name
+        +int age
+        +makeSound()
+    }
+    class Dog {
+        +String breed
+        +bark()
+    }
+    class Cat {
+        +bool indoor
+        +meow()
+    }
+    Animal <|-- Dog
+    Animal <|-- Cat`,
+
+            er: `erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ LINE-ITEM : contains
+    CUSTOMER {
+        string name
+        string email
+    }
+    ORDER {
+        int orderNumber
+        date created
+    }
+    LINE-ITEM {
+        string product
+        int quantity
+    }`,
+
+            gantt: `gantt
+    title Project roadmap
+    dateFormat  YYYY-MM-DD
+    section Design
+    Research           :a1, 2026-01-01, 14d
+    Wireframes         :a2, after a1, 10d
+    section Build
+    Prototype          :b1, after a2, 21d
+    Polish             :b2, after b1, 7d`,
+
+            pie: `pie showData
+    title Browser share
+    "Chrome" : 55
+    "Safari" : 20
+    "Firefox" : 12
+    "Edge" : 8
+    "Other" : 5`,
+
+            state: `stateDiagram-v2
+    [*] --> Idle
+    Idle --> Editing : type
+    Editing --> Rendering : debounce
+    Rendering --> Ready : success
+    Rendering --> Error : invalid
+    Error --> Editing : fix
+    Ready --> Editing : type
+    Ready --> [*]`,
+
+            mindmap: `mindmap
+  root((Mermaid))
+    Diagrams
+      Flowchart
+      Sequence
+      Class
+      ER
+    Export
+      PNG
+      JPG
+      SVG
+    UX
+      Live preview
+      Clear errors
+      Keyboard shortcuts`
+        };
+
+        const DEFAULT_CODE = TEMPLATES.flowchart;
+
+        // ——— DOM ———
+        const codeInput = document.getElementById('code-input');
+        const diagramContainer = document.getElementById('diagram-container');
+        const diagramStage = document.getElementById('diagram-stage');
+        const diagramViewport = document.getElementById('diagram-viewport');
+        const statusText = document.getElementById('status-text');
+        const statusDot = document.getElementById('status-dot');
+        const lineCount = document.getElementById('line-count');
+        const renderBadge = document.getElementById('render-badge');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnDownloadCode = document.getElementById('btn-download-code');
+        const btnExport = document.getElementById('btn-export');
+        const btnClear = document.getElementById('btn-clear');
+        const exportMenu = document.getElementById('export-menu');
+        const templateSelect = document.getElementById('template-select');
+        const resizer = document.getElementById('resizer');
+        const workspace = document.getElementById('main');
+        const toast = document.getElementById('toast');
+        const toastTitle = document.getElementById('toast-title');
+        const toastBody = document.getElementById('toast-body');
+        const toastInner = document.getElementById('toast-inner');
+        const toastIconOk = document.getElementById('toast-icon-ok');
+        const toastIconErr = document.getElementById('toast-icon-err');
+        const btnZoomIn = document.getElementById('btn-zoom-in');
+        const btnZoomOut = document.getElementById('btn-zoom-out');
+        const btnZoomReset = document.getElementById('btn-zoom-reset');
+        const btnZoomFit = document.getElementById('btn-zoom-fit');
+        const zoomLevelEl = document.getElementById('zoom-level');
+
+        let renderTimer = null;
+        let lastValidSvg = null;
+        let toastTimer = null;
+        let renderSeq = 0;
+        let zoomLevel = 1;
+        let mermaidLock = Promise.resolve();
+        let exporting = false;
+        const ZOOM_MIN = 0.25;
+        const ZOOM_MAX = 4;
+        const ZOOM_STEP = 0.1;
+
+        const MERMAID_CONFIG = {
+            startOnLoad: false,
+            securityLevel: 'loose',
+            theme: 'default',
+            fontFamily: 'IBM Plex Sans, system-ui, sans-serif',
+            flowchart: { curve: 'basis', htmlLabels: true },
+            sequence: { mirrorActors: false }
+        };
+
+        // ——— Mermaid setup ———
+        mermaid.initialize(MERMAID_CONFIG);
+
+        // ——— Status helpers (heuristic #1: visibility of system status) ———
+        function setStatus(kind, message) {
+            statusDot.className = 'status-dot' + (kind === 'ok' ? ' ok' : kind === 'err' ? ' err' : kind === 'busy' ? ' busy' : '');
+            statusText.textContent = message;
+            renderBadge.textContent = kind === 'ok' ? 'Valid' : kind === 'err' ? 'Error' : kind === 'busy' ? 'Rendering…' : 'Live';
+            renderBadge.className = 'meta-badge' + (kind === 'err' ? ' text-red-700 bg-red-50' : kind === 'ok' ? ' text-emerald-700 bg-emerald-50' : '');
+        }
+
+        function showToast(title, body, isError) {
+            toastTitle.textContent = title;
+            toastBody.textContent = body || '';
+            toast.classList.remove('hidden');
+            toastInner.classList.remove('bg-emerald-600', 'border-emerald-500', 'bg-red-600', 'border-red-500');
+            toastBody.classList.remove('text-emerald-100', 'text-red-100');
+
+            if (isError) {
+                toastInner.classList.add('bg-red-600', 'border-red-500');
+                toastBody.classList.add('text-red-100');
+                toastIconOk.classList.add('hidden');
+                toastIconErr.classList.remove('hidden');
+            } else {
+                toastInner.classList.add('bg-emerald-600', 'border-emerald-500');
+                toastBody.classList.add('text-emerald-100');
+                toastIconOk.classList.remove('hidden');
+                toastIconErr.classList.add('hidden');
+            }
+
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(function () {
+                toast.classList.add('hidden');
+            }, 3200);
+        }
+
+        document.getElementById('toast-dismiss').addEventListener('click', function () {
+            toast.classList.add('hidden');
+            clearTimeout(toastTimer);
+        });
+
+        function updateLineCount() {
+            const n = codeInput.value.split('\n').length;
+            lineCount.textContent = n + (n === 1 ? ' line' : ' lines');
+        }
+
+        function emptyState() {
+            return (
+                '<div class="state-panel">' +
+                '<div class="state-icon" aria-hidden="true">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2"/></svg>' +
+                '</div>' +
+                '<h3>No diagram yet</h3>' +
+                '<p>Type Mermaid syntax on the left, or pick an example from the top bar. The preview updates as you type.</p>' +
+                '</div>'
+            );
+        }
+
+        function errorState(message) {
+            const safe = String(message)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;');
+            return (
+                '<div class="state-panel">' +
+                '<div class="state-icon error" aria-hidden="true">' +
+                '<svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>' +
+                '</div>' +
+                '<h3>Could not render diagram</h3>' +
+                '<p>Check syntax near the reported line. Fix the source to restore the preview.</p>' +
+                '<div class="error-box" role="alert">' + safe + '</div>' +
+                '</div>'
+            );
+        }
+
+        // ——— Zoom ———
+        function applyZoom() {
+            zoomLevel = Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, zoomLevel)) * 100) / 100;
+            diagramStage.style.transform = 'scale(' + zoomLevel + ')';
+            zoomLevelEl.textContent = Math.round(zoomLevel * 100) + '%';
+            btnZoomIn.disabled = zoomLevel >= ZOOM_MAX;
+            btnZoomOut.disabled = zoomLevel <= ZOOM_MIN;
+
+            // Expand the layout box to the scaled size so overflow scrolling reaches edges
+            // (CSS transform does not affect layout flow by itself).
+            requestAnimationFrame(function () {
+                const rawW = diagramStage.offsetWidth || 0;
+                const rawH = diagramStage.offsetHeight || 0;
+                const pad = 48; // matches container padding * 2
+                if (rawW > 0 && rawH > 0) {
+                    diagramContainer.style.minWidth = Math.ceil(rawW * zoomLevel + pad) + 'px';
+                    diagramContainer.style.minHeight = Math.ceil(rawH * zoomLevel + pad) + 'px';
+                } else {
+                    diagramContainer.style.minWidth = '100%';
+                    diagramContainer.style.minHeight = '100%';
+                }
+            });
+        }
+
+        function setZoom(level) {
+            zoomLevel = level;
+            applyZoom();
+        }
+
+        function zoomBy(delta) {
+            setZoom(zoomLevel + delta);
+        }
+
+        function fitZoom() {
+            const svgEl = diagramStage.querySelector('svg');
+            if (!svgEl || !diagramViewport) {
+                setZoom(1);
+                return;
+            }
+            const pad = 48;
+            const vw = Math.max(1, diagramViewport.clientWidth - pad);
+            const vh = Math.max(1, diagramViewport.clientHeight - pad);
+
+            // Measure unscaled size (cancel current scale)
+            const rect = svgEl.getBoundingClientRect();
+            let sw = rect.width / (zoomLevel || 1);
+            let sh = rect.height / (zoomLevel || 1);
+            if (!sw || !sh) {
+                try {
+                    const bb = svgEl.getBBox();
+                    sw = bb.width || 800;
+                    sh = bb.height || 600;
+                } catch (e) {
+                    sw = svgEl.clientWidth || 800;
+                    sh = svgEl.clientHeight || 600;
+                }
+            }
+            const fit = Math.min(vw / sw, vh / sh, ZOOM_MAX);
+            setZoom(Math.max(ZOOM_MIN, Math.min(ZOOM_MAX, fit)));
+        }
+
+        btnZoomIn.addEventListener('click', function () { zoomBy(ZOOM_STEP); });
+        btnZoomOut.addEventListener('click', function () { zoomBy(-ZOOM_STEP); });
+        btnZoomReset.addEventListener('click', function () { setZoom(1); });
+        btnZoomFit.addEventListener('click', fitZoom);
+
+        // Ctrl/Cmd + wheel over preview
+        diagramViewport.addEventListener('wheel', function (e) {
+            if (!(e.ctrlKey || e.metaKey)) return;
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -ZOOM_STEP : ZOOM_STEP;
+            zoomBy(delta);
+        }, { passive: false });
+
+        // ——— Render ———
+        async function renderDiagram() {
+            const code = codeInput.value.trim();
+            updateLineCount();
+            if (!exporting) btnExport.disabled = true;
+            lastValidSvg = null;
+
+            if (!code) {
+                diagramStage.innerHTML = emptyState();
+                diagramContainer.setAttribute('aria-busy', 'false');
+                setStatus('', 'Ready — edit Mermaid code to update the diagram');
+                return;
+            }
+
+            const seq = ++renderSeq;
+            setStatus('busy', 'Rendering diagram…');
+            diagramContainer.setAttribute('aria-busy', 'true');
+
+            try {
+                await withMermaidLock(async function () {
+                    if (seq !== renderSeq) return; // stale before lock
+                    // Unique ID avoids Mermaid cache collisions between re-renders
+                    const id = 'mermaid-diagram-' + seq;
+                    const { svg } = await mermaid.render(id, code);
+
+                    if (seq !== renderSeq) return; // stale
+
+                    diagramStage.innerHTML = svg;
+                    const svgEl = diagramStage.querySelector('svg');
+                    if (svgEl) {
+                        // Keep explicit dimensions when present so export and zoom measure correctly
+                        if (!svgEl.getAttribute('viewBox') && svgEl.getAttribute('width') && svgEl.getAttribute('height')) {
+                            const w = parseFloat(svgEl.getAttribute('width'));
+                            const h = parseFloat(svgEl.getAttribute('height'));
+                            if (w > 0 && h > 0) {
+                                svgEl.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
+                            }
+                        }
+                        svgEl.style.maxWidth = 'none';
+                        svgEl.setAttribute('role', 'img');
+                        svgEl.setAttribute('aria-label', 'Rendered Mermaid diagram');
+                        lastValidSvg = svgEl;
+                    }
+                    if (!exporting) btnExport.disabled = false;
+                    diagramContainer.setAttribute('aria-busy', 'false');
+                    setStatus('ok', 'Diagram rendered successfully');
+                    applyZoom();
+                });
+            } catch (err) {
+                if (seq !== renderSeq) return;
+                const msg = (err && (err.message || err.str || String(err))) || 'Unknown parse error';
+                diagramStage.innerHTML = errorState(msg);
+                diagramContainer.setAttribute('aria-busy', 'false');
+                setStatus('err', 'Syntax error — see preview for details');
+                applyZoom();
+            }
+        }
+
+        function scheduleRender() {
+            clearTimeout(renderTimer);
+            setStatus('busy', 'Waiting for you to pause typing…');
+            renderTimer = setTimeout(renderDiagram, 320);
+        }
+
+        // ——— Clipboard & download code ———
+        async function copyCode() {
+            const text = codeInput.value;
+            if (!text.trim()) {
+                showToast('Nothing to copy', 'Add Mermaid code first.', true);
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('Code copied', 'Mermaid source is on your clipboard.');
+            } catch (e) {
+                // Fallback for restricted contexts
+                codeInput.focus();
+                codeInput.select();
+                try {
+                    document.execCommand('copy');
+                    showToast('Code copied', 'Mermaid source is on your clipboard.');
+                } catch (e2) {
+                    showToast('Copy failed', 'Select the code and press Ctrl+C.', true);
+                }
+            }
+        }
+
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.rel = 'noopener';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        }
+
+        function downloadCode() {
+            const text = codeInput.value;
+            if (!text.trim()) {
+                showToast('Nothing to download', 'Add Mermaid code first.', true);
+                return;
+            }
+            const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            downloadBlob(blob, 'diagram.mmd');
+            showToast('Source downloaded', 'Saved as diagram.mmd');
+        }
+
+        // ——— Export diagram ———
+        function measureSvg(svg) {
+            let bbox = { x: 0, y: 0, width: 0, height: 0 };
+            try {
+                bbox = svg.getBBox();
+            } catch (e) {
+                bbox = { x: 0, y: 0, width: 0, height: 0 };
+            }
+
+            // Prefer viewBox when present (stable after zoom transforms)
+            const vb = (svg.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number);
+            let x = bbox.x;
+            let y = bbox.y;
+            let width = bbox.width;
+            let height = bbox.height;
+
+            if (vb.length === 4 && vb.every(function (n) { return !isNaN(n); }) && vb[2] > 0 && vb[3] > 0) {
+                x = vb[0];
+                y = vb[1];
+                width = vb[2];
+                height = vb[3];
+            }
+
+            if (!(width > 0) || !(height > 0)) {
+                const attrW = parseFloat(svg.getAttribute('width'));
+                const attrH = parseFloat(svg.getAttribute('height'));
+                width = (attrW > 0 ? attrW : 0) || svg.clientWidth || 800;
+                height = (attrH > 0 ? attrH : 0) || svg.clientHeight || 600;
+                x = 0;
+                y = 0;
+            }
+
+            const pad = 16;
+            return {
+                x: x - pad,
+                y: y - pad,
+                width: Math.ceil(width) + pad * 2,
+                height: Math.ceil(height) + pad * 2
+            };
+        }
+
+        function prepareSvgClone(svg) {
+            if (!svg) return null;
+
+            const clone = svg.cloneNode(true);
+            const m = measureSvg(svg);
+
+            clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+            clone.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink');
+            clone.setAttribute('viewBox', m.x + ' ' + m.y + ' ' + m.width + ' ' + m.height);
+            clone.setAttribute('width', String(m.width));
+            clone.setAttribute('height', String(m.height));
+            clone.removeAttribute('style');
+            clone.style.cssText = '';
+
+            // Ensure embedded HTML labels (foreignObject) declare XHTML namespace
+            clone.querySelectorAll('foreignObject').forEach(function (fo) {
+                fo.querySelectorAll('*').forEach(function (el) {
+                    if (!el.getAttribute('xmlns')) {
+                        el.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+                    }
+                });
+            });
+
+            // White background for docs / slides
+            const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            bg.setAttribute('x', String(m.x));
+            bg.setAttribute('y', String(m.y));
+            bg.setAttribute('width', String(m.width));
+            bg.setAttribute('height', String(m.height));
+            bg.setAttribute('fill', '#ffffff');
+            clone.insertBefore(bg, clone.firstChild);
+
+            return { clone: clone, width: m.width, height: m.height };
+        }
+
+        function serializeSvg(clone) {
+            const serializer = new XMLSerializer();
+            let source = serializer.serializeToString(clone);
+            // Some browsers omit the root namespace
+            if (!/xmlns=/.test(source.slice(0, 200))) {
+                source = source.replace(
+                    /<svg/,
+                    '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"'
+                );
+            }
+            if (!source.startsWith('<?xml')) {
+                source = '<?xml version="1.0" encoding="UTF-8"?>\n' + source;
+            }
+            return source;
+        }
+
+        function withMermaidLock(fn) {
+            const run = mermaidLock.then(fn, fn);
+            mermaidLock = run.then(function () {}, function () {});
+            return run;
+        }
+
+        /**
+         * Raster-friendly SVG: Mermaid htmlLabels use <foreignObject>, which most
+         * browsers will not paint when the SVG is loaded into an <img> for canvas.
+         * Re-render with native SVG text labels for PNG/JPG export only.
+         */
+        function renderExportSvg() {
+            const code = codeInput.value.trim();
+            if (!code) return Promise.resolve(null);
+
+            return withMermaidLock(async function () {
+                const exportConfig = Object.assign({}, MERMAID_CONFIG, {
+                    flowchart: Object.assign({}, MERMAID_CONFIG.flowchart, { htmlLabels: false }),
+                    // Avoid font CDN/network dependency during rasterization
+                    fontFamily: 'sans-serif'
+                });
+
+                mermaid.initialize(exportConfig);
+
+                const holder = document.createElement('div');
+                holder.setAttribute('aria-hidden', 'true');
+                holder.style.cssText = 'position:fixed;left:-10000px;top:0;width:2400px;height:auto;pointer-events:none;opacity:0;';
+                document.body.appendChild(holder);
+
+                try {
+                    const id = 'mermaid-export-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8);
+                    const { svg } = await mermaid.render(id, code);
+                    holder.innerHTML = svg;
+                    // Remove Mermaid temp nodes sometimes left in <body>
+                    document.querySelectorAll('[id^="dmermaid-export-"], [id^="mermaid-export-"]').forEach(function (el) {
+                        if (el !== holder && !holder.contains(el)) el.remove();
+                    });
+                    const svgEl = holder.querySelector('svg');
+                    if (!svgEl) return null;
+                    return prepareSvgClone(svgEl);
+                } finally {
+                    holder.remove();
+                    // Restore live-preview config
+                    mermaid.initialize(MERMAID_CONFIG);
+                }
+            });
+        }
+
+        function getSvgCloneForExport() {
+            const svg = lastValidSvg || diagramStage.querySelector('svg');
+            return prepareSvgClone(svg);
+        }
+
+        function exportSvg() {
+            const pack = getSvgCloneForExport();
+            if (!pack) {
+                showToast('Export failed', 'Render a valid diagram first.', true);
+                return;
+            }
+            const source = serializeSvg(pack.clone);
+            const blob = new Blob([source], { type: 'image/svg+xml;charset=utf-8' });
+            downloadBlob(blob, 'diagram.svg');
+            showToast('SVG exported', 'Saved as diagram.svg');
+        }
+
+        function canvasToBlob(canvas, mime, quality) {
+            return new Promise(function (resolve, reject) {
+                if (canvas.toBlob) {
+                    canvas.toBlob(function (blob) {
+                        if (blob) resolve(blob);
+                        else reject(new Error('Could not encode image.'));
+                    }, mime, quality);
+                    return;
+                }
+                try {
+                    const dataUrl = canvas.toDataURL(mime, quality);
+                    const parts = dataUrl.split(',');
+                    const bin = atob(parts[1] || '');
+                    const arr = new Uint8Array(bin.length);
+                    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+                    resolve(new Blob([arr], { type: mime }));
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        }
+
+        function loadSvgAsImage(source) {
+            return new Promise(function (resolve, reject) {
+                const img = new Image();
+                // Data URL avoids blob-origin quirks and is more reliable for SVG→canvas
+                const url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(source);
+
+                img.onload = function () {
+                    if (!img.naturalWidth || !img.naturalHeight) {
+                        reject(new Error('SVG image loaded with zero size.'));
+                        return;
+                    }
+                    resolve(img);
+                };
+                img.onerror = function () {
+                    reject(new Error('Could not load SVG for rasterization.'));
+                };
+                img.src = url;
+            });
+        }
+
+        async function exportRaster(format) {
+            if (!codeInput.value.trim() || !lastValidSvg) {
+                showToast('Export failed', 'Render a valid diagram first.', true);
+                return;
+            }
+
+            exporting = true;
+            setStatus('busy', 'Exporting ' + format.toUpperCase() + '…');
+            btnExport.disabled = true;
+
+            try {
+                // Prefer SVG-native labels so text survives <img> + canvas rasterization
+                let pack = await renderExportSvg();
+                if (!pack) {
+                    pack = getSvgCloneForExport();
+                }
+                if (!pack) {
+                    showToast('Export failed', 'Render a valid diagram first.', true);
+                    return;
+                }
+
+                const source = serializeSvg(pack.clone);
+                const img = await loadSvgAsImage(source);
+                const scale = 2; // retina-quality export
+                const width = Math.max(1, Math.floor(pack.width * scale));
+                const height = Math.max(1, Math.floor(pack.height * scale));
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) throw new Error('Canvas not supported in this browser.');
+
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const mime = format === 'jpg' ? 'image/jpeg' : 'image/png';
+                const quality = format === 'jpg' ? 0.92 : undefined;
+                const filename = format === 'jpg' ? 'diagram.jpg' : 'diagram.png';
+
+                const blob = await canvasToBlob(canvas, mime, quality);
+                downloadBlob(blob, filename);
+                showToast(format.toUpperCase() + ' exported', 'Saved as ' + filename);
+                setStatus('ok', 'Diagram rendered successfully');
+            } catch (err) {
+                showToast('Export failed', (err && err.message) || 'Canvas export error.', true);
+                setStatus(lastValidSvg ? 'ok' : 'err', lastValidSvg ? 'Diagram rendered successfully' : 'Export failed');
+            } finally {
+                exporting = false;
+                btnExport.disabled = !lastValidSvg;
+            }
+        }
+
+        function exportDiagram(format) {
+            closeExportMenu();
+            if (format === 'svg') exportSvg();
+            else exportRaster(format);
+        }
+
+        // ——— Export menu ———
+        function openExportMenu() {
+            exportMenu.classList.add('open');
+            btnExport.setAttribute('aria-expanded', 'true');
+        }
+
+        function closeExportMenu() {
+            exportMenu.classList.remove('open');
+            btnExport.setAttribute('aria-expanded', 'false');
+        }
+
+        function toggleExportMenu() {
+            if (exportMenu.classList.contains('open')) closeExportMenu();
+            else openExportMenu();
+        }
+
+        btnExport.addEventListener('click', function (e) {
+            e.stopPropagation();
+            if (btnExport.disabled) return;
+            toggleExportMenu();
+        });
+
+        exportMenu.querySelectorAll('[data-format]').forEach(function (item) {
+            item.addEventListener('click', function () {
+                exportDiagram(item.getAttribute('data-format'));
+            });
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!document.getElementById('export-dropdown').contains(e.target)) {
+                closeExportMenu();
+            }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') closeExportMenu();
+        });
+
+        // ——— Editor UX ———
+        codeInput.addEventListener('input', scheduleRender);
+
+        // Tab inserts spaces (efficiency of use for coders)
+        codeInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                const start = codeInput.selectionStart;
+                const end = codeInput.selectionEnd;
+                const val = codeInput.value;
+                codeInput.value = val.slice(0, start) + '  ' + val.slice(end);
+                codeInput.selectionStart = codeInput.selectionEnd = start + 2;
+                scheduleRender();
+            }
+        });
+
+        btnCopy.addEventListener('click', copyCode);
+        btnDownloadCode.addEventListener('click', downloadCode);
+
+        btnClear.addEventListener('click', function () {
+            if (!codeInput.value.trim()) return;
+            if (!confirm('Clear the editor? You can undo with Ctrl+Z after clearing.')) return;
+            codeInput.value = '';
+            codeInput.focus();
+            scheduleRender();
+        });
+
+        templateSelect.addEventListener('change', function () {
+            const key = templateSelect.value;
+            if (!key || !TEMPLATES[key]) return;
+            if (codeInput.value.trim() && codeInput.value !== DEFAULT_CODE) {
+                if (!confirm('Replace current code with the “' + templateSelect.options[templateSelect.selectedIndex].text + '” example?')) {
+                    templateSelect.value = '';
+                    return;
+                }
+            }
+            codeInput.value = TEMPLATES[key];
+            templateSelect.value = '';
+            codeInput.focus();
+            renderDiagram();
+            showToast('Example loaded', 'Edit freely — the preview updates live.');
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function (e) {
+            const mod = e.ctrlKey || e.metaKey;
+            if (mod && e.shiftKey && (e.key === 'C' || e.key === 'c')) {
+                e.preventDefault();
+                copyCode();
+            } else if (mod && (e.key === 's' || e.key === 'S')) {
+                e.preventDefault();
+                downloadCode();
+            } else if (mod && (e.key === '=' || e.key === '+')) {
+                e.preventDefault();
+                zoomBy(ZOOM_STEP);
+            } else if (mod && e.key === '-') {
+                e.preventDefault();
+                zoomBy(-ZOOM_STEP);
+            } else if (mod && e.key === '0') {
+                e.preventDefault();
+                setZoom(1);
+            }
+        });
+
+        // ——— Resizable split ———
+        (function initResizer() {
+            let dragging = false;
+
+            function isVerticalLayout() {
+                return window.matchMedia('(max-width: 768px)').matches;
+            }
+
+            function applySplit(percent) {
+                percent = Math.min(80, Math.max(20, percent));
+                if (isVerticalLayout()) {
+                    workspace.style.gridTemplateColumns = '';
+                    workspace.style.gridTemplateRows =
+                        'minmax(120px, ' + percent + 'fr) 6px minmax(120px, ' + (100 - percent) + 'fr)';
+                } else {
+                    workspace.style.gridTemplateRows = '';
+                    workspace.style.gridTemplateColumns =
+                        'minmax(var(--editor-min), ' + percent + 'fr) 6px minmax(var(--preview-min), ' + (100 - percent) + 'fr)';
+                }
+                resizer.setAttribute('aria-valuenow', String(Math.round(percent)));
+            }
+
+            function onPointerDown(e) {
+                dragging = true;
+                resizer.classList.add('active');
+                resizer.setPointerCapture && resizer.setPointerCapture(e.pointerId);
+                e.preventDefault();
+            }
+
+            function onPointerMove(e) {
+                if (!dragging) return;
+                const rect = workspace.getBoundingClientRect();
+                let percent;
+                if (isVerticalLayout()) {
+                    percent = ((e.clientY - rect.top) / rect.height) * 100;
+                } else {
+                    percent = ((e.clientX - rect.left) / rect.width) * 100;
+                }
+                applySplit(percent);
+            }
+
+            function onPointerUp(e) {
+                if (!dragging) return;
+                dragging = false;
+                resizer.classList.remove('active');
+                try {
+                    resizer.releasePointerCapture && resizer.releasePointerCapture(e.pointerId);
+                } catch (_) { /* ignore */ }
+            }
+
+            resizer.addEventListener('pointerdown', onPointerDown);
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
+
+            resizer.addEventListener('keydown', function (e) {
+                const step = e.shiftKey ? 10 : 2;
+                let now = parseInt(resizer.getAttribute('aria-valuenow') || '50', 10);
+                if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    applySplit(now - step);
+                } else if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    applySplit(now + step);
+                } else if (e.key === 'Home') {
+                    e.preventDefault();
+                    applySplit(50);
+                }
+            });
+
+            window.addEventListener('resize', function () {
+                const now = parseInt(resizer.getAttribute('aria-valuenow') || '50', 10);
+                applySplit(now);
+            });
+        })();
+
+        // ——— Boot ———
+        codeInput.value = DEFAULT_CODE;
+        updateLineCount();
+        applyZoom();
+        renderDiagram();
+        codeInput.focus();
+    })();
+    </script>
+</body>
+</html>
