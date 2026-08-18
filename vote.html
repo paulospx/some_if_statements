@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0C0814" />
+  <meta name="description" content="Modelling Assets Team Votes — live sprint happiness and confidence voting, Mentimeter-style." />
+  <title>Modelling Assets Team Votes</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230C0814'/%3E%3Ccircle cx='11' cy='16' r='3' fill='%23FF2E7E'/%3E%3Ccircle cx='21' cy='16' r='3' fill='%236E56CF'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root {
+      --ink: #1A1228;
+      --ink-soft: #5B5270;
+      --line: #E6DFF3;
+      --paper: #F7F3FF;
+      --card: #FFFFFF;
+      --pink: #FF2E7E;
+      --pink-deep: #D11763;
+      --violet: #6E56CF;
+      --teal: #12C4B0;
+      --shadow: 0 18px 50px rgba(46, 18, 82, 0.12);
+      --radius: 22px;
+      --s0: #E11D48;
+      --s1: #F97316;
+      --s2: #EAB308;
+      --s3: #84CC16;
+      --s4: #22C55E;
+      --s5: #14B8A6;
+      --focus: 0 0 0 3px #fff, 0 0 0 6px var(--violet);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: Outfit, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background: var(--paper);
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input, textarea { font: inherit; color: inherit; }
+    button { cursor: pointer; border: 0; background: none; }
+    a { color: inherit; text-decoration: none; }
+    .hint a, .banner a, .footer-note a, .lede a { text-decoration: underline; }
+    img { max-width: 100%; }
+    :focus-visible { outline: none; box-shadow: var(--focus); }
+
+    .app { min-height: 100dvh; }
+    .app.is-dark {
+      color: #F6F1FF;
+      background:
+        radial-gradient(1200px 500px at 10% -10%, rgba(110, 86, 207, 0.35), transparent 50%),
+        radial-gradient(900px 420px at 100% 0%, rgba(255, 46, 126, 0.22), transparent 46%),
+        #0C0814;
+    }
+    .app.is-dark { --ink: #F6F1FF; --ink-soft: #B7A9D4; --line: #2A223C; --card: #16101F; --paper: #0C0814; }
+
+    .shell { width: min(1120px, calc(100% - 32px)); margin: 0 auto; padding: 20px 0 64px; }
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; margin-bottom: 28px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .mark {
+      width: 36px; height: 36px; border-radius: 11px;
+      background: #0C0814; display: grid; place-items: center; position: relative;
+    }
+    .app.is-dark .mark { background: #211833; }
+    .mark i, .mark b {
+      width: 8px; height: 8px; border-radius: 50%; display: block; position: absolute;
+    }
+    .mark i { background: var(--pink); left: 8px; }
+    .mark b { background: var(--violet); right: 8px; }
+    .brand strong { font-weight: 750; letter-spacing: -0.03em; font-size: 1.05rem; line-height: 1.15; }
+    .nav { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+    .ghost {
+      color: var(--ink-soft); padding: 8px 12px; border-radius: 999px; font-weight: 600;
+    }
+    .ghost:hover { background: color-mix(in srgb, var(--violet) 10%, transparent); color: var(--ink); }
+
+    .hero { text-align: center; padding: 24px 0 8px; }
+    .kicker {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #fff; border: 1px solid var(--line); color: var(--violet);
+      padding: 6px 12px; border-radius: 999px; font-size: 0.82rem; font-weight: 700;
+      letter-spacing: 0.04em; text-transform: uppercase;
+    }
+    .app.is-dark .kicker { background: #211833; border-color: #34284C; }
+    .display {
+      font-family: Fraunces, Georgia, serif;
+      font-size: clamp(2.2rem, 6vw, 4.4rem);
+      line-height: 1.05; letter-spacing: -0.035em; margin: 16px 0 12px;
+    }
+    .lede { color: var(--ink-soft); font-size: 1.12rem; max-width: 36rem; margin: 0 auto 28px; }
+
+    .join-card, .panel {
+      background: var(--card); border: 1px solid var(--line);
+      border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .join-card { width: min(560px, 100%); margin: 0 auto; padding: 28px 24px 24px; }
+    .label { display: block; font-weight: 700; margin-bottom: 10px; }
+    .hint { color: var(--ink-soft); font-size: 0.92rem; margin-top: 8px; }
+
+    .code-row { display: flex; justify-content: center; gap: 8px; }
+    .code-row input {
+      width: 52px; height: 64px; text-align: center; text-transform: uppercase;
+      font-size: 1.6rem; font-weight: 750; letter-spacing: 0.04em;
+      border: 2px solid var(--line); border-radius: 14px; background: #FBF9FF;
+    }
+    .app.is-dark .code-row input {
+      background: #241A36; border-color: #4A3B6A; color: #fff;
+    }
+    .code-row input:focus { border-color: var(--violet); box-shadow: var(--focus); }
+
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      min-height: 48px; padding: 12px 20px; border-radius: 999px; font-weight: 750;
+      transition: transform .15s ease, filter .15s ease, background .15s ease;
+    }
+    .btn:hover { transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+    .btn-primary { background: var(--ink); color: #fff; width: 100%; margin-top: 18px; }
+    .app.is-dark .btn-primary { background: var(--pink); }
+    .btn-accent { background: var(--pink); color: #fff; }
+    .btn-soft { background: #ECE6FA; color: var(--ink); }
+    .app.is-dark .btn-soft { background: #2A2140; color: #fff; }
+    .btn-line {
+      background: transparent; border: 1.5px solid var(--line); color: var(--ink);
+    }
+
+    .split { display: grid; gap: 16px; margin-top: 28px; }
+    @media (min-width: 760px) { .split-2 { grid-template-columns: 1fr 1fr; } }
+
+    .hosted { margin-top: 36px; }
+    .hosted h2 { font-size: 1rem; margin-bottom: 12px; }
+    .sprint-list { display: grid; gap: 10px; }
+    .sprint-link {
+      display: flex; justify-content: space-between; gap: 12px; align-items: center;
+      padding: 14px 16px; border-radius: 16px; background: var(--card);
+      border: 1px solid var(--line); text-decoration: none;
+    }
+    .sprint-link:hover { border-color: var(--violet); }
+    .muted { color: var(--ink-soft); font-size: 0.88rem; }
+    .mono { font-variant-numeric: tabular-nums; letter-spacing: 0.08em; font-weight: 750; }
+
+    .form { width: min(680px, 100%); margin: 0 auto; padding: 28px; }
+    .field { margin-bottom: 18px; }
+    .field input, .field textarea {
+      width: 100%; border: 1.5px solid var(--line); border-radius: 14px;
+      padding: 13px 14px; background: #FBF9FF;
+    }
+    .app.is-dark .field input, .app.is-dark .field textarea { background: #110C1A; }
+    .field textarea { min-height: 110px; resize: vertical; }
+    .count { float: right; color: var(--ink-soft); font-weight: 500; font-size: 0.82rem; }
+
+    .share-grid {
+      display: grid; gap: 22px; align-items: start;
+    }
+    @media (min-width: 860px) {
+      .share-grid { grid-template-columns: 1.1fr .9fr; }
+    }
+    .code-hero {
+      font-family: Fraunces, Georgia, serif;
+      font-size: clamp(2.8rem, 8vw, 5.4rem);
+      letter-spacing: 0.12em; line-height: 1;
+    }
+    .qr {
+      background: #fff; border-radius: 20px; padding: 16px;
+      display: grid; place-items: center; min-height: 240px;
+    }
+    .qr img, .qr canvas { width: 220px !important; height: 220px !important; }
+    .meta-card { padding: 22px; }
+    .meta-card h2 { font-family: Fraunces, Georgia, serif; font-size: 1.8rem; margin-bottom: 8px; }
+    .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+    .chip {
+      background: #2A2140; color: #fff; border-radius: 999px; padding: 6px 11px;
+      font-size: 0.82rem; font-weight: 650;
+    }
+    .app:not(.is-dark) .chip { background: #ECE6FA; color: var(--ink); }
+
+    .vote-wrap { width: min(760px, 100%); margin: 0 auto; }
+    .context { padding: 18px 20px; margin-bottom: 18px; }
+    .context h1 { font-size: 1.35rem; letter-spacing: -0.02em; }
+    .progress { display: flex; gap: 8px; margin: 18px 0 10px; }
+    .progress span {
+      height: 6px; flex: 1; border-radius: 99px; background: #DDD4F0;
+    }
+    .app.is-dark .progress span { background: #2A2140; }
+    .progress span.on { background: var(--pink); }
+    .q { font-family: Fraunces, Georgia, serif; font-size: clamp(1.7rem, 4vw, 2.5rem); margin-bottom: 8px; }
+    .scale {
+      display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 22px 0 8px;
+    }
+    .scale-opt {
+      aspect-ratio: 0.78; border-radius: 18px; border: 2px solid var(--line);
+      background: var(--card); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px; min-height: 108px;
+    }
+    .scale-opt .face { font-size: clamp(1.4rem, 4vw, 2rem); line-height: 1; }
+    .scale-opt .n { font-weight: 800; font-size: 1.05rem; }
+    .scale-opt .w { font-size: 0.72rem; color: var(--ink-soft); font-weight: 650; text-align: center; padding: 0 4px; }
+    .scale-opt[aria-checked="true"] {
+      border-color: transparent; color: #fff; transform: translateY(-3px);
+      box-shadow: 0 12px 24px rgba(26, 18, 40, 0.16);
+    }
+    .scale-opt[data-v="0"][aria-checked="true"] { background: var(--s0); }
+    .scale-opt[data-v="1"][aria-checked="true"] { background: var(--s1); }
+    .scale-opt[data-v="2"][aria-checked="true"] { background: var(--s2); color: #3A2A00; }
+    .scale-opt[data-v="3"][aria-checked="true"] { background: var(--s3); color: #1A3300; }
+    .scale-opt[data-v="4"][aria-checked="true"] { background: var(--s4); }
+    .scale-opt[data-v="5"][aria-checked="true"] { background: var(--s5); }
+    .ends { display: flex; justify-content: space-between; color: var(--ink-soft); font-weight: 650; font-size: 0.86rem; margin-bottom: 20px; }
+    .actions { display: flex; gap: 10px; }
+    .actions .btn { flex: 1; }
+
+    .thanks { text-align: center; padding: 40px 20px; }
+    .thanks .display { margin-bottom: 8px; }
+
+    .stats {
+      display: grid; gap: 16px; margin-bottom: 18px;
+    }
+    @media (min-width: 800px) { .stats { grid-template-columns: 1fr 1fr; } }
+    .stat { padding: 22px; position: relative; overflow: hidden; }
+    .stat-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
+    .avg {
+      font-family: Fraunces, Georgia, serif;
+      font-size: clamp(3.4rem, 8vw, 5.2rem); line-height: 0.9; letter-spacing: -0.04em;
+    }
+    .meter { width: 88px; height: 88px; }
+    .bars { display: grid; gap: 8px; margin-top: 18px; }
+    .bar-row { display: grid; grid-template-columns: 52px 1fr 36px; gap: 8px; align-items: center; font-size: 0.85rem; font-weight: 650; }
+    .track { height: 12px; border-radius: 99px; background: #ECE6FA; overflow: hidden; }
+    .app.is-dark .track { background: #2A2140; }
+    .fill { height: 100%; width: 0; border-radius: inherit; transition: width .6s cubic-bezier(.2,.8,.2,1); }
+    .comments { padding: 22px; }
+    .comments h2 { margin-bottom: 14px; }
+    .note {
+      background: #FFF9D8; color: #2A2208; border-radius: 16px; padding: 14px 16px; margin-bottom: 10px;
+      transform: rotate(var(--tilt, -0.4deg));
+    }
+    .app.is-dark .note { background: #2A2612; color: #F6EEC0; }
+    .note footer { margin-top: 8px; font-size: 0.8rem; opacity: .7; font-weight: 650; }
+
+    .banner {
+      border-radius: 14px; padding: 12px 14px; margin: 12px 0; font-weight: 600;
+    }
+    .banner.warn { background: #FFF3CD; color: #5C4300; }
+    .banner.err { background: #FFE1E6; color: #8A1230; }
+    .banner.ok { background: #D9F7EE; color: #0B5C4B; }
+    .app.is-dark .banner.warn { background: #3A300E; color: #FFE08A; }
+    .app.is-dark .banner.err { background: #3A1220; color: #FFB3C3; }
+
+    .toast {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: #0C0814; color: #fff; padding: 10px 16px; border-radius: 999px;
+      font-weight: 700; z-index: 20; box-shadow: var(--shadow);
+    }
+    .live { display: inline-flex; align-items: center; gap: 8px; font-weight: 750; }
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #22C55E;
+      box-shadow: 0 0 0 0 rgba(34,197,94,.7); animation: pulse 1.6s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(34,197,94,.55); }
+      70% { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+      100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); }
+    }
+    .overlay {
+      position: fixed; inset: 0; background: rgba(8,4,16,.72);
+      display: grid; place-items: center; z-index: 30; padding: 20px;
+    }
+    .overlay .panel { width: min(440px, 100%); padding: 24px; text-align: center; }
+    .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .footer-note { text-align: center; color: var(--ink-soft); font-size: 0.85rem; margin-top: 28px; }
+    .ghost.is-on { background: color-mix(in srgb, var(--violet) 14%, transparent); color: var(--ink); }
+
+    .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+    @media (min-width: 860px) { .kpi-grid { grid-template-columns: repeat(4, 1fr); } }
+    .kpi { padding: 18px 20px; }
+    .kpi .avg { font-size: clamp(2.3rem, 5vw, 3.3rem); }
+    .kpi p + p { margin-top: 2px; }
+
+    .insight {
+      padding: 16px 20px; margin-bottom: 18px;
+      border-left: 4px solid var(--violet);
+    }
+    .insight p { font-size: 1.05rem; font-weight: 600; max-width: 52rem; }
+
+    .substats { display: grid; gap: 12px; margin-bottom: 18px; }
+    @media (min-width: 720px) { .substats { grid-template-columns: repeat(3, 1fr); } }
+    .substat { padding: 16px 18px; }
+    .substat strong { display: block; font-size: 1.25rem; letter-spacing: -0.02em; margin: 4px 0 2px; }
+
+    .mix-bar {
+      display: flex; height: 14px; border-radius: 99px; overflow: hidden;
+      background: #ECE6FA; margin: 12px 0 10px;
+    }
+    .app.is-dark .mix-bar { background: #2A2140; }
+    .mix-seg { height: 100%; min-width: 0; }
+    .mix-legend {
+      display: flex; flex-wrap: wrap; gap: 10px 16px;
+      font-size: 0.85rem; font-weight: 650; color: var(--ink-soft);
+    }
+    .mix-legend i {
+      display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px;
+    }
+
+    .quad { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .quad-cell {
+      padding: 14px 16px; border-radius: 16px; background: #F3EEFF;
+    }
+    .app.is-dark .quad-cell { background: #211833; }
+    .quad-cell .n { font-family: Fraunces, Georgia, serif; font-size: 2rem; line-height: 1; }
+    .quad-cell.risk { background: #FFE1E6; }
+    .app.is-dark .quad-cell.risk { background: #3A1220; }
+    .quad-cell.good { background: #D9F7EE; }
+    .app.is-dark .quad-cell.good { background: #0E2E28; }
+
+    .section-head {
+      display: flex; justify-content: space-between; align-items: end;
+      gap: 12px; flex-wrap: wrap; margin: 8px 0 14px;
+    }
+    .section-head h2 { font-size: 1.15rem; }
+    .sort-label select {
+      border: 1.5px solid var(--line); border-radius: 999px;
+      padding: 8px 14px; background: var(--card); font-weight: 650;
+    }
+
+    .compare-wrap { overflow-x: auto; }
+    .compare { width: 100%; border-collapse: collapse; min-width: 620px; }
+    .compare th, .compare td {
+      text-align: left; padding: 12px 10px;
+      border-bottom: 1px solid var(--line); vertical-align: top;
+    }
+    .compare th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); }
+    .compare tbody tr:hover { background: color-mix(in srgb, var(--violet) 10%, transparent); }
+    .compare a { font-weight: 700; }
+    .num { font-variant-numeric: tabular-nums; font-weight: 750; }
+    .sprint-cards { display: none; gap: 10px; }
+    .sprint-card {
+      display: block; padding: 14px 16px; border-radius: 16px;
+      background: var(--card); border: 1px solid var(--line);
+    }
+    .sprint-card:hover { border-color: var(--violet); }
+    .sprint-meta { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 8px; font-weight: 650; }
+
+    @media (max-width: 720px) {
+      .compare-wrap { display: none; }
+      .sprint-cards { display: grid; }
+    }
+
+    @media (max-width: 640px) {
+      .scale { grid-template-columns: repeat(3, 1fr); }
+      .scale-opt { aspect-ratio: 1.1; min-height: 96px; }
+      .code-row input { width: 44px; height: 56px; font-size: 1.3rem; }
+      .nav .fac { display: none; }
+      .topbar { align-items: flex-start; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="app"></div>
+  <div id="toast" hidden class="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    /* ============================================================
+       1. PASTE YOUR FIREBASE WEB APP CONFIG HERE
+          Firebase console → Project settings → Your apps
+          Everyone who opens this file must share the same config.
+       ============================================================ */
+    // const FIREBASE_CONFIG = {
+    //   apiKey: "",
+    //   authDomain: "",
+    //   databaseURL: "",
+    //   projectId: "",
+    //   storageBucket: "",
+    //   messagingSenderId: "",
+    //   appId: ""
+    // };
+
+    const FIREBASE_CONFIG = {
+      apiKey: "AIzaSyDc8m5jxdrqXSOiAc1hFKuJtAXRDzBV3_g",
+      authDomain: "comments-f51c9.firebaseapp.com",
+      databaseURL: "https://comments-f51c9.firebaseio.com",
+      projectId: "comments-f51c9",
+      storageBucket: "comments-f51c9.firebasestorage.app",
+      messagingSenderId: "719780277212",
+      appId: "1:719780277212:web:51e42d09120c1ec4c03d19"
+    };
+
+    const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    const HAPPY = [
+      { face: "😭", word: "Very sad" },
+      { face: "🙁", word: "Sad" },
+      { face: "😐", word: "Low" },
+      { face: "🙂", word: "Okay" },
+      { face: "😊", word: "Happy" },
+      { face: "🤩", word: "Thrilled" }
+    ];
+    const CONF = [
+      { face: "😰", word: "None" },
+      { face: "😟", word: "Low" },
+      { face: "🤔", word: "Uneasy" },
+      { face: "😌", word: "Fair" },
+      { face: "💪", word: "Strong" },
+      { face: "🚀", word: "Sure" }
+    ];
+    const COLORS = ["#E11D48", "#F97316", "#EAB308", "#84CC16", "#22C55E", "#14B8A6"];
+
+    const LS_CONFIG = "tv:firebase";
+    const LS_DEVICE = "tv:device";
+    const LS_HOSTED = "tv:hosted";
+    const LS_SPRINTS = "tv:sprints";
+    const LS_VOTES = "tv:votes:";
+
+    const state = {
+      view: "home",
+      code: "",
+      sprint: null,
+      votes: [],
+      step: 0,
+      draft: { displayName: "", happiness: null, confidence: null, comment: "" },
+      error: "",
+      notice: "",
+      showJoin: false,
+      unsub: null,
+      listening: null,
+      allSprints: {},
+      allVotes: {},
+      globalSort: "recent",
+      globalReady: false
+    };
+
+    let db = null;
+    let channel = null;
+    try { channel = new BroadcastChannel("teamvote"); } catch (_) {}
+
+    function $(id) { return document.getElementById(id); }
+    function esc(s) {
+      return String(s ?? "").replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[c]));
+    }
+    function deviceId() {
+      let id = localStorage.getItem(LS_DEVICE);
+      if (!id) {
+        id = (crypto.randomUUID && crypto.randomUUID()) || ("d" + Date.now() + Math.random().toString(16).slice(2));
+        localStorage.setItem(LS_DEVICE, id);
+      }
+      return id;
+    }
+    function nowIso() { return new Date().toISOString(); }
+    function fmtTime(iso) {
+      try { return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }); }
+      catch { return ""; }
+    }
+    function makeCode() {
+      let out = "";
+      const buf = new Uint32Array(6);
+      crypto.getRandomValues(buf);
+      for (let i = 0; i < 6; i++) out += CODE_CHARS[buf[i] % CODE_CHARS.length];
+      return out;
+    }
+    function normalizeCode(raw) {
+      return String(raw || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6);
+    }
+    function getConfig() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(LS_CONFIG) || "null");
+        if (saved && saved.apiKey && saved.projectId) {
+          if (!saved.databaseURL && FIREBASE_CONFIG.databaseURL) {
+            saved.databaseURL = FIREBASE_CONFIG.databaseURL;
+          }
+          return saved;
+        }
+      } catch (_) {}
+      if (FIREBASE_CONFIG.apiKey && FIREBASE_CONFIG.projectId) return FIREBASE_CONFIG;
+      return null;
+    }
+    function firebaseReady() { return !!db; }
+    function hostedList() {
+      try { return JSON.parse(localStorage.getItem(LS_HOSTED) || "[]"); }
+      catch { return []; }
+    }
+    function rememberHosted(sprint) {
+      const list = hostedList().filter((s) => s.code !== sprint.code);
+      list.unshift({ code: sprint.code, title: sprint.title, createdAt: sprint.createdAt });
+      localStorage.setItem(LS_HOSTED, JSON.stringify(list.slice(0, 20)));
+    }
+    function toast(msg) {
+      const el = $("toast");
+      el.textContent = msg;
+      el.hidden = false;
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => { el.hidden = true; }, 2400);
+    }
+
+    function localGetSprint(code) {
+      const all = JSON.parse(localStorage.getItem(LS_SPRINTS) || "{}");
+      return all[code] || null;
+    }
+    function localSaveSprint(sprint) {
+      const all = JSON.parse(localStorage.getItem(LS_SPRINTS) || "{}");
+      all[sprint.code] = sprint;
+      localStorage.setItem(LS_SPRINTS, JSON.stringify(all));
+    }
+    function localVotes(code) {
+      return JSON.parse(localStorage.getItem(LS_VOTES + code) || "{}");
+    }
+    function localSaveVote(code, id, vote) {
+      const all = localVotes(code);
+      all[id] = vote;
+      localStorage.setItem(LS_VOTES + code, JSON.stringify(all));
+      if (channel) channel.postMessage({ type: "votes", code });
+    }
+
+    function initFirebase() {
+      const cfg = getConfig();
+      db = null;
+      if (!cfg) return false;
+      try {
+        if (!firebase.apps.length) firebase.initializeApp(cfg);
+        else firebase.app();
+        db = firebase.database();
+        return true;
+      } catch (err) {
+        console.warn(err);
+        db = null;
+        return false;
+      }
+    }
+
+    async function createSprint(data) {
+      const sprint = {
+        code: makeCode(),
+        title: data.title.trim(),
+        description: data.description.trim(),
+        goal: data.goal.trim(),
+        status: "open",
+        createdAt: nowIso()
+      };
+      if (db) {
+        try {
+          await db.ref("sprints/" + sprint.code).set(sprint);
+        } catch (err) {
+          console.warn("Firebase create failed, using local store", err);
+        }
+      }
+      localSaveSprint(sprint);
+      rememberHosted(sprint);
+      return sprint;
+    }
+
+    async function fetchSprint(code) {
+      if (db) {
+        const snap = await db.ref("sprints/" + code).once("value");
+        if (snap.exists()) {
+          const sprint = snap.val();
+          localSaveSprint(sprint);
+          return sprint;
+        }
+      }
+      return localGetSprint(code);
+    }
+
+    async function saveVote(code, vote) {
+      const payload = {
+        happiness: vote.happiness,
+        confidence: vote.confidence,
+        comment: (vote.comment || "").trim(),
+        displayName: (vote.displayName || "").trim(),
+        updatedAt: nowIso()
+      };
+      if (db) {
+        try {
+          await db.ref("votes/" + code + "/" + deviceId()).set(payload);
+        } catch (err) {
+          console.warn("Firebase vote failed, using local store", err);
+        }
+      }
+      localSaveVote(code, deviceId(), payload);
+    }
+
+    function stopListening() {
+      if (state.unsub) { state.unsub(); state.unsub = null; }
+      state.listening = null;
+    }
+
+    function localAllSprints() {
+      try { return JSON.parse(localStorage.getItem(LS_SPRINTS) || "{}"); }
+      catch { return {}; }
+    }
+    function localAllVotes(sprints) {
+      const votes = {};
+      const codes = new Set(Object.keys(sprints || {}));
+      hostedList().forEach((s) => codes.add(s.code));
+      codes.forEach((code) => { votes[code] = localVotes(code); });
+      return votes;
+    }
+
+    function listenVotes(code) {
+      if (state.listening === "votes:" + code) return;
+      stopListening();
+      state.listening = "votes:" + code;
+      const apply = (map) => {
+        const next = Object.values(map).sort((a, b) => (a.updatedAt || "").localeCompare(b.updatedAt || ""));
+        const prevCount = state.votes.length;
+        state.votes = next;
+        if (state.view === "results" || state.view === "share") render();
+        if (next.length > prevCount && prevCount > 0) toast("New vote in");
+      };
+      if (db) {
+        const ref = db.ref("votes/" + code);
+        const onVal = (snap) => apply(snap.val() || {});
+        const onErr = (err) => {
+          state.notice = "Live updates paused: " + err.message;
+          apply(localVotes(code));
+        };
+        ref.on("value", onVal, onErr);
+        state.unsub = () => ref.off("value", onVal);
+        return;
+      }
+      apply(localVotes(code));
+      const onMsg = (e) => { if (e.data && e.data.code === code) apply(localVotes(code)); };
+      if (channel) channel.addEventListener("message", onMsg);
+      const onStorage = (e) => { if (e.key === LS_VOTES + code) apply(localVotes(code)); };
+      window.addEventListener("storage", onStorage);
+      state.unsub = () => {
+        if (channel) channel.removeEventListener("message", onMsg);
+        window.removeEventListener("storage", onStorage);
+      };
+    }
+
+    function listenGlobal() {
+      if (state.listening === "global") return;
+      stopListening();
+      state.listening = "global";
+      state.globalReady = false;
+      const paint = () => { if (state.view === "global") render(); };
+      if (db) {
+        const sprintsRef = db.ref("sprints");
+        const votesRef = db.ref("votes");
+        let gotS = false, gotV = false;
+        const ready = () => {
+          if (gotS && gotV) {
+            state.globalReady = true;
+            paint();
+          }
+        };
+        const onSprints = (snap) => { state.allSprints = snap.val() || {}; gotS = true; ready(); };
+        const onVotes = (snap) => {
+          const prev = flattenVotes(state.allVotes).length;
+          state.allVotes = snap.val() || {};
+          gotV = true;
+          ready();
+          const next = flattenVotes(state.allVotes).length;
+          if (next > prev && prev > 0 && state.view === "global") toast("New vote in");
+        };
+        const onErr = (err) => {
+          state.notice = "Live updates paused: " + err.message;
+          state.allSprints = localAllSprints();
+          state.allVotes = localAllVotes(state.allSprints);
+          state.globalReady = true;
+          paint();
+        };
+        sprintsRef.on("value", onSprints, onErr);
+        votesRef.on("value", onVotes, onErr);
+        state.unsub = () => {
+          sprintsRef.off("value", onSprints);
+          votesRef.off("value", onVotes);
+        };
+        return;
+      }
+      state.allSprints = localAllSprints();
+      state.allVotes = localAllVotes(state.allSprints);
+      state.globalReady = true;
+      const refresh = () => {
+        state.allSprints = localAllSprints();
+        state.allVotes = localAllVotes(state.allSprints);
+        paint();
+      };
+      const onMsg = (e) => { if (e.data && e.data.type === "votes") refresh(); };
+      if (channel) channel.addEventListener("message", onMsg);
+      const onStorage = (e) => {
+        if (e.key === LS_SPRINTS || (e.key && e.key.indexOf(LS_VOTES) === 0)) refresh();
+      };
+      window.addEventListener("storage", onStorage);
+      state.unsub = () => {
+        if (channel) channel.removeEventListener("message", onMsg);
+        window.removeEventListener("storage", onStorage);
+      };
+    }
+
+    function flattenVotes(allVotes) {
+      const rows = [];
+      const sprints = state.allSprints || {};
+      Object.keys(allVotes || {}).forEach((code) => {
+        const map = allVotes[code] || {};
+        Object.values(map).forEach((v) => {
+          if (!v || v.happiness == null || v.confidence == null) return;
+          const sprint = sprints[code] || {};
+          rows.push({
+            ...v,
+            code,
+            title: sprint.title || code
+          });
+        });
+      });
+      return rows;
+    }
+
+    function avg(key) { return avgOf(state.votes, key); }
+    function dist(key) { return distOf(state.votes, key); }
+    function avgOf(votes, key) {
+      if (!votes.length) return null;
+      const sum = votes.reduce((a, v) => a + Number(v[key] || 0), 0);
+      return sum / votes.length;
+    }
+    function distOf(votes, key) {
+      const d = [0, 0, 0, 0, 0, 0];
+      votes.forEach((v) => { d[Number(v[key])] = (d[Number(v[key])] || 0) + 1; });
+      return d;
+    }
+    function summarize(votes, key) {
+      const nums = votes.map((v) => Number(v[key])).filter((n) => Number.isFinite(n));
+      if (!nums.length) return null;
+      const sorted = nums.slice().sort((a, b) => a - b);
+      const mean = nums.reduce((a, n) => a + n, 0) / nums.length;
+      const mid = Math.floor(sorted.length / 2);
+      const median = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+      const variance = nums.reduce((a, n) => a + (n - mean) ** 2, 0) / nums.length;
+      return {
+        n: nums.length,
+        mean,
+        median,
+        stdev: Math.sqrt(variance),
+        low: nums.filter((n) => n <= 2).length,
+        mid: nums.filter((n) => n === 3).length,
+        high: nums.filter((n) => n >= 4).length
+      };
+    }
+    function fmtAvg(n) { return n == null ? "—" : n.toFixed(1); }
+    function pct(part, whole) { return whole ? Math.round((part / whole) * 100) : 0; }
+    function wordFor(key, value) {
+      if (value == null) return "Waiting";
+      const list = key === "happiness" ? HAPPY : CONF;
+      return list[Math.round(value)].word;
+    }
+
+    function parseHash() {
+      const h = (location.hash || "#/").replace(/^#/, "");
+      const parts = h.split("/").filter(Boolean);
+      if (!parts.length) return { view: "home" };
+      if (parts[0] === "create") return { view: "create" };
+      if (parts[0] === "settings") return { view: "settings" };
+      if (parts[0] === "global") return { view: "global" };
+      if ((parts[0] === "s" || parts[0] === "v" || parts[0] === "r") && parts[1]) {
+        const map = { s: "share", v: "vote", r: "results" };
+        return { view: map[parts[0]], code: normalizeCode(parts[1]) };
+      }
+      return { view: "home" };
+    }
+
+    function go(path) {
+      if (location.hash !== "#" + path) location.hash = path;
+      else onRoute();
+    }
+
+    async function onRoute() {
+      const route = parseHash();
+      state.view = route.view;
+      state.error = "";
+      state.showJoin = false;
+      if (route.code && route.code !== state.code) {
+        state.code = route.code;
+        state.step = 0;
+        state.draft = { displayName: "", happiness: null, confidence: null, comment: "" };
+        state.sprint = null;
+        state.votes = [];
+      }
+      if (!route.code) {
+        state.code = "";
+        state.sprint = null;
+        if (route.view === "global") listenGlobal();
+        else stopListening();
+      }
+      if (route.code) {
+        try {
+          const sprint = await fetchSprint(route.code);
+          if (!sprint) {
+            stopListening();
+            state.error = "That join code was not found. Check the six characters on the screen.";
+            state.view = "home";
+          } else {
+            state.sprint = sprint;
+            listenVotes(route.code);
+            const mine = localVotes(route.code)[deviceId()];
+            if (mine && mine.happiness != null && mine.confidence != null) {
+              state.draft = {
+                displayName: mine.displayName || "",
+                happiness: mine.happiness,
+                confidence: mine.confidence,
+                comment: mine.comment || ""
+              };
+              if (state.view === "vote" && state.step === 0) state.step = 4;
+            }
+          }
+        } catch (err) {
+          state.error = err.message || "Could not load this sprint.";
+        }
+      }
+      render();
+    }
+
+    function setDark(on) {
+      $("app").classList.toggle("is-dark", on);
+      document.querySelector('meta[name="theme-color"]').setAttribute("content", on ? "#0C0814" : "#F7F3FF");
+    }
+
+    function topbar(extra) {
+      return `
+        <div class="topbar">
+          <a class="brand" href="#/" aria-label="Modelling Assets Team Votes home">
+            <span class="mark" aria-hidden="true"><i></i><b></b></span>
+            <strong>Modelling Assets Team Votes</strong>
+          </a>
+          <nav class="nav">
+            ${extra || ""}
+            <a class="ghost${state.view === "global" ? " is-on" : ""}" href="#/global"${state.view === "global" ? ' aria-current="page"' : ""}>Global results</a>
+            <a class="ghost fac" href="#/create">New sprint</a>
+            <!-- a class="ghost fac" href="#/settings">Setup</a-->
+          </nav>
+        </div>`;
+    }
+
+    function connectionBanner() {
+      if (firebaseReady()) return "";
+      return `<div class="banner warn">This browser is in local mode. Votes stay on this device until you add a Firebase config in <a href="#/settings">settings</a>.</div>`;
+    }
+
+    function renderHome() {
+      setDark(true);
+      const hosted = hostedList();
+      $("app").innerHTML = `
+        <div class="shell">
+          ${topbar()}
+          <section class="hero">
+            <p class="kicker">Sprint planning pulse</p>
+            <h1 class="display">How is the team,<br>really?</h1>
+            <p class="lede">Everyone votes on happiness and confidence. Results land live on the big screen — Mentimeter energy, built for the sprint.</p>
+          </section>
+          <div class="join-card">
+            ${state.error ? `<div class="banner err">${esc(state.error)}</div>` : ""}
+            <label class="label" for="c0">Enter the code on the screen</label>
+            <div class="code-row" id="codeRow">
+              ${[0,1,2,3,4,5].map((i) => `<input id="c${i}" inputmode="text" autocomplete="one-time-code" maxlength="1" aria-label="Code character ${i + 1}" />`).join("")}
+            </div>
+            <p class="hint">Six characters. No app to install.</p>
+            <button class="btn btn-primary" id="joinBtn" type="button">Join the vote</button>
+          </div>
+          <p class="footer-note">Facilitating? <a href="#/create">Start a new sprint</a> · <a href="#/global">See global results</a></p>
+          <section class="hosted">
+            <h2>Look across the team</h2>
+            <div class="sprint-list">
+              <a class="sprint-link" href="#/global">
+                <span><strong>Global results</strong><br><span class="muted">Averages, totals, and how every sprint compares</span></span>
+                <span class="muted">Open →</span>
+              </a>
+            </div>
+          </section>
+          ${hosted.length ? `
+            <section class="hosted">
+              <h2>Sprints on this device</h2>
+              <div class="sprint-list">
+                ${hosted.map((s) => `
+                  <a class="sprint-link" href="#/r/${s.code}">
+                    <span><strong>${esc(s.title)}</strong><br><span class="muted">${esc(s.code)} · ${esc(fmtTime(s.createdAt))}</span></span>
+                    <span class="muted">Results →</span>
+                  </a>`).join("")}
+              </div>
+            </section>` : ""}
+        </div>`;
+      wireCodeInputs(state.code);
+      $("joinBtn").onclick = () => {
+        const code = readCodeInputs();
+        if (code.length !== 6) { toast("Enter all 6 characters"); return; }
+        go("/v/" + code);
+      };
+    }
+
+    function renderCreate() {
+      setDark(false);
+      $("app").innerHTML = `
+        <div class="shell">
+          ${topbar()}
+          <form class="panel form" id="createForm">
+            <p class="kicker">Facilitator</p>
+            <h1 class="display" style="font-size:2.4rem;margin:12px 0 8px">Set up this sprint</h1>
+            <p class="lede" style="margin-left:0">Title, description and goal stay on screen while people vote. Keep them short enough to read from the back of the room.</p>
+            ${connectionBanner()}
+            <div class="field">
+              <label class="label" for="title">Sprint title <span class="count" id="titleCount">0 / 80</span></label>
+              <input id="title" name="title" required maxlength="80" placeholder="Sprint 42 — Checkout reliability" />
+            </div>
+            <div class="field">
+              <label class="label" for="description">Description <span class="count" id="descCount">0 / 280</span></label>
+              <textarea id="description" name="description" maxlength="280" placeholder="What is in scope this sprint? One or two sentences."></textarea>
+            </div>
+            <div class="field">
+              <label class="label" for="goal">Sprint goal <span class="count" id="goalCount">0 / 200</span></label>
+              <textarea id="goal" name="goal" maxlength="200" placeholder="The single outcome the team is aiming for."></textarea>
+            </div>
+            <button class="btn btn-primary" type="submit">Create join code</button>
+          </form>
+        </div>`;
+      const bindCount = (id, countId, max) => {
+        const el = $(id);
+        const update = () => { $(countId).textContent = `${el.value.length} / ${max}`; };
+        el.addEventListener("input", update); update();
+      };
+      bindCount("title", "titleCount", 80);
+      bindCount("description", "descCount", 280);
+      bindCount("goal", "goalCount", 200);
+      $("createForm").onsubmit = async (e) => {
+        e.preventDefault();
+        const title = $("title").value.trim();
+        if (!title) { toast("Add a sprint title"); return; }
+        const btn = e.target.querySelector("button[type=submit]");
+        btn.disabled = true; btn.textContent = "Creating…";
+        try {
+          const sprint = await createSprint({
+            title,
+            description: $("description").value,
+            goal: $("goal").value
+          });
+          go("/s/" + sprint.code);
+        } catch (err) {
+          toast(err.message || "Could not create sprint");
+          btn.disabled = false; btn.textContent = "Create join code";
+        }
+      };
+    }
+
+    function renderShare() {
+      setDark(true);
+      const s = state.sprint;
+      $("app").innerHTML = `
+        <div class="shell">
+          ${topbar(`<a class="ghost" href="#/r/${s.code}">Live results</a>`)}
+          <div class="share-grid">
+            <section class="panel meta-card">
+              <p class="kicker">Join with this code</p>
+              <p class="code-hero" aria-label="Join code">${esc(s.code)}</p>
+              <p class="hint">Open the vote link or scan the QR. Phones go straight to the first question.</p>
+              <p class="mono" style="margin-top:10px;word-break:break-all">${esc(voteUrl(s.code))}</p>
+              <div class="chip-row">
+                <span class="chip">${state.votes.length} vote${state.votes.length === 1 ? "" : "s"} so far</span>
+                <span class="chip">${firebaseReady() ? "Live on Firebase" : "Local mode"}</span>
+              </div>
+              <div class="actions">
+                <button class="btn btn-accent" id="copyLink" type="button">Copy vote link</button>
+                <a class="btn btn-soft" href="#/r/${s.code}">Show results</a>
+              </div>
+            </section>
+            <section class="panel meta-card">
+              <div class="qr" id="qr"></div>
+              <h2>${esc(s.title)}</h2>
+              ${s.description ? `<p>${esc(s.description)}</p>` : ""}
+              ${s.goal ? `<p style="margin-top:10px"><strong>Goal.</strong> ${esc(s.goal)}</p>` : ""}
+            </section>
+          </div>
+        </div>`;
+      const url = voteUrl(s.code);
+      if (window.QRCode) {
+        $("qr").innerHTML = "";
+        new QRCode($("qr"), { text: url, width: 220, height: 220, correctLevel: QRCode.CorrectLevel.M });
+      } else {
+        $("qr").innerHTML = `<img alt="QR code to join" src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(url)}" />`;
+      }
+      $("copyLink").onclick = async () => {
+        try { await navigator.clipboard.writeText(url); toast("Vote link copied"); }
+        catch { toast(url); }
+      };
+    }
+
+    function voteUrl(code) {
+      return location.origin + location.pathname + "#/v/" + code;
+    }
+
+    function renderVote() {
+      setDark(false);
+      const s = state.sprint;
+      const step = state.step;
+      const steps = ["Who you are", "Happiness", "Confidence", "Comment"];
+      const body = [
+        voteName,
+        () => voteScale("happiness", "How is the team feeling right now?", "Very sad", "Very happy", HAPPY),
+        () => voteScale("confidence", "How confident is the team about this goal?", "Not confident", "Very confident", CONF),
+        voteComment
+      ][step]();
+
+      $("app").innerHTML = `
+        <div class="shell">
+          ${topbar(`<a class="ghost" href="#/r/${s.code}">Results</a>`)}
+          <div class="vote-wrap">
+            <section class="panel context">
+              <p class="muted">Voting on</p>
+              <h1>${esc(s.title)}</h1>
+              ${s.goal ? `<p class="muted" style="margin-top:6px">${esc(s.goal)}</p>` : ""}
+            </section>
+            <div class="progress" aria-hidden="true">${steps.map((_, i) => `<span class="${i <= step ? "on" : ""}"></span>`).join("")}</div>
+            <p class="muted">${step + 1} of ${steps.length} · ${steps[step]}</p>
+            ${body}
+          </div>
+        </div>`;
+      bindVoteStep();
+    }
+
+    function voteName() {
+      return `
+        <h2 class="q">What should we call you?</h2>
+        <p class="lede" style="margin-left:0">Optional. Scores stay anonymous either way. A name only appears if you leave a comment.</p>
+        <div class="field">
+          <label class="label" for="displayName">First name</label>
+          <input id="displayName" maxlength="24" placeholder="Taylor" value="${esc(state.draft.displayName)}" />
+        </div>
+        <div class="actions">
+          <button class="btn btn-primary" id="next" type="button">Continue</button>
+        </div>
+        <p class="hint">Prefer to stay unnamed? Leave it blank.</p>`;
+    }
+
+    function voteScale(key, question, left, right, labels) {
+      const selected = state.draft[key];
+      return `
+        <h2 class="q" id="qLabel">${esc(question)}</h2>
+        <p class="lede" style="margin-left:0">Pick one number. 0 is ${left.toLowerCase()}, 5 is ${right.toLowerCase()}.</p>
+        <div class="scale" role="radiogroup" aria-labelledby="qLabel">
+          ${labels.map((item, i) => `
+            <button class="scale-opt" type="button" role="radio" data-v="${i}"
+              aria-checked="${selected === i}" aria-label="${i}, ${item.word}">
+              <span class="face" aria-hidden="true">${item.face}</span>
+              <span class="n">${i}</span>
+              <span class="w">${item.word}</span>
+            </button>`).join("")}
+        </div>
+        <div class="ends"><span>${esc(left)}</span><span>${esc(right)}</span></div>
+        <div class="actions">
+          <button class="btn btn-line" id="back" type="button">Back</button>
+          <button class="btn btn-primary" id="next" type="button" ${selected === null ? "disabled" : ""}>Next</button>
+        </div>`;
+    }
+
+    function voteComment() {
+      return `
+        <h2 class="q">Anything the team should hear?</h2>
+        <p class="lede" style="margin-left:0">Optional. One thought is enough — blockers, energy, or a note on the goal.</p>
+        <div class="field">
+          <label class="label" for="comment">Comment <span class="count" id="commentCount">0 / 400</span></label>
+          <textarea id="comment" maxlength="400" placeholder="We are stretched on QA, but the goal is clear.">${esc(state.draft.comment)}</textarea>
+        </div>
+        <div class="actions">
+          <button class="btn btn-line" id="back" type="button">Back</button>
+          <button class="btn btn-primary" id="next" type="button">Send my vote</button>
+        </div>`;
+    }
+
+    function bindVoteStep() {
+      if (state.step === 0) {
+        $("next").onclick = () => {
+          state.draft.displayName = $("displayName").value.trim();
+          state.step = 1; render();
+        };
+      }
+      if (state.step === 1 || state.step === 2) {
+        const key = state.step === 1 ? "happiness" : "confidence";
+        document.querySelectorAll(".scale-opt").forEach((btn) => {
+          btn.onclick = () => {
+            state.draft[key] = Number(btn.dataset.v);
+            render();
+          };
+        });
+        $("back").onclick = () => { state.step -= 1; render(); };
+        $("next").onclick = () => {
+          if (state.draft[key] === null) return;
+          state.step += 1; render();
+        };
+        window.onkeydown = (e) => {
+          if (e.key >= "0" && e.key <= "5") {
+            state.draft[key] = Number(e.key);
+            render();
+          }
+        };
+      } else {
+        window.onkeydown = null;
+      }
+      if (state.step === 3) {
+        const area = $("comment");
+        const tick = () => { $("commentCount").textContent = `${area.value.length} / 400`; };
+        area.addEventListener("input", tick); tick();
+        $("back").onclick = () => { state.draft.comment = area.value; state.step = 2; render(); };
+        $("next").onclick = async () => {
+          state.draft.comment = area.value;
+          const btn = $("next");
+          btn.disabled = true; btn.textContent = "Sending…";
+          try {
+            await saveVote(state.code, state.draft);
+            state.step = 4;
+            render();
+          } catch (err) {
+            toast(err.message || "Could not save vote");
+            btn.disabled = false; btn.textContent = "Send my vote";
+          }
+        };
+      }
+    }
+
+    function renderThanks() {
+      setDark(false);
+      const s = state.sprint;
+      $("app").innerHTML = `
+        <div class="shell">
+          ${topbar()}
+          <div class="panel thanks vote-wrap">
+            <p class="kicker">You're in</p>
+            <h1 class="display">Vote sent.</h1>
+            <p class="lede">Happiness ${state.draft.happiness} · Confidence ${state.draft.confidence}. You can change it any time from this device.</p>
+            <div class="actions" style="max-width:420px;margin:0 auto">
+              <a class="btn btn-primary" href="#/r/${s.code}">See live results</a>
+            </div>
+            <p class="hint"><button class="ghost" id="revote" type="button">Change my vote</button></p>
+          </div>
+        </div>`;
+      $("revote").onclick = () => { state.step = 1; render(); };
+    }
+
+    function meterSvg(value) {
+      const max = 5;
+      const v = value == null ? 0 : value;
+      const r = 36, c = 2 * Math.PI * r;
+      const dash = (v / max) * c;
+      const color = COLORS[Math.round(v)] || COLORS[0];
+      return `<svg class="meter" viewBox="0 0 88 88" aria-hidden="true">
+        <circle cx="44" cy="44" r="${r}" fill="none" stroke="currentColor" opacity=".12" stroke-width="8"/>
+        <circle cx="44" cy="44" r="${r}" fill="none" stroke="${color}" stroke-width="8"
+          stroke-linecap="round" stroke-dasharray="${dash} ${c}" transform="rotate(-90 44 44)"/>
+      </svg>`;
+    }
+
+    function bars(key, votes) {
+      const list = votes || state.votes;
+      const labels = key === "happiness" ? HAPPY : CONF;
+      const d = distOf(list, key);
+      const max = Math.max(1, ...d);
+      return `<div class="bars">${d.map((n, i) => `
+        <div class="bar-row">
+          <span title="${labels[i].word}">${labels[i].face} ${i}</span>
+          <div class="track"><div class="fill" style="width:${(n / max) * 100}%;background:${COLORS[i]}"></div></div>
+          <span>${n}</span>
+        </div>`).join("")}</div>`;
+    }
+
+    function renderResults() {
+      setDark(true);
+      const s = state.sprint;
+      const h = avg("happiness");
+      const c = avg("confidence");
+      const comments = state.votes.filter((v) => (v.comment || "").trim());
+      $("app").innerHTML = `
+        <div class="shell">
+          ${topbar(`
+            <button class="ghost" id="joinInfo" type="button">Join code</button>
+            <a class="ghost" href="#/s/${s.code}">Share</a>
+            <a class="ghost" href="#/v/${s.code}">Vote</a>
+          `)}
+          ${state.notice ? `<div class="banner warn">${esc(state.notice)}</div>` : ""}
+          <p class="kicker">${esc(s.title)}</p>
+          <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:end;margin:10px 0 22px">
+            <div>
+              <h1 class="display" style="font-size:clamp(2rem,5vw,3.2rem);margin:0">${esc(s.goal || "Sprint pulse")}</h1>
+              ${s.description ? `<p class="muted" style="max-width:40rem;margin-top:8px">${esc(s.description)}</p>` : ""}
+            </div>
+            <div style="text-align:right">
+              <p class="live"><span class="dot"></span>${state.votes.length} live vote${state.votes.length === 1 ? "" : "s"}</p>
+              <p class="muted" style="margin-top:6px"><a href="#/global">All sprints together →</a></p>
+            </div>
+          </div>
+          <div class="stats">
+            <section class="panel stat">
+              <div class="stat-top">
+                <div>
+                  <p class="muted">Team happiness</p>
+                  <p class="avg">${h == null ? "—" : h.toFixed(1)}</p>
+                  <p class="muted">${h == null ? "Waiting for the first vote" : `Average of 5 · ${HAPPY[Math.round(h)].word}`}</p>
+                </div>
+                ${meterSvg(h)}
+              </div>
+              ${bars("happiness")}
+            </section>
+            <section class="panel stat">
+              <div class="stat-top">
+                <div>
+                  <p class="muted">Team confidence</p>
+                  <p class="avg">${c == null ? "—" : c.toFixed(1)}</p>
+                  <p class="muted">${c == null ? "Waiting for the first vote" : `Average of 5 · ${CONF[Math.round(c)].word}`}</p>
+                </div>
+                ${meterSvg(c)}
+              </div>
+              ${bars("confidence")}
+            </section>
+          </div>
+          <section class="panel comments">
+            <h2>Comments ${comments.length ? `(${comments.length})` : ""}</h2>
+            ${comments.length ? comments.map((v, i) => `
+              <article class="note" style="--tilt:${(i % 2 ? 0.6 : -0.5)}deg">
+                <p>${esc(v.comment)}</p>
+                <footer>${esc(v.displayName || "Anonymous")}</footer>
+              </article>`).join("") : `<p class="muted">No comments yet. Votes can come in without a note.</p>`}
+          </section>
+        </div>
+        ${state.showJoin ? `
+          <div class="overlay" id="joinOverlay">
+            <div class="panel">
+              <p class="muted">Join on your phone</p>
+              <p class="code-hero" style="font-size:3rem">${esc(s.code)}</p>
+              <div class="qr" id="qrMini" style="margin:12px auto"></div>
+              <button class="btn btn-soft" id="closeJoin" type="button">Close</button>
+            </div>
+          </div>` : ""}`;
+      const openJoin = () => { state.showJoin = true; render(); };
+      const joinBtn = $("joinInfo");
+      if (joinBtn) joinBtn.onclick = openJoin;
+      if (state.showJoin) {
+        const url = voteUrl(s.code);
+        if (window.QRCode) new QRCode($("qrMini"), { text: url, width: 180, height: 180 });
+        $("closeJoin").onclick = () => { state.showJoin = false; render(); };
+        $("joinOverlay").onclick = (e) => { if (e.target.id === "joinOverlay") { state.showJoin = false; render(); } };
+      }
+    }
+
+    function sprintSummaries() {
+      const byCode = { ...(state.allSprints || {}) };
+      Object.keys(state.allVotes || {}).forEach((code) => {
+        if (!byCode[code]) byCode[code] = { code, title: "Untitled sprint", createdAt: "", goal: "", description: "" };
+      });
+      return Object.values(byCode).map((s) => {
+        const votes = Object.values((state.allVotes || {})[s.code] || {}).filter((v) => v && v.happiness != null && v.confidence != null);
+        return {
+          code: s.code,
+          title: s.title || s.code,
+          createdAt: s.createdAt || "",
+          goal: s.goal || "",
+          voteCount: votes.length,
+          h: avgOf(votes, "happiness"),
+          c: avgOf(votes, "confidence"),
+          comments: votes.filter((v) => (v.comment || "").trim()).length
+        };
+      });
+    }
+
+    function sortSummaries(list) {
+      const copy = list.slice();
+      const key = state.globalSort;
+      copy.sort((a, b) => {
+        if (key === "votes") return b.voteCount - a.voteCount;
+        if (key === "happiness") return (a.h ?? 99) - (b.h ?? 99);
+        if (key === "confidence") return (a.c ?? 99) - (b.c ?? 99);
+        return (b.createdAt || "").localeCompare(a.createdAt || "");
+      });
+      return copy;
+    }
+
+    function globalInsight(rows, hStat, cStat) {
+      if (!rows.length) return "No votes yet. As soon as someone submits, this page fills in.";
+      const h = hStat.mean;
+      const c = cStat.mean;
+      const bits = [];
+      if (h >= 4 && c >= 4) bits.push("The team is in a strong place — high energy and high confidence.");
+      else if (h < 3 && c < 3) bits.push("Both mood and confidence are low. Start there before adding more work.");
+      else if (h >= 3.5 && c < 3) bits.push("People feel alright, but confidence in the goal is the weaker signal.");
+      else if (c >= 3.5 && h < 3) bits.push("Belief in the goal is higher than how the team feels right now.");
+      else bits.push(`Overall pulse is mid-range: happiness ${h.toFixed(1)} and confidence ${c.toFixed(1)} out of 5.`);
+      const spread = Math.max(hStat.stdev, cStat.stdev);
+      if (rows.length >= 4 && spread >= 1.2) bits.push("Scores are spread out — the average hides disagreement.");
+      else if (rows.length >= 4 && spread <= 0.7) bits.push("People are clustered close together.");
+      return bits.join(" ");
+    }
+
+    function alignmentLabel(stat) {
+      if (!stat) return "No scores yet";
+      if (stat.n < 3) return "Need a few more votes to judge agreement";
+      if (stat.stdev <= 0.7) return "Tight — people agree";
+      if (stat.stdev <= 1.2) return "Some spread";
+      return "Wide — averages hide disagreement";
+    }
+
+    function mixBar(stat, labels) {
+      if (!stat) return `<p class="muted">Waiting for the first vote.</p>`;
+      const segs = [
+        { n: stat.low, color: "#E11D48", label: labels.low },
+        { n: stat.mid, color: "#EAB308", label: labels.mid },
+        { n: stat.high, color: "#22C55E", label: labels.high }
+      ];
+      return `
+        <div class="mix-bar" aria-hidden="true">${segs.map((s) => s.n ? `<span class="mix-seg" style="flex:${s.n};background:${s.color}"></span>` : "").join("")}</div>
+        <div class="mix-legend">${segs.map((s) => `<span><i style="background:${s.color}"></i>${esc(s.label)} · ${s.n} (${pct(s.n, stat.n)}%)</span>`).join("")}</div>`;
+    }
+
+    function renderGlobal() {
+      setDark(true);
+      const keep = $("globalRoot");
+      const y = keep ? window.scrollY : 0;
+      const rows = flattenVotes(state.allVotes);
+      const sprints = sprintSummaries();
+      const votedSprints = sprints.filter((s) => s.voteCount > 0);
+      const hStat = summarize(rows, "happiness");
+      const cStat = summarize(rows, "confidence");
+      const comments = rows.filter((v) => (v.comment || "").trim())
+        .sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
+      const lastAt = rows.reduce((best, v) => (!v.updatedAt || (best && best >= v.updatedAt)) ? best : v.updatedAt, "");
+      const quads = {
+        good: rows.filter((v) => v.happiness >= 3 && v.confidence >= 3).length,
+        unsure: rows.filter((v) => v.happiness >= 3 && v.confidence < 3).length,
+        tired: rows.filter((v) => v.happiness < 3 && v.confidence >= 3).length,
+        risk: rows.filter((v) => v.happiness < 3 && v.confidence < 3).length
+      };
+      const sorted = sortSummaries(sprints);
+      const n = rows.length;
+
+      $("app").innerHTML = `
+        <div class="shell" id="globalRoot">
+          ${topbar()}
+          ${!firebaseReady() ? `<div class="banner warn">Showing sprints stored on this browser. Connect Firebase in <a href="#/settings">settings</a> to include every phone.</div>` : ""}
+          ${state.notice ? `<div class="banner warn">${esc(state.notice)}</div>` : ""}
+          <p class="kicker">Global results</p>
+          <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:end;margin:10px 0 22px">
+            <div>
+              <h1 class="display" style="font-size:clamp(2rem,5vw,3.4rem);margin:0">How is everyone doing?</h1>
+              <p class="muted" style="max-width:40rem;margin-top:8px">Every vote in this project, rolled up. Use this to see the pattern — then open a sprint if one number needs a conversation.</p>
+            </div>
+            <div style="text-align:right">
+              <p class="live"><span class="dot"></span>${state.globalReady ? `${n} vote${n === 1 ? "" : "s"} · ${sprints.length} sprint${sprints.length === 1 ? "" : "s"}` : "Loading…"}</p>
+              ${lastAt ? `<p class="muted" style="margin-top:6px">Last vote ${esc(fmtTime(lastAt))}</p>` : ""}
+            </div>
+          </div>
+          ${!state.globalReady ? `<div class="panel insight"><p>Loading the team picture…</p></div>` : `
+          <section class="panel insight" aria-label="Summary">
+            <p>${esc(globalInsight(rows, hStat, cStat))}</p>
+          </section>
+          <div class="kpi-grid">
+            <section class="panel kpi">
+              <p class="muted">Total votes</p>
+              <p class="avg">${n || "—"}</p>
+              <p class="muted">${n ? `Across ${votedSprints.length || 0} sprint${votedSprints.length === 1 ? "" : "s"} with votes` : "Waiting for the first vote"}</p>
+            </section>
+            <section class="panel kpi">
+              <p class="muted">Sprints</p>
+              <p class="avg">${sprints.length || "—"}</p>
+              <p class="muted">${sprints.length ? `${sprints.length - votedSprints.length} still waiting` : "Create a sprint to start the record"}</p>
+            </section>
+            <section class="panel kpi">
+              <p class="muted">Avg happiness</p>
+              <p class="avg">${fmtAvg(hStat && hStat.mean)}</p>
+              <p class="muted">${hStat ? `of 5 · ${wordFor("happiness", hStat.mean)}` : "No scores yet"}</p>
+            </section>
+            <section class="panel kpi">
+              <p class="muted">Avg confidence</p>
+              <p class="avg">${fmtAvg(cStat && cStat.mean)}</p>
+              <p class="muted">${cStat ? `of 5 · ${wordFor("confidence", cStat.mean)}` : "No scores yet"}</p>
+            </section>
+          </div>
+          <div class="substats">
+            <section class="panel substat">
+              <p class="muted">Median vs average</p>
+              <strong>${hStat ? `${hStat.median.toFixed(1)} / ${cStat.median.toFixed(1)}` : "—"}</strong>
+              <p class="muted">${hStat ? "Happiness / confidence. If these sit far from the averages, a few votes are pulling the mean." : "Medians ignore outliers."}</p>
+            </section>
+            <section class="panel substat">
+              <p class="muted">How aligned</p>
+              <strong>${hStat ? hStat.stdev.toFixed(1) : "—"}</strong>
+              <p class="muted">${alignmentLabel(hStat)} (happiness spread). Confidence: ${cStat ? cStat.stdev.toFixed(1) : "—"} · ${alignmentLabel(cStat)}</p>
+            </section>
+            <section class="panel substat">
+              <p class="muted">Comments left</p>
+              <strong>${comments.length}${n ? ` · ${pct(comments.length, n)}%` : ""}</strong>
+              <p class="muted">${n ? "of votes include a note. Names only appear on comments." : "Comments stay optional."}</p>
+            </section>
+          </div>
+          <div class="stats">
+            <section class="panel stat">
+              <div class="stat-top">
+                <div>
+                  <p class="muted">Happiness across everyone</p>
+                  <p class="avg">${fmtAvg(hStat && hStat.mean)}</p>
+                  <p class="muted">${hStat ? `${hStat.high} thriving · ${hStat.mid} okay · ${hStat.low} low` : "Waiting for the first vote"}</p>
+                </div>
+                ${meterSvg(hStat && hStat.mean)}
+              </div>
+              ${mixBar(hStat, { low: "0–2 Low", mid: "3 Okay", high: "4–5 High" })}
+              ${bars("happiness", rows)}
+            </section>
+            <section class="panel stat">
+              <div class="stat-top">
+                <div>
+                  <p class="muted">Confidence across everyone</p>
+                  <p class="avg">${fmtAvg(cStat && cStat.mean)}</p>
+                  <p class="muted">${cStat ? `${cStat.high} sure · ${cStat.mid} fair · ${cStat.low} uneasy` : "Waiting for the first vote"}</p>
+                </div>
+                ${meterSvg(cStat && cStat.mean)}
+              </div>
+              ${mixBar(cStat, { low: "0–2 Uneasy", mid: "3 Fair", high: "4–5 Sure" })}
+              ${bars("confidence", rows)}
+            </section>
+          </div>
+          <section class="panel comments" style="margin-bottom:18px">
+            <h2>Where people land</h2>
+            <p class="muted" style="margin-bottom:14px">Split at 3. Useful when the two averages look fine but a corner of the team is stuck.</p>
+            <div class="quad">
+              <div class="quad-cell good">
+                <p class="muted">Steady</p>
+                <p class="n">${n ? quads.good : "—"}</p>
+                <p class="muted">${n ? `${pct(quads.good, n)}%` : ""} Happy and confident</p>
+              </div>
+              <div class="quad-cell">
+                <p class="muted">Upbeat, unsure</p>
+                <p class="n">${n ? quads.unsure : "—"}</p>
+                <p class="muted">${n ? `${pct(quads.unsure, n)}%` : ""} Fine mood, low confidence</p>
+              </div>
+              <div class="quad-cell">
+                <p class="muted">Focused, tired</p>
+                <p class="n">${n ? quads.tired : "—"}</p>
+                <p class="muted">${n ? `${pct(quads.tired, n)}%` : ""} Believe in the goal, low energy</p>
+              </div>
+              <div class="quad-cell risk">
+                <p class="muted">At risk</p>
+                <p class="n">${n ? quads.risk : "—"}</p>
+                <p class="muted">${n ? `${pct(quads.risk, n)}%` : ""} Low mood and low confidence</p>
+              </div>
+            </div>
+          </section>
+          <section class="panel comments">
+            <div class="section-head">
+              <div>
+                <h2>Sprint by sprint</h2>
+                <p class="muted">Open a row to see that room’s live results.</p>
+              </div>
+              <label class="sort-label">
+                <span class="sr">Sort sprints</span>
+                <select id="globalSort" ${sprints.length ? "" : "disabled"}>
+                  <option value="recent"${state.globalSort === "recent" ? " selected" : ""}>Newest first</option>
+                  <option value="votes"${state.globalSort === "votes" ? " selected" : ""}>Most votes</option>
+                  <option value="happiness"${state.globalSort === "happiness" ? " selected" : ""}>Lowest happiness</option>
+                  <option value="confidence"${state.globalSort === "confidence" ? " selected" : ""}>Lowest confidence</option>
+                </select>
+              </label>
+            </div>
+            ${!sprints.length ? `<p class="muted">No sprints yet. <a href="#/create">Create one</a> and this table fills in.</p>` : `
+            <div class="compare-wrap">
+              <table class="compare">
+                <caption class="sr">Sprint comparison</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Sprint</th>
+                    <th scope="col">Votes</th>
+                    <th scope="col">Happiness</th>
+                    <th scope="col">Confidence</th>
+                    <th scope="col">Notes</th>
+                    <th scope="col">Created</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${sorted.map((s) => `
+                    <tr>
+                      <th scope="row">
+                        <a href="#/r/${esc(s.code)}">${esc(s.title)}</a><br>
+                        <span class="mono muted">${esc(s.code)}</span>
+                      </th>
+                      <td class="num">${s.voteCount}</td>
+                      <td class="num">${fmtAvg(s.h)}</td>
+                      <td class="num">${fmtAvg(s.c)}</td>
+                      <td class="num">${s.comments}</td>
+                      <td class="muted">${s.createdAt ? esc(fmtTime(s.createdAt)) : "—"}</td>
+                    </tr>`).join("")}
+                </tbody>
+              </table>
+            </div>
+            <div class="sprint-cards">
+              ${sorted.map((s) => `
+                <a class="sprint-card" href="#/r/${esc(s.code)}">
+                  <strong>${esc(s.title)}</strong>
+                  <p class="muted mono">${esc(s.code)}${s.createdAt ? " · " + esc(fmtTime(s.createdAt)) : ""}</p>
+                  <div class="sprint-meta">
+                    <span>${s.voteCount} vote${s.voteCount === 1 ? "" : "s"}</span>
+                    <span>H ${fmtAvg(s.h)}</span>
+                    <span>C ${fmtAvg(s.c)}</span>
+                    <span>${s.comments} note${s.comments === 1 ? "" : "s"}</span>
+                  </div>
+                </a>`).join("")}
+            </div>`}
+          </section>
+          <section class="panel comments" style="margin-top:18px">
+            <h2>What people wrote ${comments.length ? `(${comments.length})` : ""}</h2>
+            ${comments.length ? comments.slice(0, 16).map((v, i) => `
+              <article class="note" style="--tilt:${(i % 2 ? 0.6 : -0.5)}deg">
+                <p>${esc(v.comment)}</p>
+                <footer>${esc(v.displayName || "Anonymous")} · <a href="#/r/${esc(v.code)}">${esc(v.title)}</a></footer>
+              </article>`).join("") + (comments.length > 16 ? `<p class="muted">${comments.length - 16} more notes live on the individual sprint screens.</p>` : "") : `<p class="muted">No comments yet. Votes can come in without a note.</p>`}
+          </section>`}
+        </div>`;
+      const sel = $("globalSort");
+      if (sel) {
+        sel.onchange = () => {
+          state.globalSort = sel.value;
+          render();
+        };
+      }
+      if (keep) window.scrollTo(0, y);
+    }
+
+    function renderSettings() {
+      setDark(false);
+      const cfg = getConfig() || {};
+      $("app").innerHTML = `
+        <div class="shell">
+          ${topbar()}
+          <form class="panel form" id="cfgForm">
+            <p class="kicker">Connect Firebase</p>
+            <h1 class="display" style="font-size:2.3rem;margin:12px 0 8px">Same project, every phone</h1>
+            <p class="lede" style="margin-left:0">Paste the web app config from Firebase. Better still, put it in the FIREBASE_CONFIG block at the top of this file so the whole team shares one backend.</p>
+            ${firebaseReady() ? `<div class="banner ok">Connected to project ${esc(cfg.projectId)}.</div>` : `<div class="banner warn">No project yet — voting still works in local mode on this browser.</div>`}
+            <div class="field">
+              <label class="label" for="cfgJson">Firebase config JSON</label>
+              <textarea id="cfgJson" style="min-height:220px;font-family:ui-monospace,monospace;font-size:.85rem">${esc(JSON.stringify({
+                apiKey: cfg.apiKey || "",
+                authDomain: cfg.authDomain || "",
+                databaseURL: cfg.databaseURL || "",
+                projectId: cfg.projectId || "",
+                storageBucket: cfg.storageBucket || "",
+                messagingSenderId: cfg.messagingSenderId || "",
+                appId: cfg.appId || ""
+              }, null, 2))}</textarea>
+            </div>
+            <button class="btn btn-primary" type="submit">Save and connect</button>
+            <p class="hint" style="margin-top:18px">
+              1. Create a Firebase project and enable Realtime Database (test mode is fine for a team room).<br>
+              2. Project settings → Your apps → Web → copy the config object, including <code>databaseURL</code>.<br>
+              3. Deploy the rules from <code>database.rules.json</code> in this folder.
+            </p>
+          </form>
+        </div>`;
+      $("cfgForm").onsubmit = (e) => {
+        e.preventDefault();
+        try {
+          const parsed = JSON.parse($("cfgJson").value);
+          if (!parsed.apiKey || !parsed.projectId) throw new Error("apiKey and projectId are required");
+          if (!parsed.databaseURL) throw new Error("databaseURL is required for Realtime Database");
+          localStorage.setItem(LS_CONFIG, JSON.stringify(parsed));
+          location.reload();
+        } catch (err) {
+          toast(err.message || "Could not parse JSON");
+        }
+      };
+    }
+
+    function readCodeInputs() {
+      return [0,1,2,3,4,5].map((i) => ($("c" + i) || {}).value || "").join("").toUpperCase();
+    }
+    function wireCodeInputs(preset) {
+      const boxes = [0,1,2,3,4,5].map((i) => $("c" + i));
+      if (preset) {
+        normalizeCode(preset).split("").forEach((ch, i) => { if (boxes[i]) boxes[i].value = ch; });
+      }
+      boxes.forEach((box, i) => {
+        box.addEventListener("input", (e) => {
+          const clean = normalizeCode(e.target.value);
+          if (clean.length > 1) {
+            clean.split("").forEach((ch, idx) => { if (boxes[idx]) boxes[idx].value = ch; });
+            boxes[Math.min(clean.length, 5)].focus();
+            return;
+          }
+          box.value = clean;
+          if (clean && boxes[i + 1]) boxes[i + 1].focus();
+        });
+        box.addEventListener("keydown", (e) => {
+          if (e.key === "Backspace" && !box.value && boxes[i - 1]) boxes[i - 1].focus();
+          if (e.key === "Enter") $("joinBtn").click();
+        });
+        box.addEventListener("paste", (e) => {
+          e.preventDefault();
+          const clean = normalizeCode((e.clipboardData || window.clipboardData).getData("text"));
+          clean.split("").forEach((ch, idx) => { if (boxes[idx]) boxes[idx].value = ch; });
+          boxes[Math.min(clean.length, 5)].focus();
+        });
+      });
+      boxes[0].focus();
+    }
+
+    function render() {
+      if (state.view === "vote" && state.step === 4) { renderThanks(); return; }
+      const views = {
+        home: renderHome,
+        create: renderCreate,
+        share: renderShare,
+        vote: renderVote,
+        results: renderResults,
+        global: renderGlobal,
+        settings: renderSettings
+      };
+      (views[state.view] || renderHome)();
+    }
+
+    window.addEventListener("hashchange", onRoute);
+    initFirebase();
+    onRoute();
+  </script>
+</body>
+</html>
