@@ -35,8 +35,16 @@
       --focus: 0 0 0 3px #fff, 0 0 0 6px var(--violet);
     }
 
+    @font-face {
+      font-family: Memphis;
+      src: url(./fonts/Memphis-Medium.ttf);
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html, body { min-height: 100%; }
+    h1, h2, h3, h4, h5, h6 {
+      font-family: Memphis, Georgia, serif;
+    }
     body {
       font-family: Outfit, "Segoe UI", sans-serif;
       color: var(--ink);
@@ -93,7 +101,7 @@
     }
     .app.is-dark .kicker { background: #211833; border-color: #34284C; }
     .display {
-      font-family: Fraunces, Georgia, serif;
+      font-family: Memphis, Georgia, serif;
       font-size: clamp(2.2rem, 6vw, 4.4rem);
       line-height: 1.05; letter-spacing: -0.035em; margin: 16px 0 12px;
     }
@@ -167,7 +175,7 @@
       .share-grid { grid-template-columns: 1.1fr .9fr; }
     }
     .code-hero {
-      font-family: Fraunces, Georgia, serif;
+      font-family: Memphis, Georgia, serif;
       font-size: clamp(2.8rem, 8vw, 5.4rem);
       letter-spacing: 0.12em; line-height: 1;
     }
@@ -177,7 +185,7 @@
     }
     .qr img, .qr canvas { width: 220px !important; height: 220px !important; }
     .meta-card { padding: 22px; }
-    .meta-card h2 { font-family: Fraunces, Georgia, serif; font-size: 1.8rem; margin-bottom: 8px; }
+    .meta-card h2 { font-family: Memphis, Georgia, serif; font-size: 1.8rem; margin-bottom: 8px; }
     .chip-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
     .chip {
       background: #2A2140; color: #fff; border-radius: 999px; padding: 6px 11px;
@@ -194,7 +202,7 @@
     }
     .app.is-dark .progress span { background: #2A2140; }
     .progress span.on { background: var(--pink); }
-    .q { font-family: Fraunces, Georgia, serif; font-size: clamp(1.7rem, 4vw, 2.5rem); margin-bottom: 8px; }
+    .q { font-family: Memphis, Georgia, serif; font-size: clamp(1.7rem, 4vw, 2.5rem); margin-bottom: 8px; }
     .scale {
       display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 22px 0 8px;
     }
@@ -230,7 +238,7 @@
     .stat { padding: 22px; position: relative; overflow: hidden; }
     .stat-top { display: flex; justify-content: space-between; align-items: start; gap: 12px; }
     .avg {
-      font-family: Fraunces, Georgia, serif;
+      font-family: Memphis, Georgia, serif;
       font-size: clamp(3.4rem, 8vw, 5.2rem); line-height: 0.9; letter-spacing: -0.04em;
     }
     .meter { width: 88px; height: 88px; }
@@ -317,7 +325,7 @@
       padding: 14px 16px; border-radius: 16px; background: #F3EEFF;
     }
     .app.is-dark .quad-cell { background: #211833; }
-    .quad-cell .n { font-family: Fraunces, Georgia, serif; font-size: 2rem; line-height: 1; }
+    .quad-cell .n { font-family: Memphis, Georgia, serif; font-size: 2rem; line-height: 1; }
     .quad-cell.risk { background: #FFE1E6; }
     .app.is-dark .quad-cell.risk { background: #3A1220; }
     .quad-cell.good { background: #D9F7EE; }
