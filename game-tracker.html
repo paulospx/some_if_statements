@@ -1,0 +1,975 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Game Tracker – Goals with Calendar Time</title>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.4/firebase-database-compat.js"></script>
+
+  <style>
+    :root {
+      --green: #1B7A3D;
+      --green-dark: #145C2E;
+      --green-light: #E8F5E9;
+      --red: #D32F2F;
+      --gray: #F5F5F5;
+      --text: #1A1A1A;
+      --muted: #666;
+      --white: #FFFFFF;
+      --shadow: 0 2px 8px rgba(0,0,0,0.08);
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--gray);
+      color: var(--text);
+      line-height: 1.4;
+      min-height: 100vh;
+      padding-bottom: 80px;
+    }
+    .app-header {
+      background: var(--green);
+      color: white;
+      padding: 16px 20px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .app-header h1 { font-size: 1.25rem; font-weight: 600; flex: 1; }
+    .back-btn {
+      background: none; border: none; color: white;
+      font-size: 1.4rem; cursor: pointer; padding: 4px 8px;
+    }
+    .screen { display: none; padding: 16px; max-width: 480px; margin: 0 auto; }
+    .screen.active { display: block; }
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow);
+    }
+    .card h3 { font-size: 1.1rem; margin-bottom: 4px; }
+    .card p { color: var(--muted); font-size: 0.9rem; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 6px; padding: 12px 20px; border: none; border-radius: 8px;
+      font-size: 1rem; font-weight: 600; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary { background: var(--green); color: white; }
+    .btn-primary:active { background: var(--green-dark); }
+    .btn-secondary { background: var(--green-light); color: var(--green); }
+    .btn-danger { background: var(--red); color: white; }
+    .btn-block { width: 100%; }
+    .btn-lg { padding: 16px 24px; font-size: 1.1rem; }
+    .btn-sm { padding: 6px 12px; font-size: 0.85rem; }
+    .player-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0; border-bottom: 1px solid #eee;
+    }
+    .player-row:last-child { border-bottom: none; }
+    .avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--green); color: white;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 700; font-size: 0.9rem; flex-shrink: 0;
+    }
+    .player-info { flex: 1; }
+    .player-info strong { display: block; }
+    .player-info span { font-size: 0.85rem; color: var(--muted); }
+    .toggle-group { display: flex; gap: 8px; }
+    .toggle {
+      padding: 8px 14px; border-radius: 20px; border: 2px solid #ddd;
+      background: white; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    }
+    .toggle.present { border-color: var(--green); background: var(--green-light); color: var(--green); }
+    .toggle.absent { border-color: var(--red); background: #FFEBEE; color: var(--red); }
+    .live-container { text-align: center; padding-top: 8px; }
+    .timer {
+      font-size: 3.5rem; font-weight: 700; font-variant-numeric: tabular-nums;
+      letter-spacing: 2px; margin: 16px 0 8px;
+      color: var(--green-dark);
+    }
+    .score-board {
+      display: flex; justify-content: center; gap: 32px;
+      font-size: 1.4rem; font-weight: 700; margin-bottom: 20px;
+    }
+    .score-board span { color: var(--muted); font-size: 0.9rem; font-weight: 500; }
+    .goal-actions {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0;
+    }
+    .goal-log {
+      background: var(--white); border-radius: var(--radius);
+      padding: 12px; max-height: 260px; overflow-y: auto; text-align: left;
+      box-shadow: var(--shadow);
+    }
+    .goal-entry {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 10px 0; border-bottom: 1px solid #f0f0f0; font-size: 0.95rem;
+      gap: 8px;
+    }
+    .goal-entry:last-child { border-bottom: none; }
+    .goal-time { font-weight: 700; color: var(--green); min-width: 42px; }
+    .goal-details { flex: 1; }
+    .goal-clock { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: white; border-top: 1px solid #eee;
+      display: flex; justify-content: space-around; padding: 8px 0;
+      z-index: 90; max-width: 480px; margin: 0 auto;
+    }
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center;
+      font-size: 0.7rem; color: var(--muted); background: none; border: none;
+      padding: 6px 12px; cursor: pointer;
+    }
+    .nav-item.active { color: var(--green); font-weight: 600; }
+    .nav-item span { font-size: 1.3rem; margin-bottom: 2px; }
+    .modal-overlay {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      z-index: 200; align-items: flex-end; justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: white; width: 100%; max-width: 480px;
+      border-radius: 16px 16px 0 0; padding: 20px;
+      max-height: 80vh; overflow-y: auto;
+    }
+    .modal h3 { margin-bottom: 16px; }
+    .modal-player {
+      padding: 14px; border-bottom: 1px solid #eee; cursor: pointer;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .modal-player:active { background: var(--green-light); }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+    .form-group input {
+      width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px;
+      font-size: 1rem;
+    }
+    .progress { font-size: 0.9rem; color: var(--muted); margin-bottom: 12px; }
+    .section-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px;
+      color: var(--muted); margin: 20px 0 8px; }
+    .empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+    .status-bar {
+      background: #FFF3CD; color: #856404; padding: 8px 16px; font-size: 0.85rem;
+      text-align: center; display: none;
+    }
+    .status-bar.error { background: #F8D7DA; color: #721C24; }
+    .status-bar.ok { background: #D4EDDA; color: #155724; }
+    .stat-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 0; border-bottom: 1px solid #f0f0f0;
+    }
+    .stat-row:last-child { border-bottom: none; }
+    .badge {
+      display: inline-block; padding: 4px 10px; border-radius: 12px;
+      font-size: 0.8rem; font-weight: 600;
+    }
+    .badge-green { background: var(--green-light); color: var(--green); }
+    .badge-red { background: #FFEBEE; color: var(--red); }
+    .pct { font-weight: 700; color: var(--green); }
+    .report-section { margin-bottom: 24px; }
+  </style>
+</head>
+<body>
+
+  <div id="status-bar" class="status-bar">Connecting to Firebase…</div>
+
+  <!-- HOME -->
+  <div id="home" class="screen active">
+    <div class="app-header"><h1>⚽ Game Tracker</h1></div>
+    <div class="section-title">Home Teams</div>
+    <div id="teams-list"><div class="empty">Loading teams…</div></div>
+  </div>
+
+  <!-- TEAM -->
+  <div id="team" class="screen">
+    <div class="app-header">
+      <button class="back-btn" onclick="goTo('home')">←</button>
+      <h1 id="team-title">Team</h1>
+    </div>
+    <div class="card" style="cursor:default">
+      <p id="team-description">Loading…</p>
+    </div>
+    <div class="section-title">Quick Actions</div>
+    <button class="btn btn-primary btn-block" onclick="goTo('training')">📋 Mark Training Attendance</button>
+    <button class="btn btn-primary btn-block" style="margin-top:10px" onclick="goTo('match')">🏟️ Match & Live Mode</button>
+    <button class="btn btn-secondary btn-block" style="margin-top:10px" onclick="goTo('players')">👥 Players Roster (Editable)</button>
+    <button class="btn btn-secondary btn-block" style="margin-top:10px" onclick="goTo('reports')">📊 Reports & Attendance</button>
+  </div>
+
+  <!-- PLAYERS -->
+  <div id="players" class="screen">
+    <div class="app-header">
+      <button class="back-btn" onclick="goTo('team')">←</button>
+      <h1>Players</h1>
+    </div>
+    <p style="font-size:0.85rem;color:var(--muted);margin-bottom:12px">Tap Edit to change a player’s name, number or initials</p>
+    <div id="player-list"></div>
+  </div>
+
+  <!-- TRAINING -->
+  <div id="training" class="screen">
+    <div class="app-header">
+      <button class="back-btn" onclick="goTo('team')">←</button>
+      <h1>Training</h1>
+    </div>
+    <div class="card" style="cursor:default">
+      <h3>21 Aug 2026 · 18:00</h3>
+      <p>Regular midweek session · Realtime sync</p>
+    </div>
+    <div class="progress" id="training-progress">Loading…</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn btn-secondary" style="flex:1" onclick="markAll('training', true)">All Present</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="markAll('training', false)">All Absent</button>
+    </div>
+    <div id="training-list"></div>
+    <button class="btn btn-primary btn-block btn-lg" style="margin-top:20px" onclick="goTo('team')">Done</button>
+  </div>
+
+  <!-- MATCH -->
+  <div id="match" class="screen">
+    <div class="app-header">
+      <button class="back-btn" onclick="goTo('team')">←</button>
+      <h1>Match</h1>
+    </div>
+    <div class="card" style="cursor:default">
+      <h3 id="match-opponent">vs Opponent</h3>
+      <p>21 Aug 2026 · 15:00 · <strong>Home</strong></p>
+    </div>
+    <div class="progress" id="match-progress">Loading…</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn btn-secondary" style="flex:1" onclick="markAll('match', true)">All Present</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="markAll('match', false)">All Absent</button>
+    </div>
+    <div id="match-list"></div>
+    <button class="btn btn-primary btn-block btn-lg" style="margin-top:16px" onclick="startLiveMatch()">▶ Start / Resume Live Match</button>
+  </div>
+
+  <!-- LIVE -->
+  <div id="live" class="screen">
+    <div class="app-header">
+      <button class="back-btn" onclick="goTo('match')">←</button>
+      <h1 id="live-title">Live Match</h1>
+    </div>
+    <div class="live-container">
+      <div class="timer" id="timer">00:00</div>
+      <div style="margin-bottom:12px">
+        <button class="btn btn-secondary" id="pause-btn" onclick="toggleTimer()">Pause</button>
+        <button class="btn btn-secondary" onclick="addMinute()">+1 min</button>
+      </div>
+      <div class="score-board">
+        <div id="live-home-name">Home<br><span id="score-us">0</span></div>
+        <div id="live-away-name">Away<br><span id="score-them">0</span></div>
+      </div>
+      <div class="goal-actions">
+        <button class="btn btn-primary btn-lg" onclick="openGoalModal()">⚽ Own Goal</button>
+        <button class="btn btn-danger btn-lg" onclick="addGoal(null)">⚽ Opp Goal</button>
+      </div>
+      <div class="section-title">Goal Log (Realtime + Calendar Time)</div>
+      <div class="goal-log" id="goal-log"><div class="empty">No goals yet</div></div>
+      <button class="btn btn-danger btn-block" style="margin-top:20px" onclick="endMatch()">End Match</button>
+    </div>
+  </div>
+
+  <!-- REPORTS -->
+  <div id="reports" class="screen">
+    <div class="app-header">
+      <button class="back-btn" onclick="goTo('team')">←</button>
+      <h1>Reports</h1>
+    </div>
+
+    <div class="report-section">
+      <div class="section-title">Training Attendance</div>
+      <div class="card" style="cursor:default">
+        <h3>21 Aug 2026 · Midweek Session</h3>
+        <p id="report-training-summary">Loading…</p>
+        <div id="report-training-list" style="margin-top:12px"></div>
+      </div>
+    </div>
+
+    <div class="report-section">
+      <div class="section-title">Match Report</div>
+      <div class="card" style="cursor:default">
+        <div id="report-match-content"><div class="empty">Loading match data…</div></div>
+      </div>
+    </div>
+
+    <div class="report-section">
+      <div class="section-title">Player Attendance Overview</div>
+      <div class="card" style="cursor:default">
+        <p style="margin-bottom:12px;font-size:0.9rem">Based on available training + match sessions</p>
+        <div id="report-player-stats"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-secondary btn-block" onclick="refreshReports()">🔄 Refresh Reports</button>
+  </div>
+
+  <!-- Goal Modal -->
+  <div class="modal-overlay" id="goal-modal">
+    <div class="modal">
+      <h3>Who scored?</h3>
+      <div id="modal-players"></div>
+      <button class="btn btn-secondary btn-block" style="margin-top:12px" onclick="closeGoalModal()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Edit Player Modal -->
+  <div class="modal-overlay" id="edit-player-modal">
+    <div class="modal">
+      <h3>Edit Player</h3>
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="edit-name" placeholder="Player name" />
+      </div>
+      <div class="form-group">
+        <label>Number</label>
+        <input type="number" id="edit-number" placeholder="Jersey number" min="1" max="99" />
+      </div>
+      <div class="form-group">
+        <label>Initials (max 2)</label>
+        <input type="text" id="edit-initials" placeholder="AM" maxlength="2" />
+      </div>
+      <button class="btn btn-primary btn-block" onclick="savePlayerEdit()">Save Changes</button>
+      <button class="btn btn-secondary btn-block" style="margin-top:10px" onclick="closeEditModal()">Cancel</button>
+    </div>
+  </div>
+
+  <nav class="bottom-nav" id="bottom-nav">
+    <button class="nav-item active" onclick="goTo('home')"><span>🏠</span>Home</button>
+    <button class="nav-item" onclick="goTo('team')"><span>👥</span>Team</button>
+    <button class="nav-item" onclick="goTo('training')"><span>📋</span>Train</button>
+    <button class="nav-item" onclick="goTo('match')"><span>🏟️</span>Match</button>
+  </nav>
+
+  <script>
+    // ============================================================
+    // FIREBASE CONFIG – REPLACE WITH YOUR PROJECT
+    // ============================================================
+  const firebaseConfig = {
+      apiKey: "AIzaSyDc8m5jxdrqXSOiAc1hFKuJtAXRDzBV3_g",
+      authDomain: "comments-f51c9.firebaseapp.com",
+      databaseURL: "https://comments-f51c9.firebaseio.com",
+      projectId: "comments-f51c9",
+      storageBucket: "comments-f51c9.firebasestorage.app",
+      messagingSenderId: "719780277212",
+      appId: "1:719780277212:web:51e42d09120c1ec4c03d19"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ============================================================
+    // STATE
+    // ============================================================
+    let currentTeamId = null;
+    let currentTeam = null;
+    let players = [];
+    let trainingAttendance = {};
+    let matchAttendance = {};
+    let matchData = null;
+    let goals = [];
+    let scoreUs = 0;
+    let scoreThem = 0;
+    let seconds = 0;
+    let timerInterval = null;
+    let isRunning = false;
+    let editingPlayerId = null;
+
+    let playersRef = null;
+    let trainingRef = null;
+    let matchRef = null;
+
+    const statusBar = document.getElementById('status-bar');
+
+    // ============================================================
+    // HELPER: format calendar datetime for display
+    // ============================================================
+    function formatClock(isoString) {
+      if (!isoString) return '';
+      try {
+        const d = new Date(isoString);
+        // Show date + time in local timezone
+        return d.toLocaleString(undefined, {
+          day: '2-digit',
+          month: 'short',
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function formatClockShort(isoString) {
+      if (!isoString) return '';
+      try {
+        const d = new Date(isoString);
+        return d.toLocaleTimeString(undefined, {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit'
+        });
+      } catch (e) {
+        return '';
+      }
+    }
+
+    // ============================================================
+    // SEED
+    // ============================================================
+    async function seedIfEmpty() {
+      const snap = await db.ref('teams').once('value');
+      if (snap.exists()) return;
+
+    const teams = {
+        "fc-united": {
+          name: "SVC08 - M17-2",
+          description: "Meijes Onder 17-2"
+        },
+        "city-rovers": {
+          name: "SVC08 - M15-1",
+          description: "Meijes Onder 15-1"
+        }
+      };
+
+      const playersFC = {
+        "1": { name: "Alex Morgan", number: 7, initials: "AM" },
+        "2": { name: "Jordan Lee", number: 10, initials: "JL" },
+        "3": { name: "Sam Rivera", number: 4, initials: "SR" },
+        "4": { name: "Chris Patel", number: 9, initials: "CP" },
+        "5": { name: "Taylor Brooks", number: 1, initials: "TB" },
+        "6": { name: "Morgan Quinn", number: 8, initials: "MQ" },
+        "7": { name: "Casey Nguyen", number: 11, initials: "CN" },
+        "8": { name: "Riley Torres", number: 5, initials: "RT" }
+      };
+
+      const playersCR = {
+        "1": { name: "Emma Wilson", number: 9, initials: "EW" },
+        "2": { name: "Olivia Chen", number: 10, initials: "OC" },
+        "3": { name: "Sophia Martinez", number: 4, initials: "SM" },
+        "4": { name: "Ava Thompson", number: 7, initials: "AT" },
+        "5": { name: "Mia Rodriguez", number: 1, initials: "MR" },
+        "6": { name: "Isabella Kim", number: 8, initials: "IK" },
+        "7": { name: "Charlotte Davis", number: 11, initials: "CD" },
+        "8": { name: "Amelia Brown", number: 5, initials: "AB" }
+      };
+
+      const attFC = {}, attCR = {};
+      Object.keys(playersFC).forEach(id => attFC[id] = true);
+      Object.keys(playersCR).forEach(id => attCR[id] = true);
+
+      await db.ref('teams').set(teams);
+      await db.ref('players/fc-united').set(playersFC);
+      await db.ref('players/city-rovers').set(playersCR);
+      await db.ref('trainings/fc-united/2026-08-21/attendance').set(attFC);
+      await db.ref('trainings/city-rovers/2026-08-21/attendance').set(attCR);
+
+      await db.ref('matches/fc-united/current').set({
+        opponent: "Rival FC", home: true, date: "2026-08-21",
+        attendance: attFC, scoreUs: 0, scoreThem: 0, goals: [], seconds: 0, isRunning: false
+      });
+      await db.ref('matches/city-rovers/current').set({
+        opponent: "United Ladies", home: true, date: "2026-08-21",
+        attendance: attCR, scoreUs: 0, scoreThem: 0, goals: [], seconds: 0, isRunning: false
+      });
+
+      console.log("Two home teams + players seeded");
+    }
+
+    // ============================================================
+    // LISTENERS
+    // ============================================================
+    function startTeamsListener() {
+      db.ref('teams').on('value', snap => {
+        const data = snap.val() || {};
+        const list = document.getElementById('teams-list');
+        const ids = Object.keys(data);
+        if (!ids.length) {
+          list.innerHTML = '<div class="empty">No teams found</div>';
+          return;
+        }
+        list.innerHTML = ids.map(id => `
+          <div class="card" onclick="selectTeam('${id}')" style="cursor:pointer">
+            <h3>${data[id].name}</h3>
+            <p>${data[id].description || ''}</p>
+          </div>
+        `).join('');
+      });
+    }
+
+    function detachTeamListeners() {
+      if (playersRef) playersRef.off();
+      if (trainingRef) trainingRef.off();
+      if (matchRef) matchRef.off();
+      playersRef = trainingRef = matchRef = null;
+    }
+
+    function startTeamListeners() {
+      detachTeamListeners();
+      if (!currentTeamId) return;
+
+      db.ref(`teams/${currentTeamId}`).once('value', snap => {
+        currentTeam = snap.val();
+        if (currentTeam) {
+          document.getElementById('team-title').textContent = currentTeam.name;
+          document.getElementById('team-description').textContent = currentTeam.description || '';
+          document.getElementById('live-home-name').innerHTML = `${currentTeam.name}<br><span id="score-us">${scoreUs}</span>`;
+        }
+      });
+
+      playersRef = db.ref(`players/${currentTeamId}`);
+      playersRef.on('value', snap => {
+        const data = snap.val() || {};
+        players = Object.entries(data).map(([id, p]) => ({ id, ...p }));
+        renderPlayers();
+        if (document.getElementById('training').classList.contains('active')) renderAttendance('training');
+        if (document.getElementById('match').classList.contains('active')) renderAttendance('match');
+        if (document.getElementById('reports').classList.contains('active')) renderReports();
+      });
+
+      trainingRef = db.ref(`trainings/${currentTeamId}/2026-08-21/attendance`);
+      trainingRef.on('value', snap => {
+        trainingAttendance = snap.val() || {};
+        if (document.getElementById('training').classList.contains('active')) renderAttendance('training');
+        if (document.getElementById('reports').classList.contains('active')) renderReports();
+      });
+
+      matchRef = db.ref(`matches/${currentTeamId}/current`);
+      matchRef.on('value', snap => {
+        const data = snap.val();
+        if (!data) return;
+        matchData = data;
+        matchAttendance = data.attendance || {};
+        scoreUs = data.scoreUs || 0;
+        scoreThem = data.scoreThem || 0;
+        goals = data.goals || [];
+
+        document.getElementById('match-opponent').textContent = `vs ${data.opponent || 'Opponent'}`;
+        document.getElementById('live-title').textContent = `vs ${data.opponent || 'Opponent'}`;
+        document.getElementById('live-away-name').innerHTML = `${data.opponent || 'Away'}<br><span id="score-them">${scoreThem}</span>`;
+
+        updateScore();
+        renderGoalLog();
+        if (document.getElementById('match').classList.contains('active')) renderAttendance('match');
+        if (document.getElementById('reports').classList.contains('active')) renderReports();
+      });
+    }
+
+    function selectTeam(id) {
+      currentTeamId = id;
+      startTeamListeners();
+      goTo('team');
+    }
+
+    // ============================================================
+    // WRITE HELPERS
+    // ============================================================
+    function setAttendance(type, id, present) {
+      if (!currentTeamId) return;
+      const path = type === 'training'
+        ? `trainings/${currentTeamId}/2026-08-21/attendance/${id}`
+        : `matches/${currentTeamId}/current/attendance/${id}`;
+      db.ref(path).set(present);
+    }
+
+    function markAll(type, present) {
+      if (!currentTeamId) return;
+      const updates = {};
+      players.forEach(p => updates[p.id] = present);
+      const path = type === 'training'
+        ? `trainings/${currentTeamId}/2026-08-21/attendance`
+        : `matches/${currentTeamId}/current/attendance`;
+      db.ref(path).set(updates);
+    }
+
+    // ============================================================
+    // EDIT PLAYER
+    // ============================================================
+    function openEditPlayer(id) {
+      const p = players.find(pl => pl.id === id);
+      if (!p) return;
+      editingPlayerId = id;
+      document.getElementById('edit-name').value = p.name || '';
+      document.getElementById('edit-number').value = p.number || '';
+      document.getElementById('edit-initials').value = p.initials || '';
+      document.getElementById('edit-player-modal').classList.add('open');
+    }
+
+    function closeEditModal() {
+      document.getElementById('edit-player-modal').classList.remove('open');
+      editingPlayerId = null;
+    }
+
+    function savePlayerEdit() {
+      if (!editingPlayerId || !currentTeamId) return;
+      const name = document.getElementById('edit-name').value.trim();
+      const number = parseInt(document.getElementById('edit-number').value) || 0;
+      let initials = document.getElementById('edit-initials').value.trim().toUpperCase().slice(0, 2);
+
+      if (!name) {
+        alert('Name cannot be empty');
+        return;
+      }
+      if (!initials) {
+        initials = name.split(/\s+/).map(w => w[0] || '').join('').toUpperCase().slice(0, 2);
+      }
+
+      db.ref(`players/${currentTeamId}/${editingPlayerId}`).update({ name, number, initials });
+      closeEditModal();
+    }
+
+    // ============================================================
+    // REPORTS
+    // ============================================================
+    function renderReports() {
+      const trainPresent = Object.values(trainingAttendance).filter(v => v === true).length;
+      const trainTotal = players.length || Object.keys(trainingAttendance).length;
+      const trainPct = trainTotal ? Math.round((trainPresent / trainTotal) * 100) : 0;
+
+      document.getElementById('report-training-summary').innerHTML =
+        `<span class="pct">${trainPresent} / ${trainTotal} present (${trainPct}%)</span>`;
+
+      const trainList = document.getElementById('report-training-list');
+      if (!players.length) {
+        trainList.innerHTML = '<div class="empty">No players</div>';
+      } else {
+        trainList.innerHTML = players.map(p => {
+          const present = trainingAttendance[p.id] === true;
+          return `
+            <div class="stat-row">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div class="avatar" style="width:32px;height:32px;font-size:0.8rem">${p.initials || '?'}</div>
+                <div>
+                  <strong>${p.name}</strong>
+                  <div style="font-size:0.8rem;color:var(--muted)">#${p.number || '–'}</div>
+                </div>
+              </div>
+              <span class="badge ${present ? 'badge-green' : 'badge-red'}">${present ? 'Present' : 'Absent'}</span>
+            </div>
+          `;
+        }).join('');
+      }
+
+      const matchContent = document.getElementById('report-match-content');
+      if (!matchData) {
+        matchContent.innerHTML = '<div class="empty">No match data yet</div>';
+      } else {
+        const mPresent = Object.values(matchAttendance).filter(v => v === true).length;
+        const mTotal = players.length || Object.keys(matchAttendance).length;
+        const mPct = mTotal ? Math.round((mPresent / mTotal) * 100) : 0;
+
+        let goalsHtml = '';
+        if (goals.length) {
+          goalsHtml = `
+            <div class="section-title" style="margin-top:16px">Goal Log</div>
+            ${goals.map(g => `
+              <div class="goal-entry">
+                <span class="goal-time">${g.time}'</span>
+                <div class="goal-details">
+                  <div>${g.scorer}</div>
+                  <div class="goal-clock">${g.scoredAt ? formatClock(g.scoredAt) : 'No calendar time'}</div>
+                </div>
+                <span style="color:${g.isOurs ? 'var(--green)' : 'var(--red)'}">${g.isOurs ? '⚽' : '🔴'}</span>
+              </div>
+            `).join('')}
+          `;
+        } else {
+          goalsHtml = '<p style="margin-top:12px;color:var(--muted)">No goals recorded</p>';
+        }
+
+        matchContent.innerHTML = `
+          <h3>${currentTeam ? currentTeam.name : 'Home'} ${scoreUs} – ${scoreThem} ${matchData.opponent || 'Opponent'}</h3>
+          <p>${matchData.date || ''} · ${matchData.home ? 'Home' : 'Away'}</p>
+          <p style="margin-top:8px"><span class="pct">${mPresent} / ${mTotal} players present (${mPct}%)</span></p>
+          ${goalsHtml}
+          <div class="section-title" style="margin-top:16px">Match Attendance</div>
+          ${players.map(p => {
+            const present = matchAttendance[p.id] === true;
+            return `
+              <div class="stat-row">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div class="avatar" style="width:32px;height:32px;font-size:0.8rem">${p.initials || '?'}</div>
+                  <strong>${p.name}</strong>
+                </div>
+                <span class="badge ${present ? 'badge-green' : 'badge-red'}">${present ? 'Present' : 'Absent'}</span>
+              </div>
+            `;
+          }).join('')}
+        `;
+      }
+
+      const statsEl = document.getElementById('report-player-stats');
+      if (!players.length) {
+        statsEl.innerHTML = '<div class="empty">No players</div>';
+        return;
+      }
+
+      statsEl.innerHTML = players.map(p => {
+        let sessions = 0;
+        let presentCount = 0;
+        sessions++;
+        if (trainingAttendance[p.id] === true) presentCount++;
+        sessions++;
+        if (matchAttendance[p.id] === true) presentCount++;
+        const pct = sessions ? Math.round((presentCount / sessions) * 100) : 0;
+        return `
+          <div class="stat-row">
+            <div style="display:flex;align-items:center;gap:10px">
+              <div class="avatar" style="width:32px;height:32px;font-size:0.8rem">${p.initials || '?'}</div>
+              <div>
+                <strong>${p.name}</strong>
+                <div style="font-size:0.8rem;color:var(--muted)">${presentCount}/${sessions} sessions</div>
+              </div>
+            </div>
+            <span class="pct">${pct}%</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function refreshReports() {
+      renderReports();
+      alert('Reports refreshed from Firebase');
+    }
+
+    // ============================================================
+    // UI HELPERS
+    // ============================================================
+    function goTo(screenId) {
+      if ((['team','players','training','match','live','reports'].includes(screenId)) && !currentTeamId) {
+        alert('Please select a team first');
+        goTo('home');
+        return;
+      }
+
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screenId).classList.add('active');
+
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      const navMap = { home: 0, team: 1, training: 2, match: 3 };
+      if (navMap[screenId] !== undefined) {
+        document.querySelectorAll('.nav-item')[navMap[screenId]].classList.add('active');
+        document.getElementById('bottom-nav').style.display = 'flex';
+      } else {
+        document.getElementById('bottom-nav').style.display = 'none';
+      }
+
+      if (screenId === 'players') renderPlayers();
+      if (screenId === 'training') renderAttendance('training');
+      if (screenId === 'match') renderAttendance('match');
+      if (screenId === 'reports') renderReports();
+    }
+
+    function renderPlayers() {
+      const list = document.getElementById('player-list');
+      if (!players.length) {
+        list.innerHTML = '<div class="empty">Loading players…</div>';
+        return;
+      }
+      list.innerHTML = players.map(p => `
+        <div class="player-row">
+          <div class="avatar">${p.initials || '?'}</div>
+          <div class="player-info">
+            <strong>${p.name}</strong>
+            <span>#${p.number || '–'}</span>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="openEditPlayer('${p.id}')">Edit</button>
+        </div>
+      `).join('');
+    }
+
+    function renderAttendance(type) {
+      const listId = type + '-list';
+      const progressId = type + '-progress';
+      const data = type === 'training' ? trainingAttendance : matchAttendance;
+
+      const list = document.getElementById(listId);
+      if (!players.length) {
+        list.innerHTML = '<div class="empty">Loading…</div>';
+        return;
+      }
+
+      list.innerHTML = players.map(p => {
+        const isPresent = data[p.id] === true;
+        return `
+          <div class="player-row">
+            <div class="avatar">${p.initials || '?'}</div>
+            <div class="player-info">
+              <strong>${p.name}</strong>
+              <span>#${p.number || '–'}</span>
+            </div>
+            <div class="toggle-group">
+              <button class="toggle ${isPresent ? 'present' : ''}" onclick="setAttendance('${type}', '${p.id}', true)">Present</button>
+              <button class="toggle ${!isPresent ? 'absent' : ''}" onclick="setAttendance('${type}', '${p.id}', false)">Absent</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const present = Object.values(data).filter(v => v === true).length;
+      document.getElementById(progressId).textContent = `${present} of ${players.length} present`;
+    }
+
+    // ============================================================
+    // LIVE MATCH + GOAL WITH CALENDAR DATETIME
+    // ============================================================
+    function startLiveMatch() {
+      const presentCount = Object.values(matchAttendance).filter(v => v).length;
+      if (presentCount === 0) {
+        alert('Mark at least one player present first.');
+        return;
+      }
+      if (goals.length === 0) {
+        db.ref(`matches/${currentTeamId}/current`).update({
+          scoreUs: 0, scoreThem: 0, goals: [], seconds: 0, isRunning: true
+        });
+        seconds = 0;
+      }
+      isRunning = true;
+      document.getElementById('pause-btn').textContent = 'Pause';
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(tick, 1000);
+      goTo('live');
+    }
+
+    function tick() {
+      if (!isRunning) return;
+      seconds++;
+      const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const s = String(seconds % 60).padStart(2, '0');
+      document.getElementById('timer').textContent = `${m}:${s}`;
+    }
+
+    function toggleTimer() {
+      isRunning = !isRunning;
+      document.getElementById('pause-btn').textContent = isRunning ? 'Pause' : 'Resume';
+    }
+
+    function addMinute() {
+      seconds += 60;
+      const m = String(Math.floor(seconds / 60)).padStart(2, '0');
+      const s = String(seconds % 60).padStart(2, '0');
+      document.getElementById('timer').textContent = `${m}:${s}`;
+    }
+
+    function openGoalModal() {
+      const presentPlayers = players.filter(p => matchAttendance[p.id]);
+      document.getElementById('modal-players').innerHTML = presentPlayers.map(p => `
+        <div class="modal-player" onclick="addGoal('${p.id}')">
+          <div class="avatar">${p.initials || '?'}</div>
+          <div><strong>${p.name}</strong> <span style="color:var(--muted)">#${p.number || ''}</span></div>
+        </div>
+      `).join('') + `
+        <div class="modal-player" onclick="addGoal('own')">
+          <div class="avatar" style="background:#999">?</div>
+          <div><strong>Own Goal / Unknown</strong></div>
+        </div>
+      `;
+      document.getElementById('goal-modal').classList.add('open');
+    }
+
+    function closeGoalModal() {
+      document.getElementById('goal-modal').classList.remove('open');
+    }
+
+    function addGoal(playerId) {
+      const mins = Math.floor(seconds / 60);
+      let scorerName = 'Opponent';
+      let isOurs = false;
+
+      if (playerId === 'own') {
+        scorerName = 'Own Goal';
+        isOurs = true;
+        scoreUs++;
+      } else if (playerId) {
+        const p = players.find(pl => pl.id === playerId);
+        scorerName = p ? `${p.name} (#${p.number || ''})` : 'Unknown';
+        isOurs = true;
+        scoreUs++;
+      } else {
+        scoreThem++;
+      }
+
+      // *** NEW: record exact calendar datetime when the goal is scored ***
+      const scoredAt = new Date().toISOString();
+
+      const newGoal = {
+        time: mins,               // match minute
+        scorer: scorerName,
+        isOurs,
+        scoredAt: scoredAt        // full calendar datetime (ISO)
+      };
+
+      const updates = {};
+      updates[`matches/${currentTeamId}/current/goals`] = [newGoal, ...goals];
+      updates[`matches/${currentTeamId}/current/scoreUs`] = scoreUs;
+      updates[`matches/${currentTeamId}/current/scoreThem`] = scoreThem;
+      db.ref().update(updates);
+      closeGoalModal();
+    }
+
+    function updateScore() {
+      document.getElementById('score-us').textContent = scoreUs;
+      document.getElementById('score-them').textContent = scoreThem;
+    }
+
+    function renderGoalLog() {
+      const log = document.getElementById('goal-log');
+      if (!goals.length) {
+        log.innerHTML = '<div class="empty">No goals yet</div>';
+        return;
+      }
+      log.innerHTML = goals.map(g => `
+        <div class="goal-entry">
+          <span class="goal-time">${g.time}'</span>
+          <div class="goal-details">
+            <div>${g.scorer}</div>
+            <div class="goal-clock">${g.scoredAt ? formatClock(g.scoredAt) : 'No calendar time recorded'}</div>
+          </div>
+          <span style="color:${g.isOurs ? 'var(--green)' : 'var(--red)'}">${g.isOurs ? '⚽' : '🔴'}</span>
+        </div>
+      `).join('');
+    }
+
+    function endMatch() {
+      if (!confirm(`End match?\nFinal score: ${scoreUs} – ${scoreThem}`)) return;
+      clearInterval(timerInterval);
+      isRunning = false;
+      db.ref(`matches/${currentTeamId}/current`).update({ isRunning: false });
+      alert('Match ended and saved to Firebase.');
+      goTo('team');
+    }
+
+    // ============================================================
+    // BOOT
+    // ============================================================
+    (async function init() {
+      try {
+        statusBar.style.display = 'block';
+        await seedIfEmpty();
+        startTeamsListener();
+        statusBar.textContent = "✅ Connected – Goals now store calendar datetime";
+        statusBar.className = "status-bar ok";
+        setTimeout(() => statusBar.style.display = "none", 3500);
+      } catch (err) {
+        console.error(err);
+        statusBar.textContent = "❌ Firebase error – check config & rules";
+        statusBar.className = "status-bar error";
+        statusBar.style.display = "block";
+      }
+    })();
+  </script>
+</body>
+</html>
