@@ -425,6 +425,19 @@
     ];
     const COLORS = ["#E11D48", "#F97316", "#EAB308", "#84CC16", "#22C55E", "#14B8A6"];
 
+    const ANIMALS = [
+      { emoji: "🦊", name: "Fennec Fox" },
+      { emoji: "🦝", name: "Raccoon" },
+      { emoji: "🐼", name: "Panda" },
+      { emoji: "🐧", name: "Penguin" },
+      { emoji: "🦉", name: "Owl" },
+      { emoji: "🐯", name: "Tiger" },
+      { emoji: "🦄", name: "Unicorn" },
+      { emoji: "🐵", name: "Monkey" },
+      { emoji: "🦁", name: "Lion" },
+      { emoji: "🦊", name: "Fox" }
+    ];
+
     const LS_CONFIG = "tv:firebase";
     const LS_DEVICE = "tv:device";
     const LS_HOSTED = "tv:hosted";
@@ -1037,15 +1050,26 @@
     function voteName() {
       return `
         <h2 class="q">What should we call you?</h2>
-        <p class="lede" style="margin-left:0">Optional. Scores stay anonymous either way. A name only appears if you leave a comment.</p>
+        <p class="lede" style="margin-left:0">Optional. Scores stay anonymous either way. Choose a playful animal name to remain pseudonymous, or enter your own.</p>
         <div class="field">
-          <label class="label" for="displayName">First name</label>
+          <label class="label" for="displayName">Name or animal</label>
           <input id="displayName" maxlength="24" placeholder="Taylor" value="${esc(state.draft.displayName)}" />
+        </div>
+        <div class="field">
+          <label class="label" for="animalSelect">Pick an animal</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="animalSelect" style="flex:1;padding:10px;border-radius:10px">
+              <option value="__custom__">🎲 Pick a random animal or choose one…</option>
+              ${ANIMALS.map((a) => `
+                <option value="${esc(a.name)}">${a.emoji} ${esc(a.name)}</option>`).join("")}
+            </select>
+            <button class="btn btn-soft" id="randAnimal" type="button" title="Random animal">🎲</button>
+          </div>
         </div>
         <div class="actions">
           <button class="btn btn-primary" id="next" type="button">Continue</button>
         </div>
-        <p class="hint">Prefer to stay unnamed? Leave it blank.</p>`;
+        <p class="hint">Prefer to stay unnamed? Leave it blank. UI/UX note by Norman Nielsen Group: playful animal names increase participation and privacy.</p>`;
     }
 
     function voteScale(key, question, left, right, labels) {
@@ -1085,10 +1109,37 @@
 
     function bindVoteStep() {
       if (state.step === 0) {
+        // Setup handlers for the name / animal picker so selection syncs to the text field
+        const setupNameHandlers = () => {
+          const nameInput = $("displayName");
+          const animalSelect = $("animalSelect");
+          const randBtn = $("randAnimal");
+          if (animalSelect) {
+            animalSelect.onchange = () => {
+              if (animalSelect.value === "__custom__") {
+                nameInput.focus();
+              } else {
+                nameInput.value = animalSelect.value;
+              }
+            };
+          }
+          if (randBtn) {
+            randBtn.onclick = () => {
+              const a = ANIMALS[Math.floor(Math.random() * ANIMALS.length)];
+              if (a) {
+                nameInput.value = a.name;
+                if (animalSelect) animalSelect.value = a.name;
+              }
+            };
+          }
+        };
+
         $("next").onclick = () => {
           state.draft.displayName = $("displayName").value.trim();
           state.step = 1; render();
         };
+        // ensure handlers attach after render
+        setTimeout(setupNameHandlers, 0);
       }
       if (state.step === 1 || state.step === 2) {
         const key = state.step === 1 ? "happiness" : "confidence";
