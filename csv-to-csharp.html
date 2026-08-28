@@ -380,7 +380,7 @@
       if (rows.length > 0) {
         code += `\n// Example usage (first ${Math.min(3, rows.length)} row(s)):\n`;
         code += `// var items = new List<${className}>\n// {\n`;
-        rows.slice(0, 3).forEach((row, idx) => {
+        rows.slice(0, rows.length).forEach((row, idx) => {
           code += `//     new ${className}\n//     {\n`;
           props.forEach((p, i) => {
             let val = row[i] ?? '';
