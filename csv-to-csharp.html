@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CSV → C# Class Generator</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --success: #059669;
+      --error: #dc2626;
+      --code-bg: #0f172a;
+      --radius: 8px;
+      --shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 1.5rem;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 1.75rem;
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-top: 0.25rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.875rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .hint {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 180px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-family: ui-monospace, "Cascadia Code", "Source Code Pro", Menlo, monospace;
+      font-size: 0.85rem;
+      resize: vertical;
+      background: #fafafa;
+    }
+
+    textarea:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+      border-color: var(--primary);
+    }
+
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: flex-end;
+      margin-top: 1rem;
+    }
+
+    .field {
+      flex: 1;
+      min-width: 180px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 0.55rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+    }
+
+    input[type="text"]:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 1px;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: var(--radius);
+      padding: 0.65rem 1.25rem;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+
+    button:active { transform: scale(0.98); }
+
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-primary:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { background: #f1f5f9; }
+
+    .btn-success {
+      background: var(--success);
+      color: white;
+    }
+
+    .status {
+      margin-top: 0.75rem;
+      font-size: 0.875rem;
+      min-height: 1.25rem;
+    }
+    .status.error { color: var(--error); }
+    .status.success { color: var(--success); }
+
+    .output-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: #e2e8f0;
+      padding: 1rem;
+      border-radius: var(--radius);
+      overflow-x: auto;
+      font-family: ui-monospace, "Cascadia Code", Menlo, monospace;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      white-space: pre;
+      min-height: 120px;
+    }
+
+    footer {
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      body { padding: 1rem; }
+      .options { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>CSV → C# Class Generator</h1>
+    <p class="subtitle">Paste CSV → get a clean C# POCO class with inferred property types. Defaults to <code>string</code> when unsure.</p>
+  </header>
+
+  <section class="card" aria-labelledby="input-heading">
+    <h2 id="input-heading" class="visually-hidden" style="position:absolute;left:-9999px;">Input</h2>
+    
+    <label for="csvInput">CSV data</label>
+    <p class="hint">First row = headers (become property names). Subsequent rows used for type inference.</p>
+    <textarea id="csvInput" placeholder='id,name,price,is_active,created
+1,"Wireless Mouse",29.99,true,2024-01-15
+2,"USB-C Hub",49.50,false,2024-03-02
+3,"Laptop Stand",34,true,2023-11-20' spellcheck="false"></textarea>
+
+    <div class="options">
+      <div class="field">
+        <label for="className">Class name</label>
+        <input type="text" id="className" value="MyClass" placeholder="MyClass">
+      </div>
+      <div class="field">
+        <label for="namespace">Namespace (optional)</label>
+        <input type="text" id="namespace" placeholder="MyApp.Models">
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button type="button" class="btn-primary" id="convertBtn">Convert to C#</button>
+      <button type="button" class="btn-secondary" id="sampleBtn">Load sample</button>
+      <button type="button" class="btn-secondary" id="clearBtn">Clear</button>
+    </div>
+
+    <div id="status" class="status" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="card" id="outputSection" hidden>
+    <div class="output-header">
+      <label for="codeOutput">Generated C# code</label>
+      <button type="button" class="btn-success" id="copyBtn">Copy to clipboard</button>
+    </div>
+    <pre id="codeOutput" tabindex="0"></pre>
+  </section>
+
+  <footer>
+    Built with usability principles from Nielsen Norman Group · Pure client-side · No data leaves your browser
+  </footer>
+
+  <script>
+    // ---------- Simple robust CSV parser (handles quotes & escaped quotes) ----------
+    function parseCSV(text) {
+      const rows = [];
+      let current = [];
+      let inQuotes = false;
+      let field = '';
+
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        const next = text[i + 1];
+
+        if (inQuotes) {
+          if (char === '"' && next === '"') {
+            field += '"';
+            i++;
+          } else if (char === '"') {
+            inQuotes = false;
+          } else {
+            field += char;
+          }
+        } else {
+          if (char === '"') {
+            inQuotes = true;
+          } else if (char === ',') {
+            current.push(field.trim());
+            field = '';
+          } else if (char === '\n' || (char === '\r' && next === '\n')) {
+            current.push(field.trim());
+            if (current.some(c => c !== '')) rows.push(current);
+            current = [];
+            field = '';
+            if (char === '\r') i++;
+          } else if (char !== '\r') {
+            field += char;
+          }
+        }
+      }
+      // last field
+      current.push(field.trim());
+      if (current.some(c => c !== '')) rows.push(current);
+
+      return rows;
+    }
+
+    // ---------- Sanitize header → valid C# property name (PascalCase) ----------
+    function toPropertyName(header, index) {
+      let name = (header || `Column${index + 1}`)
+        .replace(/[^a-zA-Z0-9_]/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+        .join('');
+
+      if (!name) name = `Column${index + 1}`;
+      if (/^[0-9]/.test(name)) name = 'P' + name; // cannot start with digit
+      return name;
+    }
+
+    // ---------- Type inference ----------
+    function inferType(values) {
+      const nonEmpty = values.filter(v => v !== null && v !== undefined && String(v).trim() !== '');
+      if (nonEmpty.length === 0) return 'string';
+
+      // bool
+      const boolLike = nonEmpty.every(v => {
+        const s = String(v).trim().toLowerCase();
+        return ['true', 'false', '1', '0', 'yes', 'no'].includes(s);
+      });
+      if (boolLike) return 'bool';
+
+      // int
+      const allInt = nonEmpty.every(v => /^-?\d+$/.test(String(v).trim()));
+      if (allInt) return 'int';
+
+      // double / decimal (prefer double for simplicity)
+      const allNumber = nonEmpty.every(v => {
+        const s = String(v).trim().replace(/,/g, ''); // allow 1,234.56
+        return /^-?\d*\.?\d+$/.test(s) || /^-?\d+\.\d*$/.test(s);
+      });
+      if (allNumber) return 'double';
+
+      // DateTime (common formats)
+      const allDate = nonEmpty.every(v => {
+        const s = String(v).trim();
+        // ISO, US, EU common patterns
+        return !isNaN(Date.parse(s)) && 
+               (/\d{4}-\d{2}-\d{2}/.test(s) || 
+                /\d{1,2}\/\d{1,2}\/\d{2,4}/.test(s) ||
+                /\d{1,2}-\d{1,2}-\d{2,4}/.test(s));
+      });
+      if (allDate) return 'DateTime';
+
+      return 'string';
+    }
+
+    // ---------- Generate C# ----------
+    function generateCSharp(headers, rows, className, ns) {
+      const props = headers.map((h, i) => {
+        const name = toPropertyName(h, i);
+        const colValues = rows.map(r => r[i] ?? '');
+        const type = inferType(colValues);
+        return { name, type, original: h };
+      });
+
+      // Detect duplicate property names and disambiguate
+      const seen = {};
+      props.forEach(p => {
+        if (seen[p.name]) {
+          seen[p.name]++;
+          p.name = p.name + seen[p.name];
+        } else {
+          seen[p.name] = 1;
+        }
+      });
+
+      let code = '';
+      if (ns && ns.trim()) {
+        code += `namespace ${ns.trim()}\n{\n`;
+      }
+
+      code += `    public class ${className}\n    {\n`;
+      props.forEach(p => {
+        code += `        public ${p.type} ${p.name} { get; set; }\n`;
+      });
+      code += `    }\n`;
+
+      if (ns && ns.trim()) {
+        code += `}\n`;
+      }
+
+      // Optional: sample instantiation (first 3 rows) for convenience
+      if (rows.length > 0) {
+        code += `\n// Example usage (first ${Math.min(3, rows.length)} row(s)):\n`;
+        code += `// var items = new List<${className}>\n// {\n`;
+        rows.slice(0, 3).forEach((row, idx) => {
+          code += `//     new ${className}\n//     {\n`;
+          props.forEach((p, i) => {
+            let val = row[i] ?? '';
+            if (p.type === 'string') {
+              val = `"${String(val).replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+            } else if (p.type === 'bool') {
+              const s = String(val).trim().toLowerCase();
+              val = (s === 'true' || s === '1' || s === 'yes') ? 'true' : 'false';
+            } else if (p.type === 'DateTime') {
+              val = `DateTime.Parse("${val}")`;
+            } else if (val === '') {
+              val = p.type === 'int' || p.type === 'double' ? '0' : 'null';
+            }
+            code += `//         ${p.name} = ${val},\n`;
+          });
+          code += `//     }${idx < Math.min(2, rows.length - 1) ? ',' : ''}\n`;
+        });
+        code += `// };\n`;
+      }
+
+      return code;
+    }
+
+    // ---------- UI wiring ----------
+    const csvInput   = document.getElementById('csvInput');
+    const className  = document.getElementById('className');
+    const namespace  = document.getElementById('namespace');
+    const convertBtn = document.getElementById('convertBtn');
+    const sampleBtn  = document.getElementById('sampleBtn');
+    const clearBtn   = document.getElementById('clearBtn');
+    const copyBtn    = document.getElementById('copyBtn');
+    const status     = document.getElementById('status');
+    const outputSec  = document.getElementById('outputSection');
+    const codeOutput = document.getElementById('codeOutput');
+
+    function setStatus(msg, type = '') {
+      status.textContent = msg;
+      status.className = 'status ' + type;
+    }
+
+    convertBtn.addEventListener('click', () => {
+      const text = csvInput.value.trim();
+      if (!text) {
+        setStatus('Please paste some CSV data first.', 'error');
+        csvInput.focus();
+        return;
+      }
+
+      convertBtn.disabled = true;
+      setStatus('Converting…');
+
+      // slight delay so UI can update (feels responsive)
+      setTimeout(() => {
+        try {
+          const rows = parseCSV(text);
+          if (rows.length < 1) {
+            throw new Error('No data found. Need at least a header row.');
+          }
+
+          const headers = rows[0];
+          const dataRows = rows.slice(1);
+
+          if (headers.every(h => !h)) {
+            throw new Error('Header row appears empty.');
+          }
+
+          const cls = (className.value.trim() || 'MyClass').replace(/[^a-zA-Z0-9_]/g, '');
+          if (!cls || /^[0-9]/.test(cls)) {
+            throw new Error('Class name must be a valid C# identifier (letter/underscore first).');
+          }
+
+          const code = generateCSharp(headers, dataRows, cls, namespace.value);
+          codeOutput.textContent = code;
+          outputSec.hidden = false;
+          setStatus(`Success — ${headers.length} properties inferred from ${dataRows.length} data row(s).`, 'success');
+          codeOutput.focus();
+        } catch (err) {
+          setStatus(err.message || 'Could not parse CSV.', 'error');
+          outputSec.hidden = true;
+        } finally {
+          convertBtn.disabled = false;
+        }
+      }, 50);
+    });
+
+    sampleBtn.addEventListener('click', () => {
+      csvInput.value = `id,name,price,is_active,created
+1,"Wireless Mouse",29.99,true,2024-01-15
+2,"USB-C Hub",49.50,false,2024-03-02
+3,"Laptop Stand",34,true,2023-11-20
+4,"Mechanical Keyboard",89.00,yes,2024-05-01`;
+      className.value = 'Product';
+      namespace.value = 'MyApp.Models';
+      setStatus('Sample loaded. Click Convert.');
+      outputSec.hidden = true;
+    });
+
+    clearBtn.addEventListener('click', () => {
+      csvInput.value = '';
+      className.value = 'MyClass';
+      namespace.value = '';
+      codeOutput.textContent = '';
+      outputSec.hidden = true;
+      setStatus('');
+      csvInput.focus();
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(codeOutput.textContent);
+        const original = copyBtn.textContent;
+        copyBtn.textContent = 'Copied!';
+        setTimeout(() => copyBtn.textContent = original, 1500);
+      } catch {
+        setStatus('Could not copy — select the code and copy manually.', 'error');
+      }
+    });
+
+    // Keyboard shortcut: Ctrl/Cmd + Enter to convert
+    csvInput.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        convertBtn.click();
+      }
+    });
+  </script>
+</body>
+</html>
