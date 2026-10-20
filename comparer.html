@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f7fb">
+  <title>Curve Compare — CSV difference report</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17233b;
+      --muted: #69758b;
+      --line: #e1e7f0;
+      --surface: #fff;
+      --canvas: #f5f7fb;
+      --blue: #3659d9;
+      --blue-dark: #2948bd;
+      --blue-soft: #eef2ff;
+      --green: #16794b;
+      --green-soft: #eaf7f0;
+      --amber: #9a5b05;
+      --amber-soft: #fff4df;
+      --red: #b42336;
+      --red-soft: #fff0f1;
+      --shadow: 0 14px 38px rgb(27 42 77 / 7%);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--canvas);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    button, textarea { font: inherit; }
+    button { cursor: pointer; }
+    .app { max-width: 1180px; margin: 0 auto; padding: 42px 28px 64px; }
+    .eyebrow {
+      margin: 0 0 10px;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 750;
+      letter-spacing: .11em;
+      text-transform: uppercase;
+    }
+    h1 { margin: 0; font-size: clamp(30px, 4vw, 42px); line-height: 1.12; letter-spacing: -.04em; }
+    .intro { max-width: 720px; margin: 12px 0 28px; color: var(--muted); font-size: 16px; }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--surface);
+      box-shadow: var(--shadow);
+    }
+    .input-card { padding: 24px; }
+    .section-heading, .report-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    h2 { margin: 0; font-size: 19px; letter-spacing: -.02em; }
+    .section-hint { margin: 5px 0 0; color: var(--muted); font-size: 13px; }
+    .text-actions { display: flex; gap: 8px; }
+    .editors { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px; }
+    .editor { min-width: 0; }
+    .editor-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .file-tag {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 550;
+    }
+    textarea {
+      display: block;
+      width: 100%;
+      min-height: 242px;
+      resize: vertical;
+      padding: 14px 15px;
+      border: 1px solid #cbd4e2;
+      border-radius: 10px;
+      background: #fbfcfe;
+      color: #24314b;
+      font: 13px/1.65 "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+      tab-size: 4;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    textarea:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgb(54 89 217 / 13%); }
+    .input-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px solid var(--line);
+    }
+    .format-note { color: var(--muted); font-size: 13px; }
+    .format-note strong { color: var(--ink); font-weight: 650; }
+    .button-row { display: flex; flex-wrap: wrap; gap: 10px; }
+    .button {
+      min-height: 40px;
+      padding: 9px 14px;
+      border: 1px solid #d4dce8;
+      border-radius: 8px;
+      background: #fff;
+      color: #34415a;
+      font-size: 13px;
+      font-weight: 680;
+      transition: background .15s, border-color .15s, transform .15s;
+    }
+    .button:hover:not(:disabled) { background: #f6f8fc; border-color: #aebbd0; }
+    .button:active:not(:disabled) { transform: translateY(1px); }
+    .button:focus-visible { outline: 3px solid rgb(54 89 217 / 25%); outline-offset: 2px; }
+    .button.primary { border-color: var(--blue); background: var(--blue); color: #fff; }
+    .button.primary:hover:not(:disabled) { border-color: var(--blue-dark); background: var(--blue-dark); }
+    .button:disabled { cursor: not-allowed; opacity: .5; }
+    .result { margin-top: 30px; }
+    .report-heading { margin-bottom: 16px; }
+    .report-heading p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+    .report-actions { display: flex; gap: 8px; }
+    .overview {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .metric {
+      min-height: 88px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: var(--surface);
+    }
+    .metric-label { color: var(--muted); font-size: 12px; font-weight: 650; }
+    .metric-value { margin-top: 4px; font-size: 25px; font-weight: 750; letter-spacing: -.04em; }
+    .report-card { overflow: hidden; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th, td { padding: 12px 16px; border-bottom: 1px solid #edf0f5; white-space: nowrap; }
+    th { background: #f8f9fc; color: #59667d; font-size: 11px; font-weight: 750; letter-spacing: .055em; text-transform: uppercase; }
+    td { font-size: 13px; font-variant-numeric: tabular-nums; }
+    tbody tr:last-child td { border-bottom: 0; }
+    .curve-name { color: var(--ink); font-weight: 720; }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 720;
+    }
+    .status.match { background: var(--green-soft); color: var(--green); }
+    .status.diff { background: var(--amber-soft); color: var(--amber); }
+    .status.missing { background: var(--red-soft); color: var(--red); }
+    .status::before { width: 6px; height: 6px; border-radius: 50%; background: currentColor; content: ""; }
+    .subsection { margin-top: 20px; }
+    .subsection-title { margin: 0 0 10px; font-size: 15px; font-weight: 720; }
+    .notice {
+      margin: 14px 0 0;
+      padding: 11px 14px;
+      border: 1px solid #f1d79f;
+      border-radius: 9px;
+      background: var(--amber-soft);
+      color: #704609;
+      font-size: 13px;
+    }
+    .empty-state { padding: 24px 18px; color: var(--muted); text-align: center; font-size: 13px; }
+    .report-caption { padding: 12px 16px; border-bottom: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+    .footer-note { margin: 12px 2px 0; color: var(--muted); font-size: 12px; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 760px) {
+      .app { padding: 28px 16px 44px; }
+      .input-card { padding: 18px; }
+      .editors { grid-template-columns: 1fr; gap: 16px; }
+      textarea { min-height: 195px; }
+      .overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .section-heading, .report-heading { align-items: flex-start; }
+      .report-heading { flex-direction: column; }
+    }
+    @media (max-width: 480px) {
+      .text-actions { flex-shrink: 0; }
+      .section-heading { gap: 8px; }
+      .section-heading h2 { font-size: 17px; }
+      .input-footer { align-items: stretch; }
+      .button-row { width: 100%; }
+      .button-row .button { flex: 1; }
+      .report-actions { width: 100%; }
+      .report-actions .button { flex: 1; }
+      th, td { padding: 10px 12px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header>
+      <p class="eyebrow">CSV analysis tool</p>
+      <h1>Compare your curves</h1>
+      <p class="intro">Paste two datasets to see which curve values changed. Curve columns are matched by header name, and values are compared row by row.</p>
+    </header>
+
+    <section class="card input-card" aria-labelledby="input-title">
+      <div class="section-heading">
+        <div>
+          <h2 id="input-title">Your data</h2>
+          <p class="section-hint">Include a header row with curve names. Comma, semicolon, and tab separators are detected automatically.</p>
+        </div>
+        <div class="text-actions">
+          <button class="button" id="swap-button" type="button" aria-label="Swap the two datasets">Swap</button>
+          <button class="button" id="clear-button" type="button">Clear</button>
+        </div>
+      </div>
+
+      <div class="editors">
+        <div class="editor">
+          <label class="editor-label" for="data-a"><span>Dataset 1</span><span class="file-tag">Baseline</span></label>
+          <textarea id="data-a" spellcheck="false" aria-describedby="input-hint"></textarea>
+        </div>
+        <div class="editor">
+          <label class="editor-label" for="data-b"><span>Dataset 2</span><span class="file-tag">Compared with baseline</span></label>
+          <textarea id="data-b" spellcheck="false" aria-describedby="input-hint"></textarea>
+        </div>
+      </div>
+      <span id="input-hint" class="sr-only">Paste numeric CSV data. Each column is a curve and each row is one observation.</span>
+
+      <div class="input-footer">
+        <div class="format-note"><strong>Tip:</strong> values are paired by row number. Blank cells and non-numeric values are skipped.</div>
+        <div class="button-row">
+          <button class="button primary" id="compare-button" type="button">Compare curves</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="result" id="result" aria-labelledby="report-title" aria-live="polite">
+      <div class="report-heading">
+        <div>
+          <h2 id="report-title">Comparison report</h2>
+          <p id="report-subtitle">A summary of matching curves and value differences.</p>
+        </div>
+        <div class="report-actions">
+          <button class="button" id="copy-button" type="button" disabled>Copy report</button>
+          <button class="button" id="download-button" type="button" disabled>Download report</button>
+        </div>
+      </div>
+      <div id="report-content"></div>
+      <p class="footer-note">Differences are Dataset 2 minus Dataset 1. Numbers within 1e-12 relative tolerance count as equal.</p>
+    </section>
+    <p class="sr-only" id="live-message" role="status"></p>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const exampleA = `curve1,curve2,curve5
+1.2,2.0,4.0
+3,3,3
+4.0,2.3,3.2
+2,2,3
+3,2,1
+3.0,3.3,4.1
+2,3,2
+4,3,1
+6.0,1,3.0`;
+      const exampleB = `curve1,curve2,curve3
+1,2,4.0
+3,3.1,3
+3.0,1,2
+1,2,3.0
+3,1.0,1
+2,3,4
+2.0,3,2
+4,3.1,3
+6,1,3.1`;
+
+      const inputA = document.querySelector("#data-a");
+      const inputB = document.querySelector("#data-b");
+      const reportContent = document.querySelector("#report-content");
+      const copyButton = document.querySelector("#copy-button");
+      const downloadButton = document.querySelector("#download-button");
+      const liveMessage = document.querySelector("#live-message");
+      let latestReport = "";
+
+      function detectDelimiter(text) {
+        const firstLine = text.split(/\r?\n/).find(line => line.trim() !== "") ?? "";
+        let best = ",";
+        let highestCount = -1;
+        for (const delimiter of [",", ";", "\t"]) {
+          let count = 0;
+          let quoted = false;
+          for (let i = 0; i < firstLine.length; i += 1) {
+            if (firstLine[i] === '"') {
+              if (quoted && firstLine[i + 1] === '"') i += 1;
+              else quoted = !quoted;
+            } else if (!quoted && firstLine[i] === delimiter) {
+              count += 1;
+            }
+          }
+          if (count > highestCount) {
+            highestCount = count;
+            best = delimiter;
+          }
+        }
+        return best;
+      }
+
+      function parseDelimited(text, delimiter) {
+        const rows = [];
+        let row = [];
+        let field = "";
+        let quoted = false;
+        for (let i = 0; i < text.length; i += 1) {
+          const char = text[i];
+          if (char === '"') {
+            if (quoted && text[i + 1] === '"') {
+              field += '"';
+              i += 1;
+            } else {
+              quoted = !quoted;
+            }
+          } else if (!quoted && char === delimiter) {
+            row.push(field);
+            field = "";
+          } else if (!quoted && (char === "\n" || char === "\r")) {
+            if (char === "\r" && text[i + 1] === "\n") i += 1;
+            row.push(field);
+            if (row.some(value => value.trim() !== "")) rows.push(row);
+            row = [];
+            field = "";
+          } else {
+            field += char;
+          }
+        }
+        row.push(field);
+        if (row.some(value => value.trim() !== "")) rows.push(row);
+        return rows;
+      }
+
+      function parseDataset(text, label) {
+        const delimiter = detectDelimiter(text);
+        const rows = parseDelimited(text.replace(/^\uFEFF/, ""), delimiter);
+        if (rows.length === 0) throw new Error(`${label} is empty. Add a header row and numeric values.`);
+        const headers = rows[0].map(value => value.trim());
+        if (headers.some(name => !name)) throw new Error(`${label} has an empty column name in its header.`);
+        const seen = new Set();
+        const duplicates = new Set();
+        headers.forEach(name => {
+          if (seen.has(name)) duplicates.add(name);
+          seen.add(name);
+        });
+        const dataRows = rows.slice(1).map(row => headers.map((_, index) => (row[index] ?? "").trim()));
+        return { headers, dataRows, duplicates: [...duplicates], delimiter };
+      }
+
+      function parseNumber(value) {
+        if (value === "") return null;
+        const number = Number(value);
+        return Number.isFinite(number) ? number : null;
+      }
+
+      function isDifferent(a, b) {
+        return Math.abs(a - b) > 1e-12 * Math.max(1, Math.abs(a), Math.abs(b));
+      }
+
+      function formatNumber(value) {
+        if (value === null || !Number.isFinite(value)) return "—";
+        return new Intl.NumberFormat(undefined, { maximumSignificantDigits: 7 }).format(value);
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, char => ({
+          "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+        })[char]);
+      }
+
+      function analyze(datasetA, datasetB) {
+        const headersA = new Set(datasetA.headers);
+        const headersB = new Set(datasetB.headers);
+        const matched = datasetA.headers.filter((name, index) =>
+          headersB.has(name) && datasetA.headers.indexOf(name) === index);
+        const onlyA = datasetA.headers.filter((name, index) =>
+          !headersB.has(name) && datasetA.headers.indexOf(name) === index);
+        const onlyB = datasetB.headers.filter((name, index) =>
+          !headersA.has(name) && datasetB.headers.indexOf(name) === index);
+        const summaries = [];
+        const differences = [];
+        let skippedValues = 0;
+
+        for (const name of matched) {
+          const indexA = datasetA.headers.indexOf(name);
+          const indexB = datasetB.headers.indexOf(name);
+          const pairedRows = Math.min(datasetA.dataRows.length, datasetB.dataRows.length);
+          const deltas = [];
+          let compared = 0;
+          let changed = 0;
+          for (let rowIndex = 0; rowIndex < pairedRows; rowIndex += 1) {
+            const rawA = datasetA.dataRows[rowIndex][indexA] ?? "";
+            const rawB = datasetB.dataRows[rowIndex][indexB] ?? "";
+            const valueA = parseNumber(rawA);
+            const valueB = parseNumber(rawB);
+            if (valueA === null || valueB === null) {
+              if (rawA !== "" || rawB !== "") skippedValues += 1;
+              continue;
+            }
+            compared += 1;
+            const delta = valueB - valueA;
+            deltas.push(delta);
+            if (isDifferent(valueA, valueB)) {
+              changed += 1;
+              differences.push({ curve: name, row: rowIndex + 1, valueA, valueB, delta });
+            }
+          }
+          const meanDelta = deltas.length ? deltas.reduce((sum, value) => sum + value, 0) / deltas.length : null;
+          const mae = deltas.length ? deltas.reduce((sum, value) => sum + Math.abs(value), 0) / deltas.length : null;
+          const rmse = deltas.length ? Math.sqrt(deltas.reduce((sum, value) => sum + value * value, 0) / deltas.length) : null;
+          const maxAbs = deltas.length ? Math.max(...deltas.map(Math.abs)) : null;
+          summaries.push({ name, compared, changed, meanDelta, mae, rmse, maxAbs });
+        }
+        return { matched, onlyA, onlyB, summaries, differences, skippedValues };
+      }
+
+      function buildReportText(data, result) {
+        const lines = [
+          "CURVE COMPARISON REPORT",
+          `Dataset 1: ${data.rowsA} data rows`,
+          `Dataset 2: ${data.rowsB} data rows`,
+          `Matched curves: ${result.matched.length}`,
+          `Curves with differences: ${result.summaries.filter(item => item.changed > 0).length}`,
+          "",
+          "CURVE SUMMARY",
+          "Curve | Compared | Changed | Mean delta | MAE | RMSE | Max absolute delta"
+        ];
+        result.summaries.forEach(item => lines.push([
+          item.name, item.compared, item.changed, formatNumber(item.meanDelta),
+          formatNumber(item.mae), formatNumber(item.rmse), formatNumber(item.maxAbs)
+        ].join(" | ")));
+        if (result.onlyA.length) lines.push("", `Only in Dataset 1: ${result.onlyA.join(", ")}`);
+        if (result.onlyB.length) lines.push("", `Only in Dataset 2: ${result.onlyB.join(", ")}`);
+        lines.push("", "VALUE DIFFERENCES", "Curve | Data row | Dataset 1 | Dataset 2 | Delta (2 - 1)");
+        if (result.differences.length) {
+          result.differences.forEach(item => lines.push([
+            item.curve, item.row, formatNumber(item.valueA), formatNumber(item.valueB), formatNumber(item.delta)
+          ].join(" | ")));
+        } else {
+          lines.push("No differences found in matched numeric values.");
+        }
+        if (result.skippedValues) lines.push("", `Skipped non-numeric or blank value pairs: ${result.skippedValues}`);
+        return lines.join("\n");
+      }
+
+      function renderReport(datasetA, datasetB, result) {
+        const matchedCount = result.matched.length;
+        const differentCurves = result.summaries.filter(item => item.changed > 0).length;
+        const totalRows = Math.max(datasetA.dataRows.length, datasetB.dataRows.length);
+        const overview = `
+          <div class="overview" aria-label="Comparison overview">
+            <div class="metric"><div class="metric-label">Matched curves</div><div class="metric-value">${matchedCount}</div></div>
+            <div class="metric"><div class="metric-label">Curves with differences</div><div class="metric-value">${differentCurves}</div></div>
+            <div class="metric"><div class="metric-label">Value differences</div><div class="metric-value">${result.differences.length}</div></div>
+            <div class="metric"><div class="metric-label">Rows in datasets</div><div class="metric-value">${datasetA.dataRows.length} / ${datasetB.dataRows.length}</div></div>
+          </div>`;
+
+        const summaryRows = result.summaries.map(item => `
+          <tr>
+            <td class="curve-name">${escapeHtml(item.name)}</td>
+            <td><span class="status ${item.changed ? "diff" : "match"}">${item.changed ? "Different" : "Match"}</span></td>
+            <td>${item.compared}</td>
+            <td>${item.changed}</td>
+            <td>${formatNumber(item.meanDelta)}</td>
+            <td>${formatNumber(item.mae)}</td>
+            <td>${formatNumber(item.rmse)}</td>
+            <td>${formatNumber(item.maxAbs)}</td>
+          </tr>`).join("");
+        const summarySection = `
+          <div class="card report-card">
+            <div class="report-caption">Summary for each curve present in both datasets. MAE and RMSE are calculated from paired numeric values.</div>
+            <div class="table-wrap">
+              <table>
+                <caption class="sr-only">Curve-level comparison statistics</caption>
+                <thead><tr><th>Curve</th><th>Status</th><th>Compared</th><th>Changed</th><th>Mean delta</th><th>MAE</th><th>RMSE</th><th>Max |delta|</th></tr></thead>
+                <tbody>${summaryRows || '<tr><td colspan="8" class="empty-state">No curves have matching names.</td></tr>'}</tbody>
+              </table>
+            </div>
+          </div>`;
+
+        const missingSections = [];
+        if (result.onlyA.length) missingSections.push(`<span class="status missing">Only in Dataset 1</span> ${result.onlyA.map(escapeHtml).join(", ")}`);
+        if (result.onlyB.length) missingSections.push(`<span class="status missing">Only in Dataset 2</span> ${result.onlyB.map(escapeHtml).join(", ")}`);
+        const duplicateNames = [
+          ...datasetA.duplicates.map(name => `Dataset 1: ${name}`),
+          ...datasetB.duplicates.map(name => `Dataset 2: ${name}`)
+        ];
+        const warnings = [];
+        if (missingSections.length) warnings.push(`<div class="notice"><strong>Unmatched curve names:</strong> ${missingSections.join(" &nbsp; · &nbsp; ")}</div>`);
+        if (duplicateNames.length) warnings.push(`<div class="notice"><strong>Duplicate column names:</strong> ${duplicateNames.map(escapeHtml).join(", ")}. Only the first occurrence is compared.</div>`);
+        if (result.skippedValues) warnings.push(`<div class="notice">${result.skippedValues} paired value${result.skippedValues === 1 ? " was" : "s were"} skipped because one or both cells were blank or non-numeric.</div>`);
+
+        const diffRows = result.differences.map(item => `
+          <tr>
+            <td class="curve-name">${escapeHtml(item.curve)}</td><td>${item.row}</td>
+            <td>${formatNumber(item.valueA)}</td><td>${formatNumber(item.valueB)}</td><td>${formatNumber(item.delta)}</td>
+          </tr>`).join("");
+        const differencesSection = `
+          <div class="subsection">
+            <h3 class="subsection-title">Value differences <span class="file-tag">Dataset 2 − Dataset 1</span></h3>
+            <div class="card report-card">
+              <div class="table-wrap">
+                <table>
+                  <caption class="sr-only">Row-level numeric differences</caption>
+                  <thead><tr><th>Curve</th><th>Data row</th><th>Dataset 1</th><th>Dataset 2</th><th>Delta</th></tr></thead>
+                  <tbody>${diffRows || '<tr><td colspan="5" class="empty-state">No differences in matched numeric values.</td></tr>'}</tbody>
+                </table>
+              </div>
+            </div>
+          </div>`;
+
+        reportContent.innerHTML = overview + summarySection + warnings.join("") + differencesSection;
+        document.querySelector("#report-subtitle").textContent =
+          `${matchedCount} matched curve${matchedCount === 1 ? "" : "s"} · ${totalRows} data rows at most · compared by row position`;
+        latestReport = buildReportText({
+          rowsA: datasetA.dataRows.length,
+          rowsB: datasetB.dataRows.length
+        }, result);
+        copyButton.disabled = false;
+        downloadButton.disabled = false;
+      }
+
+      function compare() {
+        try {
+          const datasetA = parseDataset(inputA.value, "Dataset 1");
+          const datasetB = parseDataset(inputB.value, "Dataset 2");
+          const result = analyze(datasetA, datasetB);
+          renderReport(datasetA, datasetB, result);
+          liveMessage.textContent = "Comparison report updated.";
+        } catch (error) {
+          reportContent.innerHTML = `<div class="card empty-state" role="alert">${escapeHtml(error.message)}</div>`;
+          copyButton.disabled = true;
+          downloadButton.disabled = true;
+          latestReport = "";
+          liveMessage.textContent = error.message;
+        }
+      }
+
+      document.querySelector("#compare-button").addEventListener("click", compare);
+      document.querySelector("#swap-button").addEventListener("click", () => {
+        const current = inputA.value;
+        inputA.value = inputB.value;
+        inputB.value = current;
+        compare();
+      });
+      document.querySelector("#clear-button").addEventListener("click", () => {
+        inputA.value = "";
+        inputB.value = "";
+        reportContent.innerHTML = '<div class="card empty-state">Paste two datasets above, then select <strong>Compare curves</strong> to generate a report.</div>';
+        document.querySelector("#report-subtitle").textContent = "A summary of matching curves and value differences.";
+        latestReport = "";
+        copyButton.disabled = true;
+        downloadButton.disabled = true;
+        liveMessage.textContent = "Datasets cleared.";
+        inputA.focus();
+      });
+      copyButton.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(latestReport);
+          liveMessage.textContent = "Report copied to clipboard.";
+          copyButton.textContent = "Copied!";
+          window.setTimeout(() => { copyButton.textContent = "Copy report"; }, 1800);
+        } catch {
+          const temporary = document.createElement("textarea");
+          temporary.value = latestReport;
+          temporary.setAttribute("readonly", "");
+          temporary.style.position = "fixed";
+          temporary.style.opacity = "0";
+          document.body.append(temporary);
+          temporary.select();
+          const copied = document.execCommand("copy");
+          temporary.remove();
+          if (!copied) {
+            liveMessage.textContent = "Could not copy automatically. Select and copy the report manually.";
+            return;
+          }
+          liveMessage.textContent = "Report copied to clipboard.";
+          copyButton.textContent = "Copied!";
+          window.setTimeout(() => { copyButton.textContent = "Copy report"; }, 1800);
+        }
+      });
+      downloadButton.addEventListener("click", () => {
+        const file = new Blob([latestReport], { type: "text/plain;charset=utf-8" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(file);
+        link.download = "curve-comparison-report.txt";
+        const objectUrl = link.href;
+        document.body.append(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        liveMessage.textContent = "Report downloaded.";
+      });
+
+      inputA.value = exampleA;
+      inputB.value = exampleB;
+      compare();
+    })();
+  </script>
+</body>
+</html>
