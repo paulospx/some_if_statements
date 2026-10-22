@@ -11,29 +11,94 @@
         body {
             display: flex;
             height: 100vh;
+            height: 100dvh;
             margin: 0;
             font-family: Arial, sans-serif;
         }
 
-        textarea {
-            width: 50%;
-            height: 100%;
-            padding: 10px;
+        .pane {
+            display: flex;
+            flex: 1 1 50%;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        .pane + .pane {
+            border-left: 1px solid #343a40;
+        }
+
+        .pane-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            min-height: 54px;
+            padding: 8px 12px;
+            background: #212529;
+            color: #f8f9fa;
+        }
+
+        .pane-title {
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .pane-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .action-button,
+        .copy-code {
+            border: 1px solid #6c757d;
+            border-radius: 4px;
+            padding: 6px 10px;
+            background: #343a40;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .action-button:hover,
+        .copy-code:hover {
+            background: #495057;
+        }
+
+        .action-button:focus-visible,
+        .copy-code:focus-visible,
+        textarea:focus-visible {
+            outline: 2px solid #80bdff;
+            outline-offset: 2px;
+        }
+
+        #markdown-input {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            padding: 16px;
             font-size: 16px;
-            font-family: 'Courier New', Courier, monospace;
+            font-family: Consolas, 'Courier New', monospace;
             border: none;
-            border-right: 1px solid #ccc;
+            background: #1e1e1e;
+            color: #f1f3f5;
             resize: none;
             outline: none;
+            tab-size: 4;
+        }
+
+        #markdown-input::placeholder {
+            color: #adb5bd;
         }
 
         #html-output {
-            width: 50%;
-            height: 100%;
-            padding: 10px;
-            border-left: 1px solid #ccc;
+            flex: 1;
+            min-height: 0;
+            padding: 20px;
             overflow-y: auto;
-            background: #f9f9f9;
+            background: #fff;
+            color: #212529;
         }
 
         @font-face {
@@ -54,25 +119,81 @@
             font-family: 'Avenir', sans-serif;
         }
 
-        /* Add 1 pixel black line to table */
         table {
             border-collapse: collapse;
-            
         }
+
         th, td {
-            border: 1px solid black;
+            border: 1px solid #6c757d;
             padding: 8px;
             text-align: left;
+        }
+
+        #html-output pre {
+            position: relative;
+            overflow-x: auto;
+            padding: 42px 16px 16px;
+            border: 1px solid #495057;
+            border-radius: 6px;
+            background: #1e1e1e;
+            color: #f1f3f5;
+        }
+
+        #html-output pre code {
+            color: inherit;
+            white-space: pre;
+        }
+
+        .copy-code {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            font: 13px Arial, sans-serif;
+        }
+
+        .copy-status {
+            min-width: 1px;
+            color: #ced4da;
+            font-size: 12px;
+        }
+
+        @media (max-width: 700px) {
+            body {
+                flex-direction: column;
+            }
+
+            .pane + .pane {
+                border-top: 1px solid #343a40;
+                border-left: none;
+            }
         }
 
     </style>
 </head>
 <body>
 
-    <textarea id="markdown-input" placeholder="Type Markdown here..."></textarea>
-    <div id="html-output">HTML Preview</div>
-    <button id="save-markdown" onclick="saveMarkdown()" style="position: absolute; bottom: 10px; right: 160px; padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">Save Markdown</button>
-    <button id="export-pdf" style="position: absolute; bottom: 10px; right: 10px; padding: 8px 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Export as PDF</button>
+    <section class="pane" aria-label="Markdown editor">
+        <header class="pane-header">
+            <h1 class="pane-title">Markdown</h1>
+            <div class="pane-actions">
+                <button id="copy-markdown" class="action-button" type="button">Copy Markdown</button>
+                <button id="save-markdown" class="action-button" type="button" onclick="saveMarkdown()">Save Markdown</button>
+                <span id="markdown-copy-status" class="copy-status" role="status" aria-live="polite"></span>
+            </div>
+        </header>
+        <textarea id="markdown-input" aria-label="Markdown source" placeholder="Type Markdown here..."></textarea>
+    </section>
+    <section class="pane" aria-label="HTML preview">
+        <header class="pane-header">
+            <h2 class="pane-title">Preview</h2>
+            <div class="pane-actions">
+                <button id="copy-html" class="action-button" type="button">Copy HTML</button>
+                <button id="export-pdf" class="action-button" type="button">Export as PDF</button>
+                <span id="html-copy-status" class="copy-status" role="status" aria-live="polite"></span>
+            </div>
+        </header>
+        <div id="html-output">HTML Preview</div>
+    </section>
     
 
     <!-- Include marked.js library -->
@@ -86,8 +207,77 @@
             const markdownText = markdownInput.value;
             const htmlContent = marked.parse(markdownText);
             htmlOutput.innerHTML = htmlContent;
+            addCodeCopyButtons();
         });
 
+        async function copyToClipboard(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+                return;
+            }
+
+            const temporaryInput = document.createElement('textarea');
+            temporaryInput.value = text;
+            temporaryInput.setAttribute('readonly', '');
+            temporaryInput.style.position = 'fixed';
+            temporaryInput.style.opacity = '0';
+            document.body.appendChild(temporaryInput);
+            temporaryInput.select();
+            const copied = document.execCommand('copy');
+            temporaryInput.remove();
+
+            if (!copied) {
+                throw new Error('Clipboard copy is not available in this browser.');
+            }
+        }
+
+        function addCodeCopyButtons() {
+            htmlOutput.querySelectorAll('pre').forEach((pre) => {
+                if (pre.querySelector('.copy-code')) return;
+
+                const button = document.createElement('button');
+                button.className = 'copy-code';
+                button.type = 'button';
+                button.textContent = 'Copy code';
+                button.setAttribute('aria-label', 'Copy code block');
+                button.addEventListener('click', async () => {
+                    const code = pre.querySelector('code') || pre;
+                    try {
+                        await copyToClipboard(code.innerText);
+                        button.textContent = 'Copied!';
+                        window.setTimeout(() => { button.textContent = 'Copy code'; }, 1500);
+                    } catch (error) {
+                        button.textContent = 'Copy failed';
+                        console.error('Error copying code:', error);
+                    }
+                });
+                pre.appendChild(button);
+            });
+        }
+
+        document.getElementById('copy-markdown').addEventListener('click', async () => {
+            const status = document.getElementById('markdown-copy-status');
+            try {
+                await copyToClipboard(markdownInput.value);
+                status.textContent = 'Markdown copied';
+            } catch (error) {
+                status.textContent = 'Copy failed';
+                console.error('Error copying Markdown:', error);
+            }
+        });
+
+        document.getElementById('copy-html').addEventListener('click', async () => {
+            const status = document.getElementById('html-copy-status');
+            const previewCopy = htmlOutput.cloneNode(true);
+            previewCopy.querySelectorAll('.copy-code').forEach((button) => button.remove());
+            try {
+                await copyToClipboard(previewCopy.innerHTML);
+                status.textContent = 'HTML copied';
+            } catch (error) {
+                status.textContent = 'Copy failed';
+                console.error('Error copying HTML:', error);
+            }
+        });
 
         document.getElementById('export-pdf').addEventListener('click', () => {
             const element = document.getElementById('html-output');
@@ -166,7 +356,8 @@
                     const data = Object.values(snapshot.val())[0].text;
                     markdownInput.value = data;
                     const htmlContent = marked.parse(data);
-                    htmlOutput.innerHTML = htmlContent;                    
+                    htmlOutput.innerHTML = htmlContent;
+                    addCodeCopyButtons();
                 } else {
                     console.log("No saved markdown found for token:", queryParam);
                 }
