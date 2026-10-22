@@ -10,11 +10,270 @@
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
         :root {
-            color-scheme: light dark;
+            color-scheme: light;
         }
 
         body {
             font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        html[data-theme="night"] {
+            color-scheme: dark;
+        }
+
+        html[data-theme="night"] body {
+            background-color: #0b1220;
+            color: #e2e8f0;
+        }
+
+        html[data-theme="night"] .bg-slate-50,
+        html[data-theme="night"] .bg-white {
+            background-color: #111c2e;
+        }
+
+        html[data-theme="night"] .bg-slate-100 {
+            background-color: #1e293b;
+        }
+
+        html[data-theme="night"] .text-slate-900 {
+            color: #f1f5f9;
+        }
+
+        html[data-theme="night"] .text-slate-700 {
+            color: #dbeafe;
+        }
+
+        html[data-theme="night"] .text-slate-600 {
+            color: #cbd5e1;
+        }
+
+        html[data-theme="night"] .text-slate-500,
+        html[data-theme="night"] .text-slate-400 {
+            color: #94a3b8;
+        }
+
+        html[data-theme="night"] .border-slate-200 {
+            border-color: #334155;
+        }
+
+        html[data-theme="night"] .border-slate-300,
+        html[data-theme="night"] .hover\:border-slate-400:hover {
+            border-color: #475569;
+        }
+
+        html[data-theme="night"] .tool-card:hover {
+            border-color: #38bdf8;
+        }
+
+        html[data-theme="night"] .placeholder\:text-slate-400::placeholder {
+            color: #94a3b8;
+        }
+
+        html[data-theme="night"] .bg-violet-50 {
+            background-color: #2e1065;
+        }
+
+        html[data-theme="night"] .text-violet-700 {
+            color: #ddd6fe;
+        }
+
+        html[data-theme="night"] .border-violet-200 {
+            border-color: #6d28d9;
+        }
+
+        html[data-theme="night"] .bg-emerald-50 {
+            background-color: #022c22;
+        }
+
+        html[data-theme="night"] .text-emerald-700 {
+            color: #a7f3d0;
+        }
+
+        html[data-theme="night"] .border-emerald-200 {
+            border-color: #047857;
+        }
+
+        html[data-theme="night"] .bg-amber-50 {
+            background-color: #451a03;
+        }
+
+        html[data-theme="night"] .text-amber-800 {
+            color: #fde68a;
+        }
+
+        html[data-theme="night"] .border-amber-200 {
+            border-color: #b45309;
+        }
+
+        html[data-theme="night"] .bg-sky-50 {
+            background-color: #082f49;
+        }
+
+        html[data-theme="night"] .text-sky-700 {
+            color: #bae6fd;
+        }
+
+        html[data-theme="night"] .border-sky-200 {
+            border-color: #0369a1;
+        }
+
+        html[data-theme="night"] .hover\:bg-sky-100:hover {
+            background-color: #0c4a6e;
+        }
+
+        html[data-theme="night"] .text-sky-600 {
+            color: #38bdf8;
+        }
+
+        html[data-theme="night"] .hover\:text-sky-700:hover {
+            color: #7dd3fc;
+        }
+
+        html[data-theme="night"] .bg-sky-600 {
+            background-color: #0369a1;
+        }
+
+        html[data-theme="night"] .border-sky-600 {
+            border-color: #0369a1;
+        }
+
+        html[data-theme="night"] .text-white {
+            color: #fff;
+        }
+
+        html[data-theme="geocities"] body {
+            color: #24103d;
+            background-color: #fff4d6;
+            background-image: radial-gradient(#d6b8ff 1px, transparent 1px);
+            background-size: 18px 18px;
+            font-family: Georgia, 'Times New Roman', serif;
+        }
+
+        html[data-theme="geocities"] header,
+        html[data-theme="geocities"] footer {
+            color: #fdf4ff;
+            background-color: #35105b;
+            border-color: #f0abfc;
+        }
+
+        html[data-theme="geocities"] header h1.text-slate-900 {
+            color: #a5f3fc;
+        }
+
+        html[data-theme="geocities"] header select {
+            color: #35105b;
+            background-color: #fff9e8;
+            border-color: #f0abfc;
+        }
+
+        html[data-theme="geocities"] header select option {
+            color: #35105b;
+            background-color: #fff9e8;
+        }
+
+        html[data-theme="geocities"] header .text-slate-600,
+        html[data-theme="geocities"] header .text-slate-700,
+        html[data-theme="geocities"] header .text-slate-500,
+        html[data-theme="geocities"] footer .text-slate-500 {
+            color: #f5d0fe;
+        }
+
+        html[data-theme="geocities"] header .hover\:text-slate-700:hover {
+            color: #fff;
+        }
+
+        html[data-theme="geocities"] .bg-white,
+        html[data-theme="geocities"] .bg-slate-50 {
+            background-color: #fff9e8;
+        }
+
+        html[data-theme="geocities"] .bg-slate-100 {
+            background-color: #f3e8ff;
+        }
+
+        html[data-theme="geocities"] .text-slate-900 {
+            color: #35105b;
+        }
+
+        html[data-theme="geocities"] .text-slate-700,
+        html[data-theme="geocities"] .text-slate-600 {
+            color: #4c1d72;
+        }
+
+        html[data-theme="geocities"] .text-slate-500,
+        html[data-theme="geocities"] .text-slate-400 {
+            color: #6b4b80;
+        }
+
+        html[data-theme="geocities"] .border-slate-200,
+        html[data-theme="geocities"] .border-slate-300,
+        html[data-theme="geocities"] .hover\:border-slate-400:hover {
+            border-color: #d946ef;
+        }
+
+        html[data-theme="geocities"] .tool-card {
+            border-width: 2px;
+            border-color: #c026d3;
+            box-shadow: 3px 3px 0 #a5f3fc;
+        }
+
+        html[data-theme="geocities"] .tool-card:hover {
+            border-color: #86198f;
+            box-shadow: 5px 5px 0 #67e8f9;
+        }
+
+        html[data-theme="geocities"] .text-sky-600 {
+            color: #f0abfc;
+        }
+
+        html[data-theme="geocities"] .text-sky-700 {
+            color: #86198f;
+        }
+
+        html[data-theme="geocities"] .hover\:text-sky-700:hover {
+            color: #c026d3;
+        }
+
+        html[data-theme="geocities"] .bg-sky-600 {
+            background-color: #a21caf;
+        }
+
+        html[data-theme="geocities"] .border-sky-600 {
+            border-color: #a21caf;
+        }
+
+        html[data-theme="geocities"] .bg-sky-50 {
+            background-color: #fae8ff;
+        }
+
+        html[data-theme="geocities"] .border-sky-200 {
+            border-color: #e879f9;
+        }
+
+        html[data-theme="geocities"] .hover\:bg-sky-100:hover {
+            background-color: #f5d0fe;
+        }
+
+        html[data-theme="geocities"] .bg-violet-50,
+        html[data-theme="geocities"] .bg-emerald-50,
+        html[data-theme="geocities"] .bg-amber-50 {
+            background-color: #f3e8ff;
+        }
+
+        html[data-theme="geocities"] .text-violet-700,
+        html[data-theme="geocities"] .text-emerald-700,
+        html[data-theme="geocities"] .text-amber-800 {
+            color: #581c87;
+        }
+
+        html[data-theme="geocities"] .border-violet-200,
+        html[data-theme="geocities"] .border-emerald-200,
+        html[data-theme="geocities"] .border-amber-200 {
+            border-color: #c026d3;
+        }
+
+        html[data-theme="geocities"] .placeholder\:text-slate-400::placeholder {
+            color: #6b4b80;
         }
 
         .mono {
@@ -83,9 +342,19 @@
                     </p>
                 </div>
                 <div class="flex flex-col items-start sm:items-end gap-2 shrink-0">
-                    <p class="text-sm text-slate-500" aria-live="polite" id="tool-count">
-                        <span class="font-medium text-slate-700" id="visible-count">26</span> of <span id="total-count">26</span> tools
-                    </p>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <p class="text-sm text-slate-500" aria-live="polite" id="tool-count">
+                            <span class="font-medium text-slate-700" id="visible-count">26</span> of <span id="total-count">26</span> tools
+                        </p>
+                        <div class="flex items-center gap-2">
+                            <label for="theme-select" class="text-sm font-medium text-slate-700">Theme</label>
+                            <select id="theme-select" class="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-sky-500">
+                                <option value="day">Day</option>
+                                <option value="night">Night</option>
+                                <option value="geocities">GeoCities</option>
+                            </select>
+                        </div>
+                    </div>
                     <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
                        target="_blank"
                        rel="noopener noreferrer"
@@ -351,8 +620,20 @@
         const totalCount = document.getElementById('total-count');
         const filterButtons = document.querySelectorAll('.filter-btn');
         const resetButton = document.getElementById('reset-filters');
+        const themeSelect = document.getElementById('theme-select');
 
         let activeFilter = 'all';
+
+        const themes = ['day', 'night', 'geocities'];
+        const savedTheme = localStorage.getItem('tool-catalog-theme');
+        const initialTheme = themes.includes(savedTheme) ? savedTheme : 'day';
+        document.documentElement.dataset.theme = initialTheme;
+        themeSelect.value = initialTheme;
+
+        themeSelect.addEventListener('change', () => {
+            document.documentElement.dataset.theme = themeSelect.value;
+            localStorage.setItem('tool-catalog-theme', themeSelect.value);
+        });
 
         totalCount.textContent = tools.length;
 
