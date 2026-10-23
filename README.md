@@ -30,6 +30,9 @@ Start at [`index.html`](index.html) — a searchable catalog of all tools, group
 | Python List Generator | [`python-list.html`](python-list.html) | Turn a line-separated list into a valid Python list literal. |
 | Markdown Editor | [`markdown.html`](markdown.html) | Write markdown with a live preview and syntax highlighting. |
 | JSON Formatter & Validator | [`JSON-Formatter-Validator.html`](JSON-Formatter-Validator.html) | Pretty-print, minify, and validate JSON with instant syntax feedback. |
+| YAML ↔ JSON Converter | [`YAML-JSON-converter.html`](YAML-JSON-converter.html) | Convert YAML and JSON in either direction, locally in your browser. |
+| SQL Formatter | [`SQL-formatter.html`](SQL-formatter.html) | Format SQL queries with configurable indentation and keyword casing in your browser. |
+| Cron Expression Explainer | [`Cron-expression-explainer.html`](Cron-expression-explainer.html) | Translate five-field cron schedules into plain language and preview upcoming run times. |
 | Log Analysis | [`log-analysis.html`](log-analysis.html) | Paste server logs and highlight timestamps, levels, IPs, classes, servers, and numbers. |
 
 ### Comparison

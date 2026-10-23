@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Translate five-field cron expressions into plain language and preview the next scheduled run times in your local time zone.">
+    <title>Cron Expression Explainer — Some IF Statements</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --ink: #172b3b;
+            --muted: #5f7180;
+            --line: #dce5e9;
+            --paper: #fff;
+            --canvas: #f3f7f7;
+            --teal: #087e78;
+            --teal-dark: #06635f;
+            --teal-soft: #e8f6f3;
+            --amber-soft: #fff6e5;
+            --amber-ink: #805214;
+            --red-soft: #fff0ef;
+            --red-ink: #a52f2a;
+            --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+            --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: var(--canvas);
+            color: var(--ink);
+            font-family: var(--sans);
+            font-size: 15px;
+            line-height: 1.55;
+        }
+
+        a { color: var(--teal-dark); }
+        button, input { font: inherit; }
+
+        .skip-link {
+            position: absolute;
+            top: -5rem;
+            left: 1rem;
+            z-index: 5;
+            padding: .7rem 1rem;
+            border-radius: .5rem;
+            background: var(--ink);
+            color: white;
+        }
+
+        .skip-link:focus { top: 1rem; }
+
+        .topbar {
+            border-bottom: 1px solid var(--line);
+            background: var(--paper);
+        }
+
+        .topbar-inner, main, footer {
+            width: min(100% - 2.5rem, 1080px);
+            margin-inline: auto;
+        }
+
+        .topbar-inner { padding-block: 1rem; }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+            color: var(--muted);
+            font-size: .875rem;
+            text-decoration: none;
+        }
+
+        .back-link:hover { color: var(--teal-dark); }
+
+        main { padding-block: 3.25rem 4rem; }
+
+        .eyebrow {
+            margin: 0 0 .65rem;
+            color: var(--teal-dark);
+            font-size: .75rem;
+            font-weight: 750;
+            letter-spacing: .13em;
+            text-transform: uppercase;
+        }
+
+        h1, h2, p { margin-top: 0; }
+        h1 {
+            margin-bottom: .65rem;
+            font-size: clamp(2rem, 5vw, 3rem);
+            letter-spacing: -.045em;
+            line-height: 1.12;
+        }
+
+        .intro {
+            max-width: 660px;
+            margin-bottom: 2rem;
+            color: var(--muted);
+            font-size: 1.05rem;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: minmax(0, 1.03fr) minmax(330px, .97fr);
+            align-items: start;
+            gap: 1.25rem;
+        }
+
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: 1rem;
+            background: var(--paper);
+            box-shadow: 0 8px 24px rgb(23 43 59 / 4%);
+        }
+
+        .input-panel { padding: clamp(1.2rem, 3vw, 1.75rem); }
+        .result-panel { overflow: hidden; }
+
+        .section-heading {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+        }
+
+        h2 {
+            margin-bottom: .25rem;
+            font-size: 1.15rem;
+            letter-spacing: -.015em;
+        }
+
+        .subheading {
+            margin-bottom: 0;
+            color: var(--muted);
+            font-size: .875rem;
+        }
+
+        .field-label {
+            display: block;
+            margin-bottom: .5rem;
+            font-size: .875rem;
+            font-weight: 700;
+        }
+
+        .expression-row {
+            display: flex;
+            gap: .6rem;
+        }
+
+        .expression-input {
+            min-width: 0;
+            flex: 1;
+            border: 1px solid #aebdc4;
+            border-radius: .65rem;
+            padding: .85rem .9rem;
+            background: white;
+            color: var(--ink);
+            font-family: var(--mono);
+            font-size: 1.05rem;
+            letter-spacing: .02em;
+        }
+
+        .expression-input:hover { border-color: #758b94; }
+        .expression-input:focus-visible, button:focus-visible, a:focus-visible {
+            outline: 3px solid #68c8bd;
+            outline-offset: 2px;
+        }
+
+        .primary-button {
+            flex: 0 0 auto;
+            border: 1px solid var(--teal);
+            border-radius: .65rem;
+            padding: .75rem 1rem;
+            background: var(--teal);
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .primary-button:hover { background: var(--teal-dark); }
+
+        .field-hint {
+            margin: .5rem 0 1.4rem;
+            color: var(--muted);
+            font-size: .8rem;
+        }
+
+        .examples-heading {
+            margin-bottom: .65rem;
+            color: var(--muted);
+            font-size: .78rem;
+            font-weight: 700;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        .examples { display: flex; flex-wrap: wrap; gap: .5rem; }
+
+        .example-button {
+            border: 1px solid var(--line);
+            border-radius: 999px;
+            padding: .42rem .7rem;
+            background: #fff;
+            color: #334b5a;
+            font-size: .8rem;
+            cursor: pointer;
+        }
+
+        .example-button:hover {
+            border-color: #8bbdb7;
+            background: var(--teal-soft);
+            color: var(--teal-dark);
+        }
+
+        .error-box {
+            margin-top: 1.25rem;
+            border: 1px solid #f0c6c3;
+            border-radius: .7rem;
+            padding: .85rem 1rem;
+            background: var(--red-soft);
+            color: var(--red-ink);
+            font-size: .875rem;
+        }
+
+        .error-box strong { display: block; margin-bottom: .15rem; }
+        [hidden] { display: none !important; }
+
+        .explanation {
+            margin-top: 1.5rem;
+            border-left: 3px solid var(--teal);
+            border-radius: 0 .5rem .5rem 0;
+            padding: .8rem 1rem;
+            background: var(--teal-soft);
+        }
+
+        .explanation-label {
+            margin-bottom: .25rem;
+            color: var(--teal-dark);
+            font-size: .75rem;
+            font-weight: 750;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+        }
+
+        .explanation-text { margin-bottom: 0; font-size: 1rem; line-height: 1.6; }
+
+        .field-guide {
+            margin-top: 1.5rem;
+            border-top: 1px solid var(--line);
+            padding-top: 1rem;
+        }
+
+        .field-guide h3 {
+            margin: 0 0 .7rem;
+            font-size: .83rem;
+        }
+
+        .field-list {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: .4rem;
+        }
+
+        .field-item {
+            min-width: 0;
+            border: 1px solid #e5ecee;
+            border-radius: .5rem;
+            padding: .5rem .55rem;
+            background: #fbfdfd;
+        }
+
+        .field-item code {
+            display: block;
+            overflow: hidden;
+            color: var(--teal-dark);
+            font-family: var(--mono);
+            font-size: .82rem;
+            font-weight: 700;
+            text-overflow: ellipsis;
+        }
+
+        .field-item span {
+            display: block;
+            margin-top: .15rem;
+            color: var(--muted);
+            font-size: .68rem;
+            line-height: 1.3;
+        }
+
+        .schedule-header {
+            padding: 1.4rem 1.5rem 1.15rem;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .schedule-header .section-heading { margin-bottom: .8rem; }
+        .timezone-note { color: var(--muted); font-size: .78rem; }
+        .timezone-note strong { color: var(--ink); font-weight: 650; }
+
+        .next-run {
+            margin: 0;
+            border-radius: .65rem;
+            padding: .75rem .85rem;
+            background: #f2f8f7;
+            color: var(--muted);
+            font-size: .8rem;
+        }
+
+        .next-run strong {
+            display: block;
+            margin-top: .1rem;
+            color: var(--ink);
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .run-list {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .run-item {
+            display: grid;
+            grid-template-columns: 2.1rem minmax(0, 1fr);
+            align-items: center;
+            gap: .8rem;
+            padding: .85rem 1.5rem;
+            border-bottom: 1px solid #edf1f2;
+        }
+
+        .run-item:last-child { border-bottom: 0; }
+        .run-number {
+            display: grid;
+            width: 2rem;
+            height: 2rem;
+            place-items: center;
+            border-radius: 50%;
+            background: #f0f4f5;
+            color: #526571;
+            font-family: var(--mono);
+            font-size: .75rem;
+        }
+
+        .run-date { display: block; font-size: .88rem; font-weight: 700; }
+        .run-time { display: block; color: var(--muted); font-size: .78rem; }
+        .empty-runs { padding: 2rem 1.5rem; color: var(--muted); text-align: center; }
+
+        .note {
+            margin: 1rem 1.5rem 1.4rem;
+            border: 1px solid #f0dfb9;
+            border-radius: .6rem;
+            padding: .7rem .8rem;
+            background: var(--amber-soft);
+            color: var(--amber-ink);
+            font-size: .75rem;
+        }
+
+        .note strong { font-weight: 750; }
+
+        footer {
+            border-top: 1px solid var(--line);
+            padding-block: 1.25rem 2rem;
+            color: var(--muted);
+            font-size: .8rem;
+        }
+
+        footer a { text-decoration: none; }
+        footer a:hover { text-decoration: underline; }
+
+        @media (max-width: 800px) {
+            .workspace { grid-template-columns: 1fr; }
+            .field-list { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 520px) {
+            .topbar-inner, main, footer { width: min(100% - 1.5rem, 1080px); }
+            main { padding-block: 2rem 2.5rem; }
+            .expression-row { flex-direction: column; }
+            .primary-button { width: 100%; }
+            .field-list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .schedule-header { padding-inline: 1rem; }
+            .run-item { padding-inline: 1rem; }
+            .note { margin-inline: 1rem; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+        }
+    </style>
+</head>
+<body>
+    <a class="skip-link" href="#main">Skip to cron explainer</a>
+    <header class="topbar">
+        <div class="topbar-inner">
+            <a class="back-link" href="index.html" aria-label="Back to tool catalog">
+                <span aria-hidden="true">←</span> Tool catalog
+            </a>
+        </div>
+    </header>
+
+    <main id="main">
+        <p class="eyebrow">Developer utility</p>
+        <h1>Cron, made clear.</h1>
+        <p class="intro">Paste a cron expression to see what it means in everyday language—and when it will run next. Nothing leaves your browser.</p>
+
+        <div class="workspace">
+            <section class="panel input-panel" aria-labelledby="expression-heading">
+                <div class="section-heading">
+                    <div>
+                        <h2 id="expression-heading">Your schedule</h2>
+                        <p class="subheading">Enter a standard five-field cron expression.</p>
+                    </div>
+                </div>
+
+                <form id="cron-form" novalidate>
+                    <label class="field-label" for="cron-input">Cron expression</label>
+                    <div class="expression-row">
+                        <input
+                            class="expression-input"
+                            id="cron-input"
+                            name="cron"
+                            type="text"
+                            value="0 9 * * 1-5"
+                            spellcheck="false"
+                            autocomplete="off"
+                            autocapitalize="off"
+                            aria-describedby="cron-hint"
+                            aria-invalid="false"
+                        >
+                        <button class="primary-button" type="submit">Explain schedule</button>
+                    </div>
+                    <p class="field-hint" id="cron-hint">Minute&nbsp;&nbsp; Hour&nbsp;&nbsp; Day of month&nbsp;&nbsp; Month&nbsp;&nbsp; Day of week</p>
+                </form>
+
+                <p class="examples-heading">Try an example</p>
+                <div class="examples" aria-label="Example schedules">
+                    <button class="example-button" type="button" data-expression="*/15 * * * *">Every 15 minutes</button>
+                    <button class="example-button" type="button" data-expression="0 9 * * 1-5">Weekdays at 9</button>
+                    <button class="example-button" type="button" data-expression="0 0 1 * *">First day of month</button>
+                    <button class="example-button" type="button" data-expression="30 8 1,15 * *">1st &amp; 15th</button>
+                </div>
+
+                <div id="error-box" class="error-box" role="alert" hidden>
+                    <strong id="error-title">Check the expression</strong>
+                    <span id="error-message"></span>
+                </div>
+
+                <div class="explanation" aria-live="polite" aria-atomic="true">
+                    <p class="explanation-label">In plain language</p>
+                    <p class="explanation-text" id="explanation-text"></p>
+                </div>
+
+                <section class="field-guide" aria-labelledby="field-guide-heading">
+                    <h3 id="field-guide-heading">Reading the five fields</h3>
+                    <div class="field-list" aria-label="Cron field order">
+                        <div class="field-item"><code>MIN</code><span>0–59<br>minute</span></div>
+                        <div class="field-item"><code>HOUR</code><span>0–23<br>hour</span></div>
+                        <div class="field-item"><code>DOM</code><span>1–31<br>day of month</span></div>
+                        <div class="field-item"><code>MONTH</code><span>1–12<br>month</span></div>
+                        <div class="field-item"><code>DOW</code><span>0–7<br>day of week</span></div>
+                    </div>
+                </section>
+            </section>
+
+            <section class="panel result-panel" aria-labelledby="upcoming-heading">
+                <div class="schedule-header">
+                    <div class="section-heading">
+                        <div>
+                            <h2 id="upcoming-heading">Next run times</h2>
+                            <p class="subheading">The next 10 matching moments</p>
+                        </div>
+                    </div>
+                    <p class="next-run" id="next-run" aria-live="polite">Next run<strong id="next-run-value"></strong></p>
+                    <div class="timezone-note" style="margin-top:.65rem">Shown in your local time zone: <strong id="timezone-name"></strong></div>
+                </div>
+                <ol class="run-list" id="run-list" aria-label="Upcoming scheduled run times"></ol>
+                <p class="note"><strong>Good to know:</strong> Times use this device's local clock. Cron services may handle daylight-saving changes differently. Day-of-month and day-of-week are alternatives when both are restricted.</p>
+            </section>
+        </div>
+    </main>
+
+    <footer>
+        <a href="https://www.nngroup.com/articles/ten-usability-heuristics/" target="_blank" rel="noopener noreferrer">Designed with NN/g usability principles</a>
+        <span aria-hidden="true"> · </span> Supports standard five-field cron syntax, including lists, ranges, steps, and month/day names.
+    </footer>
+
+    <script>
+        (() => {
+            const input = document.getElementById('cron-input');
+            const form = document.getElementById('cron-form');
+            const errorBox = document.getElementById('error-box');
+            const errorMessage = document.getElementById('error-message');
+            const explanation = document.getElementById('explanation-text');
+            const runList = document.getElementById('run-list');
+            const nextRun = document.getElementById('next-run');
+            const nextRunValue = document.getElementById('next-run-value');
+            const timezoneName = new Intl.DateTimeFormat(undefined, { timeZoneName: 'short' })
+                .formatToParts(new Date()).find(part => part.type === 'timeZoneName').value;
+
+            document.getElementById('timezone-name').textContent =
+                `${timezoneName} (${Intl.DateTimeFormat().resolvedOptions().timeZone})`;
+
+            const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+            const weekdayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+            const definitions = [
+                { label: 'minute', min: 0, max: 59 },
+                { label: 'hour', min: 0, max: 23 },
+                { label: 'day of month', min: 1, max: 31 },
+                { label: 'month', min: 1, max: 12, names: monthNames },
+                { label: 'day of week', min: 0, max: 7, names: weekdayNames, sundaySeven: true }
+            ];
+
+            function valueOf(text, definition) {
+                const upper = text.toUpperCase();
+                if (definition.names) {
+                    const index = definition.names.indexOf(upper);
+                    if (index !== -1) return definition.min + index;
+                }
+                if (!/^\d+$/.test(text)) return null;
+                const value = Number(text);
+                if (value < definition.min || value > definition.max) return null;
+                return value;
+            }
+
+            function parseField(expression, definition) {
+                const values = new Set();
+                const parts = expression.split(',');
+                if (parts.some(part => part === '')) {
+                    throw new Error(`The ${definition.label} field has an empty list item.`);
+                }
+
+                for (const part of parts) {
+                    const stepParts = part.split('/');
+                    if (stepParts.length > 2) {
+                        throw new Error(`The ${definition.label} field has more than one step separator (/).`);
+                    }
+
+                    const step = stepParts.length === 2 ? Number(stepParts[1]) : 1;
+                    if (stepParts.length === 2 && (!/^\d+$/.test(stepParts[1]) || step < 1)) {
+                        throw new Error(`The step in the ${definition.label} field must be a positive whole number.`);
+                    }
+
+                    const base = stepParts[0];
+                    let start;
+                    let end;
+                    if (base === '*') {
+                        start = definition.min;
+                        end = definition.max;
+                    } else if (base.includes('-')) {
+                        const range = base.split('-');
+                        if (range.length !== 2) {
+                            throw new Error(`The ${definition.label} field contains an invalid range.`);
+                        }
+                        start = valueOf(range[0], definition);
+                        end = valueOf(range[1], definition);
+                        if (start === null || end === null || start > end) {
+                            throw new Error(`Use an ascending ${definition.label} range from ${definition.min} to ${definition.max}.`);
+                        }
+                    } else {
+                        start = valueOf(base, definition);
+                        if (start === null) {
+                            throw new Error(`Use a ${definition.label} value from ${definition.min} to ${definition.max}${definition.names ? ', or a three-letter name' : ''}.`);
+                        }
+                        end = start;
+                    }
+
+                    for (let value = start; value <= end; value += step) {
+                        values.add(definition.sundaySeven && value === 7 ? 0 : value);
+                    }
+                }
+
+                return {
+                    values,
+                    unrestricted: expression.startsWith('*')
+                };
+            }
+
+            function parseExpression(expression) {
+                const fields = expression.trim().split(/\s+/);
+                if (fields.length !== 5) {
+                    throw new Error('Enter exactly five fields: minute, hour, day of month, month, and day of week.');
+                }
+                return fields.map((field, index) => parseField(field, definitions[index]));
+            }
+
+            function displayValue(value, definition) {
+                if (definition.sundaySeven) return weekdayNames[value === 7 ? 0 : value];
+                if (definition.names) return definition.names[value - definition.min];
+                return String(value);
+            }
+
+            function describeSelection(expression, definition) {
+                return expression.split(',').map(part => {
+                    const [base, stepValue] = part.split('/');
+                    let phrase;
+                    if (base === '*') {
+                        phrase = 'all';
+                    } else if (base.includes('-')) {
+                        const [start, end] = base.split('-').map(value => displayValue(valueOf(value, definition), definition));
+                        phrase = `${start} through ${end}`;
+                    } else {
+                        phrase = displayValue(valueOf(base, definition), definition);
+                    }
+                    return stepValue ? `${phrase} (step ${stepValue})` : phrase;
+                }).join(', ');
+            }
+
+            function describeField(expression, index, parsedField) {
+                const definition = definitions[index];
+                if (expression.startsWith('*/')) {
+                    const step = expression.slice(2);
+                    const units = ['minutes', 'hours', 'days of the month', 'months', 'days of the week'];
+                    return `every ${step} ${units[index]}`;
+                }
+
+                const selection = describeSelection(expression, definition);
+                if (parsedField.unrestricted) {
+                    return ['every minute', 'every hour', 'every day of the month', 'every month', 'every day of the week'][index];
+                }
+
+                return [
+                    `at minute ${selection}`,
+                    `during hour ${selection}`,
+                    `on day ${selection} of the month`,
+                    `in ${selection}`,
+                    `on ${selection}`
+                ][index];
+            }
+
+            function describeSchedule(expression, parsed) {
+                const phrases = expression.trim().split(/\s+/).map((field, index) =>
+                    describeField(field, index, parsed[index]));
+                const datePhrase = !parsed[2].unrestricted && !parsed[4].unrestricted
+                    ? `${phrases[2]} OR ${phrases[4]}`
+                    : parsed[2].unrestricted ? phrases[4] : phrases[2];
+                return `${phrases[0]}, ${phrases[1]}, ${datePhrase}, ${phrases[3]}.`;
+            }
+
+            function matchesDate(date, fields) {
+                const [minutes, hours, monthDays, months, weekDays] = fields;
+                if (!minutes.values.has(date.getMinutes()) ||
+                    !hours.values.has(date.getHours()) ||
+                    !months.values.has(date.getMonth() + 1)) return false;
+
+                const monthDayMatches = monthDays.values.has(date.getDate());
+                const weekDayMatches = weekDays.values.has(date.getDay());
+                const dayMatches = monthDays.unrestricted && weekDays.unrestricted
+                    ? true
+                    : monthDays.unrestricted ? weekDayMatches
+                    : weekDays.unrestricted ? monthDayMatches
+                    : monthDayMatches || weekDayMatches;
+
+                return dayMatches;
+            }
+
+            function findUpcoming(fields, count) {
+                const cursor = new Date();
+                cursor.setSeconds(0, 0);
+                cursor.setMinutes(cursor.getMinutes() + 1);
+                const results = [];
+                const searchLimit = 5 * 366 * 24 * 60;
+                for (let minute = 0; minute < searchLimit && results.length < count; minute += 1) {
+                    if (matchesDate(cursor, fields)) results.push(new Date(cursor));
+                    cursor.setMinutes(cursor.getMinutes() + 1);
+                }
+                return results;
+            }
+
+            const dateFormatter = new Intl.DateTimeFormat(undefined, {
+                weekday: 'long',
+                month: 'long',
+                day: 'numeric',
+                year: 'numeric'
+            });
+            const timeFormatter = new Intl.DateTimeFormat(undefined, {
+                hour: 'numeric',
+                minute: '2-digit',
+                timeZoneName: 'short'
+            });
+
+            function renderRuns(runs) {
+                runList.replaceChildren();
+                if (!runs.length) {
+                    nextRun.hidden = true;
+                    const empty = document.createElement('li');
+                    empty.className = 'empty-runs';
+                    empty.textContent = 'No matching run found within the next five years.';
+                    runList.append(empty);
+                    return;
+                }
+
+                nextRun.hidden = false;
+                nextRunValue.textContent = `${dateFormatter.format(runs[0])} at ${timeFormatter.format(runs[0])}`;
+                runs.forEach((run, index) => {
+                    const item = document.createElement('li');
+                    item.className = 'run-item';
+                    const number = document.createElement('span');
+                    number.className = 'run-number';
+                    number.setAttribute('aria-hidden', 'true');
+                    number.textContent = String(index + 1).padStart(2, '0');
+                    const details = document.createElement('span');
+                    const date = document.createElement('span');
+                    date.className = 'run-date';
+                    date.textContent = dateFormatter.format(run);
+                    const time = document.createElement('span');
+                    time.className = 'run-time';
+                    time.textContent = timeFormatter.format(run);
+                    details.append(date, time);
+                    item.append(number, details);
+                    runList.append(item);
+                });
+            }
+
+            function update() {
+                const expression = input.value.trim();
+                try {
+                    const fields = parseExpression(expression);
+                    const runs = findUpcoming(fields, 10);
+                    errorBox.hidden = true;
+                    input.setAttribute('aria-invalid', 'false');
+                    explanation.textContent = describeSchedule(expression, fields);
+                    renderRuns(runs);
+                } catch (error) {
+                    errorBox.hidden = false;
+                    input.setAttribute('aria-invalid', 'true');
+                    errorMessage.textContent = error.message;
+                    explanation.textContent = 'Enter a valid five-field expression to see what this schedule means.';
+                    runList.replaceChildren();
+                    nextRun.hidden = true;
+                }
+            }
+
+            form.addEventListener('submit', event => {
+                event.preventDefault();
+                update();
+            });
+            input.addEventListener('input', update);
+            document.querySelectorAll('[data-expression]').forEach(button => {
+                button.addEventListener('click', () => {
+                    input.value = button.dataset.expression;
+                    update();
+                    input.focus();
+                });
+            });
+
+            update();
+        })();
+    </script>
+</body>
+</html>
