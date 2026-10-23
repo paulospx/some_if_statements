@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Format SQL queries in your browser with configurable indentation and keyword casing. Copy readable, consistently styled SQL without sending queries to a server.">
+    <title>SQL Formatter — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sql-formatter@15.6.6/dist/sql-formatter.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .code-area { tab-size: 2; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased flex flex-col">
+    <a href="#main" class="skip-link">Skip to formatter</a>
+
+    <header class="border-b border-slate-200 bg-white">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+            <nav aria-label="Breadcrumb" class="mb-4">
+                <a href="index.html" class="text-sm text-sky-600 hover:text-sky-700 inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Tool Catalog
+                </a>
+            </nav>
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-sky-600 mb-1">Development</p>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">SQL Formatter</h1>
+                    <p class="mt-2 text-slate-600 leading-relaxed max-w-2xl">
+                        Make SQL easier to scan with consistent indentation and keyword casing. Your query stays in this browser.
+                    </p>
+                </div>
+                <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 shrink-0">
+                    Designed with NN/g heuristics
+                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
+        <section aria-label="Formatter actions and options" class="mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex flex-wrap gap-2" role="group" aria-label="SQL actions">
+                    <button type="button" id="btn-format"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors">
+                        Format SQL
+                    </button>
+                    <button type="button" id="btn-copy" disabled
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none">
+                        Copy output
+                    </button>
+                    <button type="button" id="btn-clear"
+                        class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-slate-600 font-medium border border-slate-200 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
+                        Clear all
+                    </button>
+                </div>
+                <p class="text-xs text-slate-500" role="status" aria-live="polite">
+                    <span id="input-count">0</span> input characters · <span id="action-status">Ready</span>
+                </p>
+            </div>
+        </section>
+
+        <section aria-label="Formatting options" class="mb-6 rounded-xl border border-slate-200 bg-white px-4 py-4 sm:px-5">
+            <h2 class="text-sm font-medium text-slate-700 mb-3">Formatting options</h2>
+            <div class="flex flex-col sm:flex-row sm:flex-wrap gap-4 sm:gap-6">
+                <div>
+                    <label for="indentation" class="block text-xs font-medium text-slate-500 mb-2">Indentation</label>
+                    <select id="indentation" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                        <option value="2" selected>2 spaces</option>
+                        <option value="4">4 spaces</option>
+                        <option value="tab">Tab</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="keyword-case" class="block text-xs font-medium text-slate-500 mb-2">Keyword casing</label>
+                    <select id="keyword-case" class="px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500">
+                        <option value="upper" selected>UPPERCASE</option>
+                        <option value="lower">lowercase</option>
+                        <option value="preserve">Preserve as typed</option>
+                    </select>
+                </div>
+                <p class="text-xs text-slate-500 self-end pb-2">Options apply when you select <strong>Format SQL</strong>.</p>
+            </div>
+        </section>
+
+        <div id="error-alert" class="hidden mb-6 px-4 py-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm" role="alert" aria-live="assertive">
+            <p id="error-message" class="font-medium"></p>
+            <p id="error-hint" class="mt-1 text-rose-700 text-xs"></p>
+        </div>
+
+        <div id="success-alert" class="hidden mb-6 px-4 py-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm" role="status" aria-live="polite">
+            <p class="font-medium">SQL formatted.</p>
+            <p id="success-details" class="mt-1 text-emerald-700 text-xs"></p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <section aria-labelledby="input-heading">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="sql-input" id="input-heading" class="text-sm font-medium text-slate-700">Input SQL</label>
+                    <button type="button" id="btn-sample" class="text-xs font-medium text-sky-600 hover:text-sky-700 focus:outline-none focus-visible:underline">
+                        Load sample
+                    </button>
+                </div>
+                <textarea id="sql-input" rows="16" spellcheck="false"
+                    placeholder="SELECT id, name FROM users WHERE active = true ORDER BY name;"
+                    class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-800 text-sm leading-relaxed resize-y min-h-[18rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-describedby="input-hint" aria-invalid="false"></textarea>
+                <p id="input-hint" class="mt-2 text-xs text-slate-500">Paste a query or load the sample. Formatting does not execute or change what your query does.</p>
+            </section>
+
+            <section aria-labelledby="output-heading">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="sql-output" id="output-heading" class="text-sm font-medium text-slate-700">Formatted SQL</label>
+                    <span id="output-count" class="text-xs text-slate-400">0 characters</span>
+                </div>
+                <textarea id="sql-output" rows="16" readonly spellcheck="false"
+                    placeholder="Formatted SQL will appear here."
+                    class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-100 text-slate-800 text-sm leading-relaxed resize-y min-h-[18rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-describedby="output-hint" aria-live="polite"></textarea>
+                <p id="output-hint" class="mt-2 text-xs text-slate-500">Output is formatted in your browser and is ready to copy.</p>
+            </section>
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white mt-auto">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 text-sm text-slate-500">
+            <p>Formatting runs locally in your browser. The formatter library is loaded from jsDelivr; your SQL query is not sent to a server.</p>
+        </div>
+    </footer>
+
+    <script>
+        const sqlInput = document.getElementById('sql-input');
+        const sqlOutput = document.getElementById('sql-output');
+        const inputCount = document.getElementById('input-count');
+        const outputCount = document.getElementById('output-count');
+        const actionStatus = document.getElementById('action-status');
+        const indentation = document.getElementById('indentation');
+        const keywordCase = document.getElementById('keyword-case');
+        const errorAlert = document.getElementById('error-alert');
+        const errorMessage = document.getElementById('error-message');
+        const errorHint = document.getElementById('error-hint');
+        const successAlert = document.getElementById('success-alert');
+        const successDetails = document.getElementById('success-details');
+        const btnFormat = document.getElementById('btn-format');
+        const btnCopy = document.getElementById('btn-copy');
+        const btnClear = document.getElementById('btn-clear');
+        const btnSample = document.getElementById('btn-sample');
+        const sampleSql = "select u.id,u.name,count(o.id) as order_count from users u left join orders o on o.user_id=u.id where u.active = true and u.created_at >= '2024-01-01' group by u.id,u.name order by order_count desc;";
+
+        function clearMessages() {
+            errorAlert.classList.add('hidden');
+            successAlert.classList.add('hidden');
+            sqlInput.setAttribute('aria-invalid', 'false');
+        }
+
+        function updateCounts() {
+            inputCount.textContent = sqlInput.value.length.toLocaleString();
+            outputCount.textContent = `${sqlOutput.value.length.toLocaleString()} characters`;
+        }
+
+        function showError(message, hint, focusInput = true) {
+            errorMessage.textContent = message;
+            errorHint.textContent = hint;
+            errorAlert.classList.remove('hidden');
+            successAlert.classList.add('hidden');
+            sqlInput.setAttribute('aria-invalid', 'true');
+            actionStatus.textContent = 'Could not format';
+            if (focusInput) sqlInput.focus();
+        }
+
+        function formatSql() {
+            clearMessages();
+            if (!sqlInput.value.trim()) {
+                showError('There is no SQL to format yet.', 'Paste a query or select Load sample, then choose Format SQL.');
+                return;
+            }
+            if (!window.sqlFormatter || typeof window.sqlFormatter.format !== 'function') {
+                showError('The SQL formatter could not be loaded.', 'Check your internet connection or content blocker, reload the page, and try again.');
+                return;
+            }
+
+            try {
+                const useTabs = indentation.value === 'tab';
+                const result = window.sqlFormatter.format(sqlInput.value, {
+                    language: 'sql',
+                    tabWidth: useTabs ? 1 : Number(indentation.value),
+                    useTabs,
+                    keywordCase: keywordCase.value
+                });
+                sqlOutput.value = result;
+                btnCopy.disabled = result.length === 0;
+                successDetails.textContent = `${result.length.toLocaleString()} output characters · ${indentation.options[indentation.selectedIndex].text} · ${keywordCase.options[keywordCase.selectedIndex].text} keywords`;
+                successAlert.classList.remove('hidden');
+                actionStatus.textContent = 'Formatting complete';
+                sqlInput.setAttribute('aria-invalid', 'false');
+                updateCounts();
+            } catch (error) {
+                sqlOutput.value = '';
+                btnCopy.disabled = true;
+                updateCounts();
+                showError(
+                    error.message || 'The formatter could not process this SQL.',
+                    'Check the query for incomplete strings or expressions, or simplify syntax the formatter may not recognize.'
+                );
+            }
+        }
+
+        btnFormat.addEventListener('click', formatSql);
+        btnSample.addEventListener('click', () => {
+            sqlInput.value = sampleSql;
+            sqlOutput.value = '';
+            btnCopy.disabled = true;
+            clearMessages();
+            updateCounts();
+            actionStatus.textContent = 'Sample loaded — select Format SQL';
+            sqlInput.focus();
+        });
+        btnClear.addEventListener('click', () => {
+            sqlInput.value = '';
+            sqlOutput.value = '';
+            btnCopy.disabled = true;
+            clearMessages();
+            updateCounts();
+            actionStatus.textContent = 'Ready';
+            sqlInput.focus();
+        });
+        btnCopy.addEventListener('click', async () => {
+            if (!sqlOutput.value) return;
+            try {
+                await navigator.clipboard.writeText(sqlOutput.value);
+                actionStatus.textContent = 'Output copied to clipboard';
+            } catch (error) {
+                showError('Could not copy to the clipboard.', 'Select the formatted output and copy it using your browser or keyboard shortcut.', false);
+            }
+        });
+        sqlInput.addEventListener('input', () => {
+            sqlOutput.value = '';
+            btnCopy.disabled = true;
+            clearMessages();
+            updateCounts();
+            actionStatus.textContent = sqlInput.value ? 'Input changed — format again' : 'Ready';
+        });
+        document.addEventListener('keydown', (event) => {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                event.preventDefault();
+                formatSql();
+            }
+        });
+
+        updateCounts();
+        if (!window.sqlFormatter || typeof window.sqlFormatter.format !== 'function') {
+            showError('The SQL formatter could not be loaded.', 'Check your internet connection or content blocker, then reload this page to use the formatter.', false);
+        }
+    </script>
+</body>
+</html>
