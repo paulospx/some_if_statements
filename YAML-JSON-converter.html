@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Convert YAML to JSON and JSON to YAML in your browser. Validate syntax and copy formatted output without sending your data to a server.">
+    <title>YAML ↔ JSON Converter — Some IF Statements</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+        body {
+            font-family: 'IBM Plex Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        .mono {
+            font-family: 'IBM Plex Mono', monospace;
+        }
+
+        .skip-link {
+            position: absolute;
+            left: -9999px;
+            top: auto;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+        }
+
+        .skip-link:focus {
+            position: fixed;
+            left: 1rem;
+            top: 1rem;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            z-index: 100;
+            padding: 0.75rem 1rem;
+            background: #0ea5e9;
+            color: white;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            text-decoration: none;
+        }
+
+        .code-area { tab-size: 2; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                scroll-behavior: auto !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased flex flex-col">
+    <a href="#main" class="skip-link">Skip to converter</a>
+
+    <header class="border-b border-slate-200 bg-white">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-6">
+            <nav aria-label="Breadcrumb" class="mb-4">
+                <a href="index.html" class="text-sm text-sky-600 hover:text-sky-700 inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Tool Catalog
+                </a>
+            </nav>
+            <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-semibold uppercase tracking-widest text-sky-600 mb-1">Development</p>
+                    <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-900">YAML ↔ JSON Converter</h1>
+                    <p class="mt-2 text-slate-600 leading-relaxed max-w-2xl">
+                        Convert configuration between YAML and JSON. Your content is parsed in this browser and is never sent to a conversion server.
+                    </p>
+                </div>
+                <a href="https://www.nngroup.com/articles/ten-usability-heuristics/"
+                   target="_blank"
+                   rel="noopener noreferrer"
+                   class="text-xs text-slate-500 hover:text-slate-700 inline-flex items-center gap-1 shrink-0">
+                    Designed with NN/g heuristics
+                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L9 15" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <main id="main" class="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-8 sm:py-10">
+        <section aria-label="Conversion controls" class="mb-6">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="inline-flex rounded-lg border border-slate-300 bg-white p-1" role="group" aria-label="Conversion direction">
+                        <button type="button" id="direction-yaml-json" aria-pressed="true"
+                            class="px-3 py-2 rounded-md text-sm font-medium bg-sky-600 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
+                            YAML to JSON
+                        </button>
+                        <button type="button" id="direction-json-yaml" aria-pressed="false"
+                            class="px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
+                            JSON to YAML
+                        </button>
+                    </div>
+                    <button type="button" id="btn-convert"
+                        class="inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-sky-600 text-white font-medium hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 transition-colors">
+                        Convert
+                    </button>
+                    <button type="button" id="btn-swap" disabled
+                        class="inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-white text-slate-700 font-medium border border-slate-300 hover:border-slate-400 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none">
+                        Use output as input
+                    </button>
+                    <button type="button" id="btn-clear"
+                        class="inline-flex items-center justify-center px-4 py-2.5 rounded-lg bg-white text-slate-600 font-medium border border-slate-200 hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2">
+                        Clear all
+                    </button>
+                </div>
+                <p id="status-line" class="text-xs text-slate-500" role="status" aria-live="polite">
+                    <span id="input-count">0</span> input characters · <span id="action-status">Ready</span>
+                </p>
+            </div>
+            <div class="mt-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <p id="keyboard-hint" class="text-xs text-slate-500">
+                    Press <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">Ctrl</kbd> + <kbd class="mono px-1.5 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-600">Enter</kbd> to convert.
+                </p>
+                <button type="button" id="btn-sample" class="text-xs font-medium text-sky-600 hover:text-sky-700 focus:outline-none focus-visible:underline self-start sm:self-auto">
+                    Load sample
+                </button>
+            </div>
+        </section>
+
+        <div id="error-alert" class="hidden mb-6 px-4 py-3 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-sm" role="alert" aria-live="assertive">
+            <p id="error-message" class="font-medium"></p>
+            <p id="error-location" class="mt-1 text-rose-700 text-xs mono"></p>
+            <p id="error-hint" class="mt-1 text-rose-700 text-xs"></p>
+        </div>
+
+        <div id="success-alert" class="hidden mb-6 px-4 py-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm" role="status" aria-live="polite">
+            <p class="font-medium">Conversion complete.</p>
+            <p id="success-details" class="mt-1 text-emerald-700 text-xs"></p>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <section aria-labelledby="input-heading">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="source-input" id="input-heading" class="text-sm font-medium text-slate-700">Input YAML</label>
+                    <span id="input-format-hint" class="text-xs text-slate-400">Paste or type your YAML</span>
+                </div>
+                <textarea id="source-input" rows="16" spellcheck="false"
+                    placeholder="name: Ada&#10;active: true&#10;skills:&#10;  - logic&#10;  - analytical"
+                    class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-300 bg-white text-slate-800 text-sm leading-relaxed resize-y min-h-[18rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-describedby="input-hint" aria-invalid="false"></textarea>
+                <p id="input-hint" class="mt-2 text-xs text-slate-500">Choose a direction, then select <strong>Convert</strong>. Existing output is cleared when you edit the input.</p>
+            </section>
+
+            <section aria-labelledby="output-heading">
+                <div class="flex items-center justify-between mb-2">
+                    <label for="converted-output" id="output-heading" class="text-sm font-medium text-slate-700">Output JSON</label>
+                    <button type="button" id="btn-copy" disabled
+                        class="text-xs font-medium text-sky-600 hover:text-sky-700 inline-flex items-center gap-1 focus:outline-none focus-visible:underline disabled:opacity-40 disabled:pointer-events-none">
+                        <svg class="w-3.5 h-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2z" />
+                        </svg>
+                        Copy output
+                    </button>
+                </div>
+                <textarea id="converted-output" rows="16" readonly spellcheck="false"
+                    placeholder="Converted content will appear here."
+                    class="code-area mono w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-100 text-slate-800 text-sm leading-relaxed resize-y min-h-[18rem] focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500"
+                    aria-describedby="output-hint" aria-live="polite"></textarea>
+                <p id="output-hint" class="mt-2 text-xs text-slate-500">
+                    <span id="output-format-hint">JSON output</span> · <span id="output-count">0</span> characters
+                </p>
+            </section>
+        </div>
+    </main>
+
+    <footer class="border-t border-slate-200 bg-white mt-auto">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-5 text-sm text-slate-500">
+            <p>Conversion runs locally in your browser. The YAML parser is loaded from jsDelivr; your input and output are not sent to it or to a server.</p>
+        </div>
+    </footer>
+
+    <script>
+        const sourceInput = document.getElementById('source-input');
+        const convertedOutput = document.getElementById('converted-output');
+        const inputHeading = document.getElementById('input-heading');
+        const outputHeading = document.getElementById('output-heading');
+        const inputFormatHint = document.getElementById('input-format-hint');
+        const outputFormatHint = document.getElementById('output-format-hint');
+        const inputCount = document.getElementById('input-count');
+        const outputCount = document.getElementById('output-count');
+        const actionStatus = document.getElementById('action-status');
+        const errorAlert = document.getElementById('error-alert');
+        const errorMessage = document.getElementById('error-message');
+        const errorLocation = document.getElementById('error-location');
+        const errorHint = document.getElementById('error-hint');
+        const successAlert = document.getElementById('success-alert');
+        const successDetails = document.getElementById('success-details');
+        const directionYamlJson = document.getElementById('direction-yaml-json');
+        const directionJsonYaml = document.getElementById('direction-json-yaml');
+        const btnConvert = document.getElementById('btn-convert');
+        const btnSwap = document.getElementById('btn-swap');
+        const btnClear = document.getElementById('btn-clear');
+        const btnSample = document.getElementById('btn-sample');
+        const btnCopy = document.getElementById('btn-copy');
+        let direction = 'yaml-to-json';
+
+        const samples = {
+            'yaml-to-json': 'name: Ada Lovelace\nactive: true\nskills:\n  - logic\n  - analytical\nprofile:\n  role: mathematician\n  projects: 3',
+            'json-to-yaml': '{\n  "name": "Ada Lovelace",\n  "active": true,\n  "skills": ["logic", "analytical"],\n  "profile": {\n    "role": "mathematician",\n    "projects": 3\n  }\n}'
+        };
+
+        function clearMessages() {
+            errorAlert.classList.add('hidden');
+            successAlert.classList.add('hidden');
+            sourceInput.setAttribute('aria-invalid', 'false');
+        }
+
+        function updateCounts() {
+            inputCount.textContent = sourceInput.value.length.toLocaleString();
+            outputCount.textContent = convertedOutput.value.length.toLocaleString();
+        }
+
+        function setDirection(nextDirection) {
+            direction = nextDirection;
+            const yamlToJson = direction === 'yaml-to-json';
+            inputHeading.textContent = yamlToJson ? 'Input YAML' : 'Input JSON';
+            outputHeading.textContent = yamlToJson ? 'Output JSON' : 'Output YAML';
+            inputFormatHint.textContent = yamlToJson ? 'Paste or type your YAML' : 'Paste or type your JSON';
+            outputFormatHint.textContent = yamlToJson ? 'JSON output' : 'YAML output';
+            sourceInput.placeholder = yamlToJson
+                ? 'name: Ada\nactive: true\nskills:\n  - logic\n  - analytical'
+                : '{\n  "name": "Ada",\n  "active": true\n}';
+            directionYamlJson.setAttribute('aria-pressed', String(yamlToJson));
+            directionJsonYaml.setAttribute('aria-pressed', String(!yamlToJson));
+            directionYamlJson.className = yamlToJson
+                ? 'px-3 py-2 rounded-md text-sm font-medium bg-sky-600 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2'
+                : 'px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2';
+            directionJsonYaml.className = !yamlToJson
+                ? 'px-3 py-2 rounded-md text-sm font-medium bg-sky-600 text-white focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2'
+                : 'px-3 py-2 rounded-md text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2';
+            convertedOutput.value = '';
+            btnCopy.disabled = true;
+            btnSwap.disabled = true;
+            clearMessages();
+            updateCounts();
+            actionStatus.textContent = 'Ready';
+        }
+
+        function showError(error, focusInput = true) {
+            errorMessage.textContent = error.message;
+            errorLocation.textContent = error.location || '';
+            errorLocation.classList.toggle('hidden', !error.location);
+            errorHint.textContent = error.hint || '';
+            errorHint.classList.toggle('hidden', !error.hint);
+            errorAlert.classList.remove('hidden');
+            successAlert.classList.add('hidden');
+            sourceInput.setAttribute('aria-invalid', 'true');
+            actionStatus.textContent = 'Fix the input and try again';
+            if (focusInput) sourceInput.focus();
+        }
+
+        function getLocation(error) {
+            let line;
+            let column;
+            if (error.mark) {
+                line = Number.isInteger(error.mark.line) ? error.mark.line + 1 : null;
+                column = Number.isInteger(error.mark.column) ? error.mark.column + 1 : null;
+            } else {
+                const position = error.message && error.message.match(/position\s+(\d+)/i);
+                if (!position) return '';
+                const before = sourceInput.value.slice(0, Number(position[1]));
+                const lines = before.split('\n');
+                line = lines.length;
+                column = lines[lines.length - 1].length + 1;
+            }
+            return line && column ? `Line ${line}, column ${column}.` : '';
+        }
+
+        function convert() {
+            clearMessages();
+            if (!sourceInput.value.trim()) {
+                showError({
+                    message: 'There is nothing to convert yet.',
+                    hint: 'Paste content or load the sample, then select Convert.'
+                });
+                return;
+            }
+            if (!window.jsyaml) {
+                showError({
+                    message: 'The YAML parser could not be loaded.',
+                    hint: 'Check your internet connection or content blocker, reload the page, and try again.'
+                });
+                return;
+            }
+
+            try {
+                let value = direction === 'yaml-to-json'
+                    ? window.jsyaml.load(sourceInput.value)
+                    : JSON.parse(sourceInput.value);
+                if (value === undefined) value = null;
+                const formatted = direction === 'yaml-to-json'
+                    ? JSON.stringify(value, null, 2)
+                    : window.jsyaml.dump(value, { indent: 2, lineWidth: -1, noRefs: true, noCompatMode: true });
+                convertedOutput.value = formatted;
+                btnCopy.disabled = false;
+                btnSwap.disabled = false;
+                successDetails.textContent = `${direction === 'yaml-to-json' ? 'YAML parsed and formatted as JSON' : 'JSON parsed and formatted as YAML'} · ${formatted.length.toLocaleString()} output characters`;
+                successAlert.classList.remove('hidden');
+                actionStatus.textContent = 'Conversion complete';
+                updateCounts();
+            } catch (error) {
+                const isJson = direction === 'json-to-yaml';
+                showError({
+                    message: error.message || `Invalid ${isJson ? 'JSON' : 'YAML'}.`,
+                    location: getLocation(error),
+                    hint: isJson
+                        ? 'Check for double-quoted strings and property names, commas between values, and matching brackets.'
+                        : 'Check indentation, matching quotes, and the line and column shown above. YAML indentation must use spaces, not tabs.'
+                });
+            }
+        }
+
+        directionYamlJson.addEventListener('click', () => setDirection('yaml-to-json'));
+        directionJsonYaml.addEventListener('click', () => setDirection('json-to-yaml'));
+        btnConvert.addEventListener('click', convert);
+        btnSample.addEventListener('click', () => {
+            sourceInput.value = samples[direction];
+            convertedOutput.value = '';
+            btnCopy.disabled = true;
+            btnSwap.disabled = true;
+            clearMessages();
+            updateCounts();
+            actionStatus.textContent = 'Sample loaded — select Convert';
+            sourceInput.focus();
+        });
+        btnClear.addEventListener('click', () => {
+            sourceInput.value = '';
+            convertedOutput.value = '';
+            btnCopy.disabled = true;
+            btnSwap.disabled = true;
+            clearMessages();
+            updateCounts();
+            actionStatus.textContent = 'Ready';
+            sourceInput.focus();
+        });
+        btnSwap.addEventListener('click', () => {
+            if (!convertedOutput.value) return;
+            sourceInput.value = convertedOutput.value;
+            setDirection(direction === 'yaml-to-json' ? 'json-to-yaml' : 'yaml-to-json');
+            actionStatus.textContent = 'Output moved to input — select Convert';
+            sourceInput.focus();
+        });
+        btnCopy.addEventListener('click', async () => {
+            if (!convertedOutput.value) return;
+            try {
+                await navigator.clipboard.writeText(convertedOutput.value);
+                actionStatus.textContent = 'Output copied to clipboard';
+            } catch (error) {
+                showError({
+                    message: 'Could not copy to the clipboard.',
+                    hint: 'Select the output text and copy it using your browser or keyboard shortcut.'
+                });
+            }
+        });
+        sourceInput.addEventListener('input', () => {
+            convertedOutput.value = '';
+            btnCopy.disabled = true;
+            btnSwap.disabled = true;
+            clearMessages();
+            updateCounts();
+            actionStatus.textContent = sourceInput.value ? 'Input changed — select Convert' : 'Ready';
+        });
+        document.addEventListener('keydown', (event) => {
+            if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                event.preventDefault();
+                convert();
+            }
+        });
+
+        updateCounts();
+        if (!window.jsyaml) {
+            showError({
+                message: 'The YAML parser could not be loaded.',
+                hint: 'Check your internet connection or content blocker, then reload this page to use the converter.'
+            }, false);
+        }
+    </script>
+</body>
+</html>
